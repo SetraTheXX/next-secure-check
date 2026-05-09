@@ -1,0 +1,28 @@
+{
+  "name": "next-secure-check",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "next-secure-check": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@next-secure-check/core": "workspace:*",
+    "@next-secure-check/reporter": "workspace:*",
+    "@next-secure-check/rules": "workspace:*",
+    "chalk": "^5.6.0",
+    "commander": "^14.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\""
+  }
+}
