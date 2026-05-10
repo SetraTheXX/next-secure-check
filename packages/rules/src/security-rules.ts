@@ -1,0 +1,298 @@
+import type { Rule } from "@next-secure-check/core";
+import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
+
+export const envFileCommittedRule: Rule = {
+  id: "secrets/env-file-committed",
+  title: "Environment file committed",
+  severity: "HIGH",
+  category: "secrets",
+  confidence: "HIGH",
+  scan(context) {
+    return context.files
+      .filter((file) => /^\.env(\.local|\.production)?$/.test(file.path.split("/").at(-1) ?? ""))
+      .map((file) =>
+        createFinding({
+          rule: envFileCommittedRule,
+          file,
+          description: "Environment files may contain secrets and should not be committed.",
+          recommendation: "Remove committed environment files, rotate exposed secrets, and keep only .env.example templates in git.",
+          evidence: file.path
+        })
+      );
+  }
+};
+
+export const hardcodedSecretRule: Rule = {
+  id: "secrets/hardcoded-secret",
+  title: "Possible hardcoded secret detected",
+  severity: "HIGH",
+  category: "secrets",
+  confidence: "MEDIUM",
+  scan(context) {
+    const findings = [];
+    const secretAssignmentPattern =
+      /\b(api[_-]?key|secret|token|password|private[_-]?key|stripe[_-]?key|github[_-]?token|jwt[_-]?secret)\b\s*[:=]\s*["'`]([^"'`]{8,})["'`]/i;
+    const knownSecretPattern = /(sk_live_[A-Za-z0-9_]+|ghp_[A-Za-z0-9_]+|xox[baprs]-[A-Za-z0-9-]+)/i;
+
+    for (const file of codeFiles(context)) {
+      for (const match of findMatches(file, secretAssignmentPattern)) {
+        knownSecretPattern.lastIndex = 0;
+        if (knownSecretPattern.test(match.evidence)) {
+          continue;
+        }
+
+        findings.push(
+          createFinding({
+            rule: hardcodedSecretRule,
+            file,
+            line: match.line,
+            column: match.column,
+            evidence: match.evidence,
+            description: "A secret-like variable appears to contain a literal value.",
+            recommendation: "Move secrets to server-side environment variables and rotate any value that may have been exposed."
+          })
+        );
+      }
+
+      for (const match of findMatches(file, knownSecretPattern)) {
+        findings.push(
+          createFinding({
+            rule: hardcodedSecretRule,
+            file,
+            line: match.line,
+            column: match.column,
+            evidence: match.evidence,
+            description: "A string matches a known live secret token pattern.",
+            recommendation: "Remove the token from source control and rotate it immediately.",
+            confidence: "HIGH"
+          })
+        );
+      }
+    }
+
+    return findings;
+  }
+};
+
+export const weakJwtSecretRule: Rule = {
+  id: "secrets/weak-jwt-secret",
+  title: "Weak JWT secret detected",
+  severity: "HIGH",
+  category: "secrets",
+  confidence: "HIGH",
+  scan(context) {
+    const findings = [];
+    const weakValues = new Set(["secret", "changeme", "change-me", "default", "password", "test", "dev", "development"]);
+    const pattern = /\bJWT_SECRET\b\s*[:=]\s*["'`]?([^"'`\s,;]{1,64})["'`]?/i;
+
+    for (const file of context.files) {
+      for (const match of findMatches(file, pattern)) {
+        const value = match.evidence.split(/[:=]/).at(-1)?.replace(/["'`,;]/g, "").trim().toLowerCase() ?? "";
+        if (value.length < 32 || weakValues.has(value)) {
+          findings.push(
+            createFinding({
+              rule: weakJwtSecretRule,
+              file,
+              line: match.line,
+              column: match.column,
+              evidence: match.evidence,
+              description: "JWT secrets should be long, random, and unique per environment.",
+              recommendation: "Use a high-entropy secret of at least 32 bytes and rotate weak/default values."
+            })
+          );
+        }
+      }
+    }
+
+    return findings;
+  }
+};
+
+export const noEvalRule: Rule = {
+  id: "injection/no-eval",
+  title: "eval() usage detected",
+  severity: "HIGH",
+  category: "injection",
+  confidence: "HIGH",
+  scan(context) {
+    return codeFiles(context).flatMap((file) =>
+      findMatches(file, /\beval\s*\(/).map((match) =>
+        createFinding({
+          rule: noEvalRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "eval() can execute untrusted code and may lead to code injection.",
+          recommendation: "Replace eval() with explicit parsing or a safe interpreter for the expected input."
+        })
+      )
+    );
+  }
+};
+
+export const dangerouslySetInnerHtmlRule: Rule = {
+  id: "xss/dangerously-set-inner-html",
+  title: "dangerouslySetInnerHTML usage detected",
+  severity: "LOW",
+  category: "xss",
+  confidence: "HIGH",
+  scan(context) {
+    return codeFiles(context).flatMap((file) =>
+      findMatches(file, /dangerouslySetInnerHTML/).map((match) =>
+        createFinding({
+          rule: dangerouslySetInnerHtmlRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "Rendering raw HTML can introduce XSS if the content is user-controlled.",
+          recommendation: "Avoid raw HTML rendering or sanitize trusted markup with a proven sanitizer."
+        })
+      )
+    );
+  }
+};
+
+export const insecureCorsWildcardRule: Rule = {
+  id: "config/insecure-cors-wildcard",
+  title: "Wildcard CORS origin detected",
+  severity: "MEDIUM",
+  category: "config",
+  confidence: "HIGH",
+  scan(context) {
+    const pattern = /(Access-Control-Allow-Origin["']?\s*[:,]\s*["']\*["']|origin\s*:\s*["']\*["'])/i;
+
+    return codeFiles(context).flatMap((file) =>
+      findMatches(file, pattern).map((match) =>
+        createFinding({
+          rule: insecureCorsWildcardRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "Wildcard CORS allows any origin to access the endpoint.",
+          recommendation: "Restrict CORS origins to trusted domains and avoid credentials with wildcard origins."
+        })
+      )
+    );
+  }
+};
+
+export const loginWithoutRateLimitRule: Rule = {
+  id: "auth/login-without-rate-limit",
+  title: "Login endpoint may be missing rate limiting",
+  severity: "HIGH",
+  category: "auth",
+  confidence: "MEDIUM",
+  scan(context) {
+    const rateLimitPattern = /(rateLimit|rate-limit|ratelimit|limiter|upstash|slowDown|throttle)/i;
+
+    return codeFiles(context)
+      .filter((file) => /(login|signin|sign-in|auth)/i.test(file.path))
+      .filter((file) => !rateLimitPattern.test(file.content) && !projectContains(context, rateLimitPattern))
+      .map((file) =>
+        createFinding({
+          rule: loginWithoutRateLimitRule,
+          file,
+          description: "Authentication endpoints are common brute-force targets and should be rate limited.",
+          recommendation: "Add per-IP and per-account rate limiting to login/auth endpoints."
+        })
+      );
+  }
+};
+
+export const passwordWithoutHashingRule: Rule = {
+  id: "auth/password-without-hashing-library",
+  title: "Password handling without bcrypt or argon2 detected",
+  severity: "MEDIUM",
+  category: "auth",
+  confidence: "MEDIUM",
+  scan(context) {
+    if (hasDependency(context, ["bcrypt", "bcryptjs", "argon2"])) {
+      return [];
+    }
+
+    return codeFiles(context)
+      .filter((file) => /\bpassword\b/i.test(file.content))
+      .map((file) =>
+        createFinding({
+          rule: passwordWithoutHashingRule,
+          file,
+          description: "Password-related code exists, but bcrypt/argon2 dependency usage was not detected.",
+          recommendation: "Hash passwords with argon2 or bcrypt and avoid storing or comparing plaintext passwords."
+        })
+      );
+  }
+};
+
+export const rawSqlConcatRule: Rule = {
+  id: "injection/raw-sql-concat",
+  title: "Possible raw SQL string interpolation detected",
+  severity: "HIGH",
+  category: "injection",
+  confidence: "MEDIUM",
+  scan(context) {
+    const pattern = /`[^`]*(SELECT|INSERT|UPDATE|DELETE)[^`]*\$\{[^}]+}[^`]*`|["'][^"']*(SELECT|INSERT|UPDATE|DELETE)[^"']*["']\s*\+/i;
+
+    return codeFiles(context).flatMap((file) =>
+      findMatches(file, pattern).map((match) =>
+        createFinding({
+          rule: rawSqlConcatRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "SQL built with string interpolation or concatenation can lead to SQL injection.",
+          recommendation: "Use parameterized queries, prepared statements, or a safe ORM query builder."
+        })
+      )
+    );
+  }
+};
+
+export const missingSecurityHeadersRule: Rule = {
+  id: "headers/missing-security-headers",
+  title: "Security headers were not detected",
+  severity: "LOW",
+  category: "headers",
+  confidence: "LOW",
+  scan(context) {
+    if (context.project.framework !== "nextjs") {
+      return [];
+    }
+
+    const headersPattern =
+      /(Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy|Permissions-Policy)/i;
+    if (configFiles(context).some((file) => headersPattern.test(file.content))) {
+      return [];
+    }
+
+    const anchorFile = context.files.find((file) => file.path === "package.json") ?? context.files[0];
+    if (!anchorFile) {
+      return [];
+    }
+
+    return [
+      createFinding({
+        rule: missingSecurityHeadersRule,
+        file: anchorFile,
+        description: "No common security header configuration was detected for this Next.js project.",
+        recommendation: "Configure CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy."
+      })
+    ];
+  }
+};
+
+export const builtInSecurityRules: Rule[] = [
+  envFileCommittedRule,
+  hardcodedSecretRule,
+  weakJwtSecretRule,
+  noEvalRule,
+  dangerouslySetInnerHtmlRule,
+  insecureCorsWildcardRule,
+  loginWithoutRateLimitRule,
+  passwordWithoutHashingRule,
+  rawSqlConcatRule,
+  missingSecurityHeadersRule
+];
