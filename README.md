@@ -26,6 +26,7 @@ AI helps with speed, structure, and iteration. Technical ownership, product dire
 npx next-secure-check scan .
 npx next-secure-check scan . --format json
 npx next-secure-check scan . --format markdown --output report.md
+npx next-secure-check scan . --format github
 npx next-secure-check scan . --fail-on high
 npx next-secure-check scan . --category secrets,auth,xss
 ```
@@ -60,10 +61,52 @@ node packages/cli/dist/index.js scan examples/vulnerable-next-app
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format json
 ```
 
+## GitHub Actions
+
+After the package is published, copy this workflow into `.github/workflows/security-check.yml` in your project:
+
+```yaml
+name: Security Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  next-secure-check:
+    name: next-secure-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run security check
+        shell: bash
+        run: |
+          set +e
+          npx --yes next-secure-check@latest scan . --format github --fail-on high | tee next-secure-check-report.md
+          status=${PIPESTATUS[0]}
+          cat next-secure-check-report.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+```
+
+This fails the pull request when findings at `HIGH` or above are found. Change `--fail-on` to `medium`, `low`, or `info` if your team wants a stricter gate.
+
+Findings are deterministic pattern matches, not proof of exploitation. Review the `confidence`, `evidence`, and `recommendation` fields before treating a finding as a confirmed vulnerability.
+
 ## Immediate Goal
 
 ```txt
-Phase 1: harden the CLI MVP with stronger rules, docs, and release polish.
+Phase 2: prove the CLI inside GitHub Actions before moving to deeper rules or SaaS work.
 ```
 
 ## Release Gates
