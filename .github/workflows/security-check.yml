@@ -1,0 +1,45 @@
+name: Security Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  next-secure-check:
+    name: next-secure-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build scanner
+        run: pnpm build
+
+      - name: Run security check
+        shell: bash
+        run: |
+          set +e
+          # The repository contains an intentionally vulnerable example app.
+          # This workflow scans the secure example so the workflow itself stays green.
+          node packages/cli/dist/index.js scan examples/secure-next-app --format github --fail-on high | tee next-secure-check-report.md
+          status=${PIPESTATUS[0]}
+          cat next-secure-check-report.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
