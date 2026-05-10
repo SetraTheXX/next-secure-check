@@ -48,8 +48,23 @@ export type ScanResult = {
   };
 };
 
+export type SourceFile = {
+  path: string;
+  absolutePath: string;
+  content: string;
+  lines: string[];
+};
+
 export type ScanContext = {
   targetPath: string;
+  rootPath: string;
+  files: SourceFile[];
+  project: ProjectInfo;
+  packageJson?: {
+    name?: string;
+    dependencies: Record<string, string>;
+    devDependencies: Record<string, string>;
+  };
 };
 
 export type Rule = {
@@ -57,5 +72,12 @@ export type Rule = {
   title: string;
   severity: Severity;
   category: string;
+  confidence?: Confidence;
   scan(context: ScanContext): Promise<Finding[]> | Finding[];
+};
+
+export type ScanOptions = {
+  categories?: string[];
+  rules?: Rule[];
+  toolVersion?: string;
 };

@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, and missing security headers.
 
-> Current status: This project is still in early development. The CLI shape exists; real scanning rules are being implemented next.
+> Current status: This project is still in early development. The first CLI MVP can scan a local project and report deterministic findings.
 
 Started on May 9, 2026.
 
@@ -27,6 +27,7 @@ npx next-secure-check scan .
 npx next-secure-check scan . --format json
 npx next-secure-check scan . --format markdown --output report.md
 npx next-secure-check scan . --fail-on high
+npx next-secure-check scan . --category secrets,auth,xss
 ```
 
 ## Monorepo Layout
@@ -62,7 +63,7 @@ node packages/cli/dist/index.js scan examples/vulnerable-next-app --format json
 ## Immediate Goal
 
 ```txt
-Phase 1: make next-secure-check scan . produce real findings.
+Phase 1: harden the CLI MVP with stronger rules, docs, and release polish.
 ```
 
 ## Release Gates

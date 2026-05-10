@@ -6,7 +6,22 @@ describe("getBuiltInRules", () => {
     const first = getBuiltInRules();
     const second = getBuiltInRules();
 
-    expect(first).toEqual([]);
+    expect(first.length).toBeGreaterThan(0);
     expect(first).not.toBe(second);
+  });
+
+  it("includes the phase 1 rules", () => {
+    const ruleIds = getBuiltInRules().map((rule) => rule.id);
+
+    expect(ruleIds).toContain("secrets/env-file-committed");
+    expect(ruleIds).toContain("secrets/hardcoded-secret");
+    expect(ruleIds).toContain("secrets/weak-jwt-secret");
+    expect(ruleIds).toContain("injection/no-eval");
+    expect(ruleIds).toContain("xss/dangerously-set-inner-html");
+    expect(ruleIds).toContain("config/insecure-cors-wildcard");
+    expect(ruleIds).toContain("auth/login-without-rate-limit");
+    expect(ruleIds).toContain("auth/password-without-hashing-library");
+    expect(ruleIds).toContain("injection/raw-sql-concat");
+    expect(ruleIds).toContain("headers/missing-security-headers");
   });
 });

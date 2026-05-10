@@ -5,10 +5,16 @@ export type {
   RiskLevel,
   Rule,
   ScanContext,
+  ScanOptions,
   ScanResult,
   ScanSummary,
-  Severity
+  Severity,
+  SourceFile
 } from "./types.js";
+export { collectFiles, normalizePath } from "./file-collector.js";
+export { detectProject } from "./project-detector.js";
+export { riskLevelForScore, summarizeFindings } from "./score.js";
+export { resolveProjectPath, scanProject } from "./scanner.js";
 
 export function createScanResultSkeleton(targetPath: string, toolVersion = "0.0.0"): import("./types.js").ScanResult {
   const startedAt = Date.now();
