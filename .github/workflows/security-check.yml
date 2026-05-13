@@ -45,7 +45,7 @@ jobs:
           set +e
           # The repository contains an intentionally vulnerable example app.
           # This workflow scans the secure example so the workflow itself stays green.
-          node packages/cli/dist/index.js scan examples/secure-next-app --format github --fail-on high | tee next-secure-check-report.md
+          node packages/cli/dist/index.js scan examples/vulnerable-next-app --format github --fail-on high | tee next-secure-check-report.md
           status=${PIPESTATUS[0]}
           cat next-secure-check-report.md >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
