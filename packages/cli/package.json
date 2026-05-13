@@ -1,6 +1,19 @@
 {
   "name": "next-secure-check",
   "version": "0.1.0",
+  "description": "Deterministic security checks for Next.js projects. No AI required.",
+  "keywords": [
+    "nextjs",
+    "security",
+    "scanner",
+    "static-analysis",
+    "sast"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SetraTheXX/next-secure-check.git"
+  },
+  "license": "MIT",
   "type": "module",
   "bin": {
     "next-secure-check": "./dist/index.js"

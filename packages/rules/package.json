@@ -1,6 +1,12 @@
 {
   "name": "@next-secure-check/rules",
   "version": "0.1.0",
+  "description": "Security rules for next-secure-check",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SetraTheXX/next-secure-check.git"
+  },
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

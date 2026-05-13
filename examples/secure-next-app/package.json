@@ -1,5 +1,10 @@
 {
   "name": "secure-next-app",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18"
+  }
 }

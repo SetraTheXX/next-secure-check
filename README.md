@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, and missing security headers.
 
-> Current status: This project is still in early development. The first CLI MVP can scan a local project and report deterministic findings.
+> Current status: This project is in early development. The CLI MVP is functional and can scan local projects to report deterministic findings.
 
 Started on May 9, 2026.
 
@@ -20,7 +20,22 @@ The project is built with an AI-assisted development workflow, but the scanner i
 
 AI helps with speed, structure, and iteration. Technical ownership, product direction, review, testing, and release decisions remain my responsibility.
 
-## Target CLI
+## Current Rules
+
+The scanner currently checks for 10 common security patterns. You can read more about each rule in the [docs/rules](./docs/rules) directory.
+
+1. **[secrets/env-file-committed](./docs/rules/env-file-committed.md)**: Detects committed `.env` files.
+2. **[secrets/hardcoded-secret](./docs/rules/hardcoded-secret.md)**: Detects hardcoded API keys and tokens.
+3. **[secrets/weak-jwt-secret](./docs/rules/weak-jwt-secret.md)**: Detects weak or default `JWT_SECRET` values.
+4. **[injection/no-eval](./docs/rules/no-eval.md)**: Detects `eval()` usage.
+5. **[xss/dangerously-set-inner-html](./docs/rules/dangerously-set-inner-html.md)**: Detects raw HTML rendering in React.
+6. **[config/insecure-cors-wildcard](./docs/rules/insecure-cors-wildcard.md)**: Detects wildcard CORS origins.
+7. **[auth/login-without-rate-limit](./docs/rules/login-without-rate-limit.md)**: Detects login endpoints missing rate limiting.
+8. **[auth/password-without-hashing-library](./docs/rules/password-without-hashing-library.md)**: Detects password handling without bcrypt/argon2.
+9. **[injection/raw-sql-concat](./docs/rules/raw-sql-concat.md)**: Detects raw SQL string interpolation.
+10. **[headers/missing-security-headers](./docs/rules/missing-security-headers.md)**: Detects missing security headers in Next.js config.
+
+## CLI Usage
 
 ```bash
 npx next-secure-check scan .
@@ -54,7 +69,7 @@ pnpm build
 pnpm test
 ```
 
-After building, the current scaffold CLI can be run from the package:
+After building, the CLI can be run locally:
 
 ```bash
 node packages/cli/dist/index.js scan examples/vulnerable-next-app
@@ -120,4 +135,4 @@ Real user feedback comes before payments.
 
 ## License
 
-License decision is pending before the first public release.
+[MIT License](./LICENSE)
