@@ -6,7 +6,9 @@
   "packageManager": "pnpm@10.20.0",
   "scripts": {
     "build": "pnpm -r --if-present build",
-    "test": "vitest run --passWithNoTests",
+    "test": "pnpm test:packages && pnpm test:web",
+    "test:packages": "vitest run --passWithNoTests",
+    "test:web": "pnpm -C apps/web test",
     "typecheck": "pnpm -r --if-present typecheck",
     "clean": "pnpm -r --if-present clean"
   },

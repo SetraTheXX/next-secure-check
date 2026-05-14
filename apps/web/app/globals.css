@@ -71,6 +71,15 @@ button {
   opacity: 0.6;
 }
 
+.validation {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.validation.error {
+  color: #b91c1c;
+}
+
 .note {
   font-size: 13px;
   color: #6b7280;

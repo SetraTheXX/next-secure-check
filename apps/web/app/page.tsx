@@ -1,4 +1,17 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { parseGitHubRepoUrl } from "../lib/github-url";
+
 export default function Home() {
+  const [input, setInput] = useState("");
+  const result = useMemo(() => {
+    if (!input.trim()) {
+      return null;
+    }
+    return parseGitHubRepoUrl(input);
+  }, [input]);
+
   return (
     <main className="card">
       <header className="header">
@@ -15,7 +28,12 @@ export default function Home() {
           type="url"
           placeholder="https://github.com/owner/repo"
           autoComplete="off"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
         />
+        {result && !result.ok ? (
+          <div className="validation error">{result.error}</div>
+        ) : null}
         <button type="button" disabled>
           Scan (coming soon)
         </button>
