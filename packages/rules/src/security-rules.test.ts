@@ -118,4 +118,16 @@ describe("built-in security rules", () => {
 
     expect(result.findings.some((finding) => finding.ruleId === "secrets/next-public-secret")).toBe(true);
   });
+
+  it("detects register endpoints without rate limiting", async () => {
+    const result = await scanFixture({ "app/api/register/route.ts": "export async function POST() { return Response.json({ ok: true }); }" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/register-without-rate-limit")).toBe(true);
+  });
+
+  it("does not flag register endpoints with rate limiting", async () => {
+    const result = await scanFixture({ "app/api/register/route.ts": "const rateLimit = true; export async function POST() {}" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/register-without-rate-limit")).toBe(false);
+  });
 });

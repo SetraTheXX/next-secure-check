@@ -202,6 +202,30 @@ export const loginWithoutRateLimitRule: Rule = {
   }
 };
 
+export const registerWithoutRateLimitRule: Rule = {
+  id: "auth/register-without-rate-limit",
+  title: "Register endpoint may be missing rate limiting",
+  severity: "HIGH",
+  category: "auth",
+  confidence: "MEDIUM",
+  scan(context) {
+    const rateLimitPattern = /(rateLimit|rate-limit|ratelimit|limiter|upstash|slowDown|throttle)/i;
+
+    return codeFiles(context)
+      .filter((file) => /(register|signup|sign-up|create-account)/i.test(file.path))
+      .filter((file) => !rateLimitPattern.test(file.content) && !projectContains(context, rateLimitPattern))
+      .map((file) =>
+        createFinding({
+          rule: registerWithoutRateLimitRule,
+          file,
+          description:
+            "Registration endpoints can be abused for spam accounts, brute force, or resource exhaustion and should be rate limited.",
+          recommendation: "Add per-IP and abuse-aware rate limiting to registration/signup endpoints."
+        })
+      );
+  }
+};
+
 export const passwordWithoutHashingRule: Rule = {
   id: "auth/password-without-hashing-library",
   title: "Password handling without bcrypt or argon2 detected",
@@ -322,5 +346,6 @@ export const builtInSecurityRules: Rule[] = [
   passwordWithoutHashingRule,
   rawSqlConcatRule,
   missingSecurityHeadersRule,
-  nextPublicSecretRule
+  nextPublicSecretRule,
+  registerWithoutRateLimitRule
 ];
