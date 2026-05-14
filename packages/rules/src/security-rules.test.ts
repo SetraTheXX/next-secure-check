@@ -112,4 +112,10 @@ describe("built-in security rules", () => {
 
     expect(result.findings.some((finding) => finding.ruleId === "headers/missing-security-headers")).toBe(false);
   });
+
+  it("detects NEXT_PUBLIC secret-like variables", async () => {
+    const result = await scanFixture({ ".env": "NEXT_PUBLIC_STRIPE_SECRET=sk_test_123" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "secrets/next-public-secret")).toBe(true);
+  });
 });

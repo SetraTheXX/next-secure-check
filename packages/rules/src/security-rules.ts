@@ -284,6 +284,33 @@ export const missingSecurityHeadersRule: Rule = {
   }
 };
 
+export const nextPublicSecretRule: Rule = {
+  id: "secrets/next-public-secret",
+  title: "NEXT_PUBLIC secret-like variable detected",
+  severity: "HIGH",
+  category: "secrets",
+  confidence: "MEDIUM",
+  scan(context) {
+    const pattern = /NEXT_PUBLIC_(?:[A-Z0-9_]*)(?:SECRET|TOKEN|PASSWORD|PRIVATE_KEY|API_KEY|JWT|STRIPE_SECRET)(?:[A-Z0-9_]*)\s*[:=]/i;
+
+    return context.files.flatMap((file) =>
+      findMatches(file, pattern).map((match) =>
+        createFinding({
+          rule: nextPublicSecretRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description:
+            "NEXT_PUBLIC environment variables may be exposed to the browser in Next.js. Secret-like names should not use the NEXT_PUBLIC prefix.",
+          recommendation:
+            "Move secret values to server-only environment variables and remove the NEXT_PUBLIC prefix unless the value is intentionally public."
+        })
+      )
+    );
+  }
+};
+
 export const builtInSecurityRules: Rule[] = [
   envFileCommittedRule,
   hardcodedSecretRule,
@@ -294,5 +321,6 @@ export const builtInSecurityRules: Rule[] = [
   loginWithoutRateLimitRule,
   passwordWithoutHashingRule,
   rawSqlConcatRule,
-  missingSecurityHeadersRule
+  missingSecurityHeadersRule,
+  nextPublicSecretRule
 ];
