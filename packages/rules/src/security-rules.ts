@@ -383,6 +383,59 @@ export const commandExecRule: Rule = {
   }
 };
 
+export const missingFileTypeValidationRule: Rule = {
+  id: "upload/missing-file-type-validation",
+  title: "Upload endpoint may be missing file type validation",
+  severity: "MEDIUM",
+  category: "upload",
+  confidence: "MEDIUM",
+  scan(context) {
+    const pathSignals = /\b(upload|avatar|media|file|image)\b/i;
+    const contentSignals = /\b(formData|File|Blob|multer|formidable|busboy)\b/i;
+    const validationSignals =
+      /\b(mimetype|fileType|allowedTypes|allowedMimeTypes)\b|\.type\b|\.mime\b|content-type|includes\(|startsWith\(["']image\//i;
+
+    return codeFiles(context)
+      .filter((file) => pathSignals.test(file.path) && contentSignals.test(file.content))
+      .filter((file) => !validationSignals.test(file.content))
+      .map((file) =>
+        createFinding({
+          rule: missingFileTypeValidationRule,
+          file,
+          description: "Upload endpoints should validate file types before accepting user-controlled files.",
+          recommendation:
+            "Validate MIME type and file extension with an allowlist before storing or processing uploaded files."
+        })
+      );
+  }
+};
+
+export const missingFileSizeLimitRule: Rule = {
+  id: "upload/missing-file-size-limit",
+  title: "Upload endpoint may be missing file size limit",
+  severity: "MEDIUM",
+  category: "upload",
+  confidence: "MEDIUM",
+  scan(context) {
+    const pathSignals = /\b(upload|avatar|media|file|image)\b/i;
+    const contentSignals = /\b(formData|File|Blob|multer|formidable|busboy)\b/i;
+    const sizeLimitSignals = /\b(maxSize|maxFileSize|fileSize|MAX_FILE_SIZE)\b|limit\s*[:=]|\.limit\b|\.size\s*[><=]/i;
+
+    return codeFiles(context)
+      .filter((file) => pathSignals.test(file.path) && contentSignals.test(file.content))
+      .filter((file) => !sizeLimitSignals.test(file.content))
+      .map((file) =>
+        createFinding({
+          rule: missingFileSizeLimitRule,
+          file,
+          description: "Upload endpoints should enforce file size limits to reduce abuse and resource exhaustion risk.",
+          recommendation:
+            "Add a strict maximum file size and reject files that exceed it before storage or further processing."
+        })
+      );
+  }
+};
+
 export const builtInSecurityRules: Rule[] = [
   envFileCommittedRule,
   hardcodedSecretRule,
@@ -397,5 +450,7 @@ export const builtInSecurityRules: Rule[] = [
   rawSqlConcatRule,
   missingSecurityHeadersRule,
   nextPublicSecretRule,
-  registerWithoutRateLimitRule
+  registerWithoutRateLimitRule,
+  missingFileTypeValidationRule,
+  missingFileSizeLimitRule
 ];

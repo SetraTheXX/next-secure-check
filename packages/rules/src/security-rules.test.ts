@@ -142,4 +142,52 @@ describe("built-in security rules", () => {
 
     expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(true);
   });
+
+  it("detects missing file type validation in upload endpoints", async () => {
+    const result = await scanFixture({
+      "app/api/upload/route.ts": "export async function POST(req) { const data = await req.formData(); return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "upload/missing-file-type-validation")).toBe(true);
+  });
+
+  it("does not flag upload endpoints with file type validation", async () => {
+    const result = await scanFixture({
+      "app/api/upload/route.ts": "export async function POST(req) { const data = await req.formData(); if (file.type === 'image/png') {} return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "upload/missing-file-type-validation")).toBe(false);
+  });
+
+  it("detects missing file size limit in upload endpoints", async () => {
+    const result = await scanFixture({
+      "app/api/upload/route.ts": "export async function POST(req) { const data = await req.formData(); return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "upload/missing-file-size-limit")).toBe(true);
+  });
+
+  it("does not flag upload endpoints with file size limit", async () => {
+    const result = await scanFixture({
+      "app/api/upload/route.ts": "export async function POST(req) { const data = await req.formData(); if (file.size > 100) {} return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "upload/missing-file-size-limit")).toBe(false);
+  });
+
+  it("does not flag files with upload content but non-upload path", async () => {
+    const result = await scanFixture({
+      "config/secrets.ts": "export const STRIPE_KEY = 'sk_test_123'; const data = await req.formData();"
+    });
+
+    expect(result.findings.some((finding) => finding.category === "upload")).toBe(false);
+  });
+
+  it("does not flag files with upload path but non-upload content", async () => {
+    const result = await scanFixture({
+      "app/api/upload/route.ts": "export async function GET() { return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.category === "upload")).toBe(false);
+  });
 });
