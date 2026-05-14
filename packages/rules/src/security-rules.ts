@@ -335,11 +335,61 @@ export const nextPublicSecretRule: Rule = {
   }
 };
 
+export const noNewFunctionRule: Rule = {
+  id: "injection/no-new-function",
+  title: "new Function() usage detected",
+  severity: "HIGH",
+  category: "injection",
+  confidence: "HIGH",
+  scan(context) {
+    return codeFiles(context).flatMap((file) =>
+      findMatches(file, /\bnew\s+Function\s*\(/).map((match) =>
+        createFinding({
+          rule: noNewFunctionRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "new Function() can execute dynamically generated code and may lead to code injection if input is untrusted.",
+          recommendation: "Avoid dynamic code execution. Replace new Function() with explicit logic or a safe parser for the expected input."
+        })
+      )
+    );
+  }
+};
+
+export const commandExecRule: Rule = {
+  id: "injection/command-exec",
+  title: "Shell command execution detected",
+  severity: "HIGH",
+  category: "injection",
+  confidence: "MEDIUM",
+  scan(context) {
+    const pattern = /\b(exec|execSync|spawn|spawnSync)\s*\(|child_process|node:child_process/;
+
+    return codeFiles(context).flatMap((file) =>
+      findMatches(file, pattern).map((match) =>
+        createFinding({
+          rule: commandExecRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "Shell command execution can lead to command injection if user input reaches the command or arguments.",
+          recommendation: "Avoid shell execution for user-controlled input. Use safe APIs, strict allowlists, and argument arrays when command execution is required."
+        })
+      )
+    );
+  }
+};
+
 export const builtInSecurityRules: Rule[] = [
   envFileCommittedRule,
   hardcodedSecretRule,
   weakJwtSecretRule,
   noEvalRule,
+  noNewFunctionRule,
+  commandExecRule,
   dangerouslySetInnerHtmlRule,
   insecureCorsWildcardRule,
   loginWithoutRateLimitRule,

@@ -130,4 +130,16 @@ describe("built-in security rules", () => {
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/register-without-rate-limit")).toBe(false);
   });
+
+  it("detects new Function() usage", async () => {
+    const result = await scanFixture({ "index.ts": "const f = new Function('return 1');" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(true);
+  });
+
+  it("detects shell command execution", async () => {
+    const result = await scanFixture({ "index.ts": "import { exec } from 'child_process'; exec('ls');" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(true);
+  });
 });
