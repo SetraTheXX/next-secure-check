@@ -1,5 +1,14 @@
 # next-secure-check
 
+## GitHub Actions Demo
+
+The CLI is exercised in GitHub Actions as part of this repository's CI.
+
+- The workflow runs the scanner with `--format github` and writes the markdown report to the job **Step Summary** via `$GITHUB_STEP_SUMMARY`.
+- When `--fail-on high` is used, the job fails if any HIGH severity finding is reported (as demonstrated with the `examples/vulnerable-next-app` demo).
+- The step order is: build → typecheck → test → security check, ensuring workspace packages are compiled before typechecking.
+- The findings are deterministic pattern matches; no proof‑of‑exploit is executed.
+
 Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, and missing security headers.
