@@ -1,21 +1,42 @@
 # next-secure-check
 
+Deterministic security checks for Next.js projects. No AI required.
+
+`next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
+
+> Current status: This project is in early development. The CLI MVP is functional, GitHub Actions integration has been proven, 20 deterministic rules are documented, and the Phase 4 web demo has started with an initial `apps/web` scaffold and GitHub repository URL validation.
+
+Started on May 9, 2026.
+
+## Current Status
+
+Completed:
+
+- CLI MVP
+- 20 deterministic security rules
+- 70 passing tests across packages and the web demo
+- Terminal, JSON, Markdown, and GitHub report formats
+- GitHub Actions proof with Step Summary output
+- Rule documentation in `docs/rules`
+- Initial `apps/web` scaffold for the future web demo
+- GitHub repository URL validation for the web demo
+
+Current focus:
+
+```txt
+Phase 4: safe public web demo
+```
+
+The web demo will scan public GitHub repositories using static analysis only. It will not run repository code, install dependencies, execute tests, or access private repositories.
+
 ## GitHub Actions Demo
 
 The CLI is exercised in GitHub Actions as part of this repository's CI.
 
 - The workflow runs the scanner with `--format github` and writes the markdown report to the job **Step Summary** via `$GITHUB_STEP_SUMMARY`.
-- When `--fail-on high` is used, the job fails if any HIGH severity finding is reported (as demonstrated with the `examples/vulnerable-next-app` demo).
+- When `--fail-on high` is used, the job fails if any HIGH severity finding is reported.
 - The step order is: build → typecheck → test → security check, ensuring workspace packages are compiled before typechecking.
-- The findings are deterministic pattern matches; no proof‑of‑exploit is executed.
-
-Deterministic security checks for Next.js projects. No AI required.
-
-`next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, and missing security headers.
-
-> Current status: This project is in early development. The CLI MVP is functional and can scan local projects to report deterministic findings.
-
-Started on May 9, 2026.
+- The findings are deterministic pattern matches; no proof-of-exploit is executed.
 
 ## Why This Exists
 
@@ -68,14 +89,19 @@ npx next-secure-check scan . --category secrets,auth,xss
 ## Monorepo Layout
 
 ```txt
+apps/
+  web/        Phase 4 web demo app
+
 packages/
   core/       scanner orchestration, shared types, score engine
   cli/        command line entrypoint
   rules/      built-in rule modules
   reporter/   terminal, JSON, markdown, GitHub report output
+
 examples/
   vulnerable-next-app/
   secure-next-app/
+
 docs/
   rules/
 ```
@@ -85,7 +111,18 @@ docs/
 ```bash
 pnpm install
 pnpm build
+pnpm typecheck
 pnpm test
+```
+
+The root test command currently runs both package tests and web demo tests.
+
+Expected current test coverage:
+
+```txt
+packages: 60 tests
+apps/web: 10 tests
+total: 70 tests
 ```
 
 After building, the CLI can be run locally:
@@ -93,7 +130,33 @@ After building, the CLI can be run locally:
 ```bash
 node packages/cli/dist/index.js scan examples/vulnerable-next-app
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format json
+node packages/cli/dist/index.js scan examples/vulnerable-next-app --format markdown --output report.md
+node packages/cli/dist/index.js scan examples/vulnerable-next-app --format github --fail-on high
 ```
+
+## Web Demo Status
+
+The Phase 4 web demo has started under `apps/web`.
+
+Current web demo progress:
+
+- Initial Next.js app scaffold is in place.
+- Public GitHub repository URL validation has started.
+- Web tests are included in the root test command.
+
+The web demo is intentionally limited.
+
+It will not:
+
+- access private repositories
+- require login
+- include payment
+- run repository code
+- run `npm install`
+- run project tests
+- perform dynamic analysis
+
+The goal is to scan public GitHub repositories using safe static analysis only.
 
 ## GitHub Actions
 
@@ -140,8 +203,16 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 ## Immediate Goal
 
 ```txt
-Phase 2: prove the CLI inside GitHub Actions before moving to deeper rules or SaaS work.
+Phase 4: build a safe public web demo for scanning public GitHub repositories without executing code.
 ```
+
+Current Phase 4 focus:
+
+- keep the web demo limited to public repositories
+- validate GitHub repository URLs safely
+- design secure static scan ingestion
+- avoid code execution, dependency installation, and test execution
+- keep private repositories, login, and payment out of scope
 
 ## Release Gates
 
