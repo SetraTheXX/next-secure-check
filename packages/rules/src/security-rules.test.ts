@@ -190,4 +190,36 @@ describe("built-in security rules", () => {
 
     expect(result.findings.some((finding) => finding.category === "upload")).toBe(false);
   });
+
+  it("detects API routes without input validation", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": "export async function POST(req) { const body = await req.json(); return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(true);
+  });
+
+  it("does not flag API routes with input validation", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": "import { z } from 'zod'; const schema = z.object({ name: z.string() }); export async function POST(req) { const body = await req.json(); return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
+  it("detects admin routes without auth protection", async () => {
+    const result = await scanFixture({
+      "app/api/admin/users/route.ts": "export async function GET() { return Response.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(true);
+  });
+
+  it("does not flag admin routes with auth protection", async () => {
+    const result = await scanFixture({
+      "app/api/admin/users/route.ts": "import { getServerSession } from 'next-auth'; export async function GET() { const session = await getServerSession(); return Response.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
 });

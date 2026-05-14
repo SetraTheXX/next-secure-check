@@ -436,6 +436,56 @@ export const missingFileSizeLimitRule: Rule = {
   }
 };
 
+export const apiRouteWithoutValidationRule: Rule = {
+  id: "validation/api-route-without-validation",
+  title: "API route may be missing input validation",
+  severity: "MEDIUM",
+  category: "validation",
+  confidence: "MEDIUM",
+  scan(context) {
+    const pathSignals = /\b(app\/api|pages\/api)\b/i;
+    const contentSignals = /(\breq\.body\b|\breq\.query\b|\breq\.json\(|request\.json\(|request\.formData\(|searchParams|nextUrl\.searchParams)/i;
+    const validationSignals = /\b(zod|yup|joi|safeParse|parse\(|validate|validator|schema)\b/i;
+
+    return codeFiles(context)
+      .filter((file) => pathSignals.test(file.path))
+      .filter((file) => contentSignals.test(file.content))
+      .filter((file) => !validationSignals.test(file.content))
+      .map((file) =>
+        createFinding({
+          rule: apiRouteWithoutValidationRule,
+          file,
+          description: "API routes that consume user input should validate the input before using it.",
+          recommendation: "Add input validation with a schema library such as Zod, Yup, Joi, or a clear custom validation layer."
+        })
+      );
+  }
+};
+
+export const adminRouteWithoutAuthRule: Rule = {
+  id: "auth/admin-route-without-auth",
+  title: "Admin route may be missing auth protection",
+  severity: "HIGH",
+  category: "auth",
+  confidence: "MEDIUM",
+  scan(context) {
+    const pathSignals = /\b(admin|dashboard|manage)\b/i;
+    const authSignals = /\b(auth\(|getServerSession|currentUser|clerk|requireAuth|middleware|session|jwt\.verify|verifyToken|isAdmin|role)\b/i;
+
+    return codeFiles(context)
+      .filter((file) => pathSignals.test(file.path))
+      .filter((file) => !authSignals.test(file.content))
+      .map((file) =>
+        createFinding({
+          rule: adminRouteWithoutAuthRule,
+          file,
+          description: "Admin routes should include authentication and authorization checks.",
+          recommendation: "Protect admin routes with authentication and role/permission checks before returning sensitive data."
+        })
+      );
+  }
+};
+
 export const builtInSecurityRules: Rule[] = [
   envFileCommittedRule,
   hardcodedSecretRule,
@@ -452,5 +502,7 @@ export const builtInSecurityRules: Rule[] = [
   nextPublicSecretRule,
   registerWithoutRateLimitRule,
   missingFileTypeValidationRule,
-  missingFileSizeLimitRule
+  missingFileSizeLimitRule,
+  apiRouteWithoutValidationRule,
+  adminRouteWithoutAuthRule
 ];
