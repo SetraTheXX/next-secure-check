@@ -222,4 +222,47 @@ describe("built-in security rules", () => {
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
   });
+
+  it("detects production browser source maps enabled in next.config.js", async () => {
+    const result = await scanFixture({
+      "next.config.js": "module.exports = { productionBrowserSourceMaps: true };"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/production-browser-source-maps")).toBe(true);
+  });
+
+  it("does not flag productionBrowserSourceMaps when disabled", async () => {
+    const result = await scanFixture({
+      "next.config.js": "module.exports = { productionBrowserSourceMaps: false };"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/production-browser-source-maps")).toBe(false);
+  });
+
+  it("detects missing poweredByHeader: false in next.config.js for Next.js projects", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "next.config.js": "module.exports = { reactStrictMode: true };"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(true);
+  });
+
+  it("does not flag poweredByHeader: false", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "next.config.js": "module.exports = { poweredByHeader: false };"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(false);
+  });
+
+  it("does not flag non-Next.js projects for powered by header", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"express":"latest"}}',
+      "next.config.js": "module.exports = { reactStrictMode: true };"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(false);
+  });
 });

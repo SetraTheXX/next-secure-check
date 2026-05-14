@@ -31,7 +31,7 @@ AI helps with speed, structure, and iteration. Technical ownership, product dire
 
 ## Current Rules
 
-The scanner currently checks for 18 common security patterns. You can read more about each rule in the [docs/rules](./docs/rules) directory.
+The scanner currently checks for 20 common security patterns. You can read more about each rule in the [docs/rules](./docs/rules) directory.
 
 1. **[secrets/env-file-committed](./docs/rules/env-file-committed.md)**: Detects committed `.env` files.
 2. **[secrets/hardcoded-secret](./docs/rules/hardcoded-secret.md)**: Detects hardcoded API keys and tokens.
@@ -51,6 +51,8 @@ The scanner currently checks for 18 common security patterns. You can read more 
 16. **[upload/missing-file-size-limit](./docs/rules/missing-file-size-limit.md)**: Detects upload endpoints missing file size limits.
 17. **[validation/api-route-without-validation](./docs/rules/api-route-without-validation.md)**: Detects API routes that may be missing input validation.
 18. **[auth/admin-route-without-auth](./docs/rules/admin-route-without-auth.md)**: Detects admin routes that may be missing authentication protection.
+19. **[config/production-browser-source-maps](./docs/rules/production-browser-source-maps.md)**: Detects `productionBrowserSourceMaps: true` in Next.js config.
+20. **[config/next-powered-by-header](./docs/rules/next-powered-by-header.md)**: Detects missing `poweredByHeader: false` in Next.js config.
 
 ## CLI Usage
 

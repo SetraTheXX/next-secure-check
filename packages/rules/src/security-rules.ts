@@ -486,6 +486,68 @@ export const adminRouteWithoutAuthRule: Rule = {
   }
 };
 
+export const productionBrowserSourceMapsRule: Rule = {
+  id: "config/production-browser-source-maps",
+  title: "Production browser source maps may be enabled",
+  severity: "LOW",
+  category: "config",
+  confidence: "HIGH",
+  scan(context) {
+    const nextConfigFiles = configFiles(context).filter((file) => /next\.config\.(js|mjs|cjs|ts)$/.test(file.path));
+    const findings = [];
+
+    for (const file of nextConfigFiles) {
+      if (/productionBrowserSourceMaps\s*[:=]\s*true/i.test(file.content)) {
+        findings.push(
+          createFinding({
+            rule: productionBrowserSourceMapsRule,
+            file,
+            description: "Production browser source maps can expose source code structure and make client-side code easier to inspect.",
+            recommendation: "Disable productionBrowserSourceMaps unless you intentionally need public production source maps."
+          })
+        );
+      }
+    }
+
+    return findings;
+  }
+};
+
+export const nextPoweredByHeaderRule: Rule = {
+  id: "config/next-powered-by-header",
+  title: "X-Powered-By header may be enabled",
+  severity: "INFO",
+  category: "config",
+  confidence: "MEDIUM",
+  scan(context) {
+    if (context.project.framework !== "nextjs") {
+      return [];
+    }
+
+    const nextConfigFiles = configFiles(context).filter((file) => /next\.config\.(js|mjs|cjs|ts)$/.test(file.path));
+    
+    if (nextConfigFiles.length === 0) {
+      return [];
+    }
+
+    const findings = [];
+    for (const file of nextConfigFiles) {
+      if (!/poweredByHeader\s*:\s*false/i.test(file.content)) {
+        findings.push(
+          createFinding({
+            rule: nextPoweredByHeaderRule,
+            file,
+            description: "The default X-Powered-By header can reveal framework information. Hiding it is a small hardening step.",
+            recommendation: "Set poweredByHeader: false in next.config.js to reduce framework fingerprinting."
+          })
+        );
+      }
+    }
+
+    return findings;
+  }
+};
+
 export const builtInSecurityRules: Rule[] = [
   envFileCommittedRule,
   hardcodedSecretRule,
@@ -504,5 +566,7 @@ export const builtInSecurityRules: Rule[] = [
   missingFileTypeValidationRule,
   missingFileSizeLimitRule,
   apiRouteWithoutValidationRule,
-  adminRouteWithoutAuthRule
+  adminRouteWithoutAuthRule,
+  productionBrowserSourceMapsRule,
+  nextPoweredByHeaderRule
 ];
