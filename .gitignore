@@ -23,3 +23,6 @@ docs/plans/
 # Reports
 next-secure-check-report.md
 *-report.md
+
+# Ctxo local cache (never committed)
+.ctxo/.cache/
