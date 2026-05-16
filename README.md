@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: This project is in early development. The CLI MVP is functional, GitHub Actions integration has been proven, 20 deterministic rules are documented, and the Phase 4 web demo has started with an initial `apps/web` scaffold and GitHub repository URL validation.
+> Current status: This project is in early development. The CLI MVP is functional, GitHub Actions integration has been proven, 20 deterministic rules are documented, and the Phase 4 web demo can run a limited public GitHub repository scan flow.
 
 Started on May 9, 2026.
 
@@ -14,20 +14,20 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 70 passing tests across packages and the web demo
+- 148 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, and GitHub report formats
 - GitHub Actions proof with Step Summary output
 - Rule documentation in `docs/rules`
-- Initial `apps/web` scaffold for the future web demo
-- GitHub repository URL validation for the web demo
+- `apps/web` web demo for scanning public GitHub repositories
+- GitHub repository URL validation, metadata check, tarball download, safe extraction, cleanup, API scan endpoint, report UI, and JSON/Markdown export
 
 Current focus:
 
 ```txt
-Phase 4: safe public web demo
+Phase 4: safe public web demo hardening and review
 ```
 
-The web demo will scan public GitHub repositories using static analysis only. It will not run repository code, install dependencies, execute tests, or access private repositories.
+The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
 
 ## GitHub Actions Demo
 
@@ -120,9 +120,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 60 tests
-apps/web: 10 tests
-total: 70 tests
+packages: 66 tests
+apps/web: 82 tests
+total: 148 tests
 ```
 
 After building, the CLI can be run locally:
@@ -136,13 +136,35 @@ node packages/cli/dist/index.js scan examples/vulnerable-next-app --format githu
 
 ## Web Demo Status
 
-The Phase 4 web demo has started under `apps/web`.
+The Phase 4 web demo lives under `apps/web`. It is an early-development demo, not a production-ready scanning service.
 
-Current web demo progress:
+Current web demo flow:
 
-- Initial Next.js app scaffold is in place.
-- Public GitHub repository URL validation has started.
-- Web tests are included in the root test command.
+```txt
+Public GitHub repo URL
+-> URL validation
+-> public repository metadata check
+-> tarball download
+-> safe tarball extraction
+-> core scanner
+-> server-side evidence redaction
+-> cleanup
+-> report UI
+-> JSON / Markdown export
+```
+
+The web demo includes:
+
+- public GitHub repository URL validation
+- public repository metadata checks
+- tarball download from GitHub
+- safe tarball extraction with archive limits and path checks
+- cleanup guarantee for extracted temporary files
+- core scanner integration
+- server-side evidence redaction before results reach the browser
+- `POST /api/scans` backend endpoint
+- UI scan flow with loading, error, and result states
+- JSON and Markdown export actions
 
 The web demo is intentionally limited.
 
@@ -153,10 +175,37 @@ It will not:
 - include payment
 - run repository code
 - run `npm install`
-- run project tests
+- run build, test, or package scripts from the scanned repository
 - perform dynamic analysis
 
-The goal is to scan public GitHub repositories using safe static analysis only.
+The goal is to scan public GitHub repositories using safe static analysis only. Secret-related evidence is redacted server-side for web responses and exports.
+
+Run the local web demo:
+
+```bash
+pnpm install
+pnpm build
+pnpm -C apps/web dev
+```
+
+Then open the local Next.js app and enter a public GitHub repository URL.
+
+The scan API accepts:
+
+```http
+POST /api/scans
+Content-Type: application/json
+
+{
+  "repoUrl": "https://github.com/owner/repo"
+}
+```
+
+A real local API smoke test passed with:
+
+```txt
+https://github.com/octocat/Hello-World
+```
 
 ## GitHub Actions
 
