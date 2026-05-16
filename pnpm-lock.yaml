@@ -20,6 +20,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@next-secure-check/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@next-secure-check/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       next:
         specifier: ^15.0.0
         version: 15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
