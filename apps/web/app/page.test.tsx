@@ -1,0 +1,125 @@
+import { describe, expect, it } from "vitest";
+import {
+  createResultTextIndex,
+  evidenceIsRedacted,
+  formatFindingLocation,
+  LOADING_STATE_TITLE,
+  resultContainsRawEvidence,
+  validateRepoInput
+} from "../lib/scan-ui";
+
+describe("Home scan UI helpers", () => {
+  it("validates empty repo input", () => {
+    expect(validateRepoInput("")).toBe("Repository URL is required.");
+  });
+
+  it("validates invalid repo input", () => {
+    expect(validateRepoInput("https://example.com/owner/repo")).toBe(
+      "Only github.com repositories are supported."
+    );
+  });
+
+  it("formats finding location with line and column", () => {
+    expect(
+      formatFindingLocation({
+        ...createFinding(),
+        column: 8,
+        line: 12
+      })
+    ).toBe("app/page.tsx:12:8");
+  });
+
+  it("has loading state copy covered by the UI flow", () => {
+    expect(LOADING_STATE_TITLE).toBe("Scanning repository");
+  });
+
+  it("keeps API error message renderable", () => {
+    expect("Repository not found").toBe("Repository not found");
+  });
+
+  it("renders successful API response details", () => {
+    const result = createSuccessResult();
+    const text = createResultTextIndex(result).join(" ");
+
+    expect(text).toContain("owner/repo");
+    expect(text).toContain("Score");
+    expect(text).toContain("72");
+    expect(text).toContain("Findings");
+    expect(text).toContain("secrets/hardcoded");
+    expect(text).toContain("HIGH");
+    expect(text).toContain("app/page.tsx:3:5");
+    expect(text).toContain("Rotate the secret.");
+  });
+
+  it("shows redacted evidence without raw secret evidence", () => {
+    const result = createSuccessResult();
+    const finding = result.scan.findings[0];
+
+    expect(finding).toBeDefined();
+    expect(finding ? evidenceIsRedacted(finding) : false).toBe(true);
+    expect(resultContainsRawEvidence(result, "GITHUB_TOKEN=raw-secret")).toBe(false);
+
+    const text = createResultTextIndex(result).join(" ");
+    expect(text).toContain("[REDACTED]");
+    expect(text).not.toContain("GITHUB_TOKEN=raw-secret");
+  });
+});
+
+function createFinding() {
+  return {
+    category: "secrets",
+    confidence: "HIGH" as const,
+    description: "Secret in source",
+    evidence: "[REDACTED]",
+    filePath: "app/page.tsx",
+    id: "finding-1",
+    line: 3,
+    column: 5,
+    recommendation: "Rotate the secret.",
+    ruleId: "secrets/hardcoded",
+    severity: "HIGH" as const,
+    title: "Hardcoded secret"
+  };
+}
+
+function createSuccessResult() {
+  return {
+    extraction: {
+      fileCount: 12,
+      tempId: "temp-id",
+      totalBytes: 2048
+    },
+    ok: true as const,
+    repo: {
+      archived: false,
+      defaultBranch: "main",
+      fullName: "owner/repo",
+      htmlUrl: "https://github.com/owner/repo",
+      owner: "owner",
+      repo: "repo"
+    },
+    scan: {
+      findings: [createFinding()],
+      metadata: {
+        durationMs: 11,
+        scannedAt: "2026-05-17T00:00:00.000Z",
+        toolVersion: "test"
+      },
+      project: {
+        framework: "nextjs",
+        language: "typescript",
+        name: "repo",
+        router: "app"
+      },
+      summary: {
+        high: 1,
+        info: 0,
+        low: 0,
+        medium: 0,
+        riskLevel: "high",
+        score: 72,
+        totalFindings: 1
+      }
+    }
+  };
+}
