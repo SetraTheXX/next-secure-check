@@ -32,20 +32,26 @@ export function createFinding(input: FindingInput): Finding {
 
 export function findMatches(file: SourceFile, pattern: RegExp): Array<{ line: number; column: number; evidence: string }> {
   const matches: Array<{ line: number; column: number; evidence: string }> = [];
+  const matcher = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
 
   file.lines.forEach((lineContent, lineIndex) => {
-    const match = pattern.exec(lineContent);
-    pattern.lastIndex = 0;
-    if (!match) {
-      return;
-    }
+    matcher.lastIndex = 0;
 
-    matches.push({
-      line: lineIndex + 1,
-      column: match.index + 1,
-      evidence: lineContent.trim()
-    });
+    let match: RegExpExecArray | null;
+    while ((match = matcher.exec(lineContent)) !== null) {
+      matches.push({
+        line: lineIndex + 1,
+        column: match.index + 1,
+        evidence: lineContent.trim()
+      });
+
+      if (match[0].length === 0) {
+        matcher.lastIndex += 1;
+      }
+    }
   });
+
+  pattern.lastIndex = 0;
 
   return matches;
 }
