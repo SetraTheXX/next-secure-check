@@ -28,3 +28,18 @@ export type TarballExtractResult =
       message: string;
       status?: number;
     };
+
+export type TarballDownloadResult =
+  | {
+      ok: true;
+      bytes: Uint8Array;
+      sizeBytes: number;
+      contentType: string;
+      sourceUrl: string;
+    }
+  | {
+      ok: false;
+      code: ArchiveErrorCode;
+      message: string;
+      status?: number;
+    };
