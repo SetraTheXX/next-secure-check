@@ -120,4 +120,22 @@ describe("POST /api/scans", () => {
       ok: false
     });
   });
+
+  it("returns safe response for unexpected scan exceptions", async () => {
+    scanPublicGitHubRepoMock.mockRejectedValueOnce(new Error("stack trace with secret"));
+
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body: JSON.stringify({ repoUrl: "https://github.com/owner/repo" }),
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      code: "SCAN_FAILED",
+      message: "Scan failed unexpectedly.",
+      ok: false
+    });
+  });
 });

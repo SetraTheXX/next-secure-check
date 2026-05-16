@@ -68,6 +68,7 @@ export type ScanApiFailure = {
 export type ScanApiResult = ScanApiSuccess | ScanApiFailure;
 
 export const LOADING_STATE_TITLE = "Scanning repository";
+export const MAX_RENDERED_FINDINGS = 100;
 
 export function validateRepoInput(input: string): string | null {
   if (!input.trim()) {
@@ -92,7 +93,17 @@ export function resultContainsRawEvidence(result: ScanApiSuccess, rawEvidence: s
   return result.scan.findings.some((finding) => finding.evidence === rawEvidence);
 }
 
+export function getVisibleFindings(result: ScanApiSuccess): ScanApiFinding[] {
+  return result.scan.findings.slice(0, MAX_RENDERED_FINDINGS);
+}
+
+export function getHiddenFindingCount(result: ScanApiSuccess): number {
+  return Math.max(0, result.scan.findings.length - MAX_RENDERED_FINDINGS);
+}
+
 export function createResultTextIndex(result: ScanApiSuccess): string[] {
+  const visibleFindings = getVisibleFindings(result);
+
   return [
     result.repo.fullName,
     "Score",
@@ -104,14 +115,15 @@ export function createResultTextIndex(result: ScanApiSuccess): string[] {
     String(result.scan.summary.medium),
     String(result.scan.summary.low),
     String(result.scan.summary.info),
-    ...result.scan.findings.flatMap((finding) => [
+    ...visibleFindings.flatMap((finding) => [
       finding.ruleId,
       finding.severity,
       finding.confidence,
       formatFindingLocation(finding),
       finding.evidence ?? "",
       finding.recommendation
-    ])
+    ]),
+    String(getHiddenFindingCount(result))
   ];
 }
 

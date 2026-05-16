@@ -27,5 +27,8 @@ export function redactScanResult(result: ScanResult): RedactedScanResult {
 }
 
 function isSecretFinding(finding: Finding): boolean {
-  return finding.category === "secrets" || finding.ruleId.startsWith("secrets/");
+  return (
+    finding.category.toLowerCase() === "secrets" ||
+    finding.ruleId.toLowerCase().startsWith("secrets/")
+  );
 }

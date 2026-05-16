@@ -32,7 +32,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const result = await scanPublicGitHubRepo(body.repoUrl);
+  let result: Awaited<ReturnType<typeof scanPublicGitHubRepo>>;
+
+  try {
+    result = await scanPublicGitHubRepo(body.repoUrl);
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "SCAN_FAILED",
+        message: "Scan failed unexpectedly."
+      },
+      { status: 500 }
+    );
+  }
 
   if (result.ok) {
     return NextResponse.json(result, { status: 200 });

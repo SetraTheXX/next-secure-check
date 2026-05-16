@@ -5,7 +5,10 @@ import {
   createResultTextIndex,
   evidenceIsRedacted,
   formatFindingLocation,
+  getHiddenFindingCount,
+  getVisibleFindings,
   LOADING_STATE_TITLE,
+  MAX_RENDERED_FINDINGS,
   resultContainsRawEvidence,
   validateRepoInput
 } from "../lib/scan-ui";
@@ -101,9 +104,24 @@ describe("Home scan UI helpers", () => {
     expect(createScanJsonExport(result)).toContain("[REDACTED]");
     expect(createScanMarkdownExport(result)).toContain("[REDACTED]");
   });
+
+  it("limits visible findings for large UI result sets", () => {
+    const result = createSuccessResult(
+      Array.from({ length: MAX_RENDERED_FINDINGS + 2 }, (_, index) =>
+        createFinding({
+          id: `finding-${index}`,
+          ruleId: `headers/rule-${index}`
+        })
+      )
+    );
+
+    expect(getVisibleFindings(result)).toHaveLength(MAX_RENDERED_FINDINGS);
+    expect(getHiddenFindingCount(result)).toBe(2);
+    expect(createResultTextIndex(result).join(" ")).toContain("2");
+  });
 });
 
-function createFinding() {
+function createFinding(overrides = {}) {
   return {
     category: "secrets",
     confidence: "HIGH" as const,
@@ -116,11 +134,12 @@ function createFinding() {
     recommendation: "Rotate the secret.",
     ruleId: "secrets/hardcoded",
     severity: "HIGH" as const,
-    title: "Hardcoded secret"
+    title: "Hardcoded secret",
+    ...overrides
   };
 }
 
-function createSuccessResult() {
+function createSuccessResult(findings = [createFinding()]) {
   return {
     extraction: {
       fileCount: 12,
@@ -137,7 +156,7 @@ function createSuccessResult() {
       repo: "repo"
     },
     scan: {
-      findings: [createFinding()],
+      findings,
       metadata: {
         durationMs: 11,
         scannedAt: "2026-05-17T00:00:00.000Z",

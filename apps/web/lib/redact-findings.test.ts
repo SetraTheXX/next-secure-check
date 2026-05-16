@@ -27,6 +27,18 @@ describe("redactFindingEvidence", () => {
     expect(result.evidence).toBe("[REDACTED]");
   });
 
+  it("redacts secret finding markers case-insensitively", () => {
+    const result = redactFindingEvidence(
+      createFinding({
+        category: "Secrets",
+        evidence: "TOKEN=raw-secret",
+        ruleId: "Secrets/env-token"
+      })
+    );
+
+    expect(result.evidence).toBe("[REDACTED]");
+  });
+
   it("keeps non-secret evidence", () => {
     const result = redactFindingEvidence(
       createFinding({

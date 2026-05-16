@@ -5,6 +5,8 @@ import {
   createScanJsonExport,
   createScanMarkdownExport,
   formatFindingLocation,
+  getHiddenFindingCount,
+  getVisibleFindings,
   LOADING_STATE_TITLE,
   validateRepoInput,
   type ScanApiFinding,
@@ -186,8 +188,15 @@ function ScanResultView({ result }: { result: ScanApiSuccess }) {
         {result.scan.findings.length === 0 ? (
           <p className="empty-findings">No findings returned by the selected rules.</p>
         ) : (
-          <ul>
-            {result.scan.findings.map((finding) => (
+          <>
+            {getHiddenFindingCount(result) > 0 ? (
+              <p className="finding-limit-note">
+                Showing first {getVisibleFindings(result).length} of {result.scan.findings.length} findings.
+                Use JSON or Markdown export for the complete result.
+              </p>
+            ) : null}
+            <ul>
+              {getVisibleFindings(result).map((finding) => (
               <li key={finding.id} className="finding-item">
                 <div className="finding-header">
                   <div>
@@ -205,8 +214,9 @@ function ScanResultView({ result }: { result: ScanApiSuccess }) {
                 {finding.evidence ? <pre className="evidence">{finding.evidence}</pre> : null}
                 <p className="recommendation">{finding.recommendation}</p>
               </li>
-            ))}
-          </ul>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </section>

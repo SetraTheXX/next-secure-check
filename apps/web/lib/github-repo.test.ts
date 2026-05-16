@@ -32,6 +32,34 @@ describe("fetchPublicGitHubRepoMetadata", () => {
       expect(result.archived).toBe(false);
       expect(result.disabled).toBe(false);
       expect(result.sizeKb).toBe(123);
+      expect(result.tarballUrl).toBe("https://api.github.com/repos/vercel/next.js/tarball/main");
+    }
+  });
+
+  it("normalizes templated tarball URLs from GitHub metadata", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        full_name: "octocat/Hello-World",
+        default_branch: "master",
+        private: false,
+        archived: false,
+        disabled: false,
+        size: 1,
+        html_url: "https://github.com/octocat/Hello-World",
+        tarball_url: "https://api.github.com/repos/octocat/Hello-World/tarball/{archive_format}{/ref}"
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock as typeof fetch);
+
+    const result = await fetchPublicGitHubRepoMetadata("octocat", "Hello-World");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.tarballUrl).toBe(
+        "https://api.github.com/repos/octocat/Hello-World/tarball/master"
+      );
     }
   });
 

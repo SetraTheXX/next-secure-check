@@ -95,7 +95,7 @@ export async function fetchPublicGitHubRepoMetadata(
       disabled: data.disabled,
       sizeKb: data.size,
       htmlUrl: data.html_url,
-      tarballUrl: data.tarball_url
+      tarballUrl: createGitHubTarballUrl(owner, repo, data.default_branch)
     };
   } catch (error) {
     if (error instanceof Error && error.name === "TimeoutError") {
@@ -108,4 +108,8 @@ export async function fetchPublicGitHubRepoMetadata(
 
     return { ok: false, error: "Unknown error" };
   }
+}
+
+function createGitHubTarballUrl(owner: string, repo: string, ref: string): string {
+  return `https://api.github.com/repos/${owner}/${repo}/tarball/${encodeURIComponent(ref)}`;
 }
