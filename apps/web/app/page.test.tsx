@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  createScanJsonExport,
+  createScanMarkdownExport,
   createResultTextIndex,
   evidenceIsRedacted,
   formatFindingLocation,
@@ -62,6 +64,42 @@ describe("Home scan UI helpers", () => {
     const text = createResultTextIndex(result).join(" ");
     expect(text).toContain("[REDACTED]");
     expect(text).not.toContain("GITHUB_TOKEN=raw-secret");
+  });
+
+  it("creates valid JSON export", () => {
+    const exported = createScanJsonExport(createSuccessResult());
+
+    expect(() => JSON.parse(exported)).not.toThrow();
+    expect(JSON.parse(exported)).toMatchObject({
+      ok: true,
+      repo: {
+        fullName: "owner/repo"
+      }
+    });
+  });
+
+  it("creates Markdown export with score, risk, and findings", () => {
+    const exported = createScanMarkdownExport(createSuccessResult());
+
+    expect(exported).toContain("# next-secure-check report: owner/repo");
+    expect(exported).toContain("- Score: 72");
+    expect(exported).toContain("- Risk level: high");
+    expect(exported).toContain("## Findings");
+    expect(exported).toContain("secrets/hardcoded");
+  });
+
+  it("does not include raw secret evidence in exports", () => {
+    const result = createSuccessResult();
+
+    expect(createScanJsonExport(result)).not.toContain("GITHUB_TOKEN=raw-secret");
+    expect(createScanMarkdownExport(result)).not.toContain("GITHUB_TOKEN=raw-secret");
+  });
+
+  it("includes redacted evidence in exports", () => {
+    const result = createSuccessResult();
+
+    expect(createScanJsonExport(result)).toContain("[REDACTED]");
+    expect(createScanMarkdownExport(result)).toContain("[REDACTED]");
   });
 });
 

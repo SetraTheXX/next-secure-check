@@ -264,6 +264,25 @@ button:disabled {
   gap: 8px 14px;
 }
 
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.export-actions button {
+  min-height: 38px;
+  min-width: 132px;
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.export-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .findings {
   display: grid;
   gap: 12px;

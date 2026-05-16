@@ -114,3 +114,49 @@ export function createResultTextIndex(result: ScanApiSuccess): string[] {
     ])
   ];
 }
+
+export function createScanJsonExport(result: ScanApiSuccess): string {
+  return JSON.stringify(result, null, 2);
+}
+
+export function createScanMarkdownExport(result: ScanApiSuccess): string {
+  const summary = result.scan.summary;
+  const lines = [
+    `# next-secure-check report: ${result.repo.fullName}`,
+    "",
+    `- Repository: ${result.repo.htmlUrl}`,
+    `- Default branch: ${result.repo.defaultBranch}`,
+    `- Score: ${summary.score}`,
+    `- Risk level: ${summary.riskLevel}`,
+    `- Total findings: ${summary.totalFindings}`,
+    `- Severity counts: High ${summary.high}, Medium ${summary.medium}, Low ${summary.low}, Info ${summary.info}`,
+    "",
+    "## Findings",
+    ""
+  ];
+
+  if (result.scan.findings.length === 0) {
+    lines.push("No findings returned by the selected rules.");
+    return lines.join("\n");
+  }
+
+  result.scan.findings.forEach((finding, index) => {
+    lines.push(
+      `### ${index + 1}. ${finding.title}`,
+      "",
+      `- Rule: ${finding.ruleId}`,
+      `- Severity: ${finding.severity}`,
+      `- Confidence: ${finding.confidence}`,
+      `- Location: ${formatFindingLocation(finding)}`,
+      `- Recommendation: ${finding.recommendation}`
+    );
+
+    if (finding.evidence) {
+      lines.push("", "```text", finding.evidence, "```");
+    }
+
+    lines.push("");
+  });
+
+  return lines.join("\n").trimEnd();
+}

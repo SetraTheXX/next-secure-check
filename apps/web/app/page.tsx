@@ -2,6 +2,8 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import {
+  createScanJsonExport,
+  createScanMarkdownExport,
   formatFindingLocation,
   LOADING_STATE_TITLE,
   validateRepoInput,
@@ -132,6 +134,14 @@ function ErrorState({ message }: { message: string }) {
 
 function ScanResultView({ result }: { result: ScanApiSuccess }) {
   const summary = result.scan.summary;
+  const [copiedFormat, setCopiedFormat] = useState<"json" | "markdown" | null>(null);
+
+  async function copyExport(format: "json" | "markdown") {
+    const content =
+      format === "json" ? createScanJsonExport(result) : createScanMarkdownExport(result);
+    await navigator.clipboard.writeText(content);
+    setCopiedFormat(format);
+  }
 
   return (
     <section className="results" aria-label="Scan results">
@@ -160,6 +170,15 @@ function ScanResultView({ result }: { result: ScanApiSuccess }) {
         <span>Branch: {result.repo.defaultBranch}</span>
         <span>Files extracted: {result.extraction.fileCount}</span>
         <span>Bytes: {result.extraction.totalBytes}</span>
+      </div>
+
+      <div className="export-actions" aria-label="Export scan result">
+        <button type="button" onClick={() => void copyExport("json")}>
+          {copiedFormat === "json" ? "JSON copied" : "Copy JSON"}
+        </button>
+        <button type="button" onClick={() => void copyExport("markdown")}>
+          {copiedFormat === "markdown" ? "Markdown copied" : "Copy Markdown"}
+        </button>
       </div>
 
       <div className="findings">
