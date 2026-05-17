@@ -116,17 +116,19 @@ export const noEvalRule: Rule = {
   confidence: "HIGH",
   scan(context) {
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, /\beval\s*\(/).map((match) =>
-        createFinding({
-          rule: noEvalRule,
-          file,
-          line: match.line,
-          column: match.column,
-          evidence: match.evidence,
-          description: "eval() can execute untrusted code and may lead to code injection.",
-          recommendation: "Replace eval() with explicit parsing or a safe interpreter for the expected input."
-        })
-      )
+      findMatches(file, /\beval\s*\(/)
+        .filter((match) => !isInsideQuotedLiteral(match.evidence, match.column))
+        .map((match) =>
+          createFinding({
+            rule: noEvalRule,
+            file,
+            line: match.line,
+            column: match.column,
+            evidence: match.evidence,
+            description: "eval() can execute untrusted code and may lead to code injection.",
+            recommendation: "Replace eval() with explicit parsing or a safe interpreter for the expected input."
+          })
+        )
     );
   }
 };
@@ -238,7 +240,7 @@ export const passwordWithoutHashingRule: Rule = {
     }
 
     return codeFiles(context)
-      .filter((file) => /\bpassword\b/i.test(file.content))
+      .filter((file) => hasPasswordHandlingContext(file.path, file.content))
       .map((file) =>
         createFinding({
           rule: passwordWithoutHashingRule,
@@ -343,17 +345,19 @@ export const noNewFunctionRule: Rule = {
   confidence: "HIGH",
   scan(context) {
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, /\bnew\s+Function\s*\(/).map((match) =>
-        createFinding({
-          rule: noNewFunctionRule,
-          file,
-          line: match.line,
-          column: match.column,
-          evidence: match.evidence,
-          description: "new Function() can execute dynamically generated code and may lead to code injection if input is untrusted.",
-          recommendation: "Avoid dynamic code execution. Replace new Function() with explicit logic or a safe parser for the expected input."
-        })
-      )
+      findMatches(file, /\bnew\s+Function\s*\(/)
+        .filter((match) => !isInsideQuotedLiteral(match.evidence, match.column))
+        .map((match) =>
+          createFinding({
+            rule: noNewFunctionRule,
+            file,
+            line: match.line,
+            column: match.column,
+            evidence: match.evidence,
+            description: "new Function() can execute dynamically generated code and may lead to code injection if input is untrusted.",
+            recommendation: "Avoid dynamic code execution. Replace new Function() with explicit logic or a safe parser for the expected input."
+          })
+        )
     );
   }
 };
@@ -365,10 +369,17 @@ export const commandExecRule: Rule = {
   category: "injection",
   confidence: "MEDIUM",
   scan(context) {
-    const pattern = /\b(exec|execSync|spawn|spawnSync)\s*\(|child_process|node:child_process/;
+    const commandCallPattern = /\b(exec|execSync|spawn|spawnSync)\s*\(/;
+    const childProcessImportPattern =
+      /\bfrom\s+["'](?:node:)?child_process["']|require\(\s*["'](?:node:)?child_process["']\s*\)/;
 
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, pattern).map((match) =>
+      [
+        ...findMatches(file, commandCallPattern)
+          .filter((match) => !isMethodCall(match.evidence, match.column))
+          .filter((match) => !isInsideQuotedLiteral(match.evidence, match.column)),
+        ...findMatches(file, childProcessImportPattern)
+      ].map((match) =>
         createFinding({
           rule: commandExecRule,
           file,
@@ -570,3 +581,53 @@ export const builtInSecurityRules: Rule[] = [
   productionBrowserSourceMapsRule,
   nextPoweredByHeaderRule
 ];
+
+function isInsideQuotedLiteral(line: string, column: number): boolean {
+  const beforeMatch = line.slice(0, Math.max(0, column - 1));
+  let quote: "'" | "\"" | "`" | undefined;
+  let escaped = false;
+
+  for (const char of beforeMatch) {
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote) {
+        quote = undefined;
+      }
+      continue;
+    }
+
+    if (char === "'" || char === "\"" || char === "`") {
+      quote = char;
+    }
+  }
+
+  return quote !== undefined;
+}
+
+function isMethodCall(line: string, column: number): boolean {
+  return /\.\s*(exec|execSync|spawn|spawnSync)\s*\(/.test(line);
+}
+
+function hasPasswordHandlingContext(filePath: string, content: string): boolean {
+  if (!/\bpassword\b/i.test(content)) {
+    return false;
+  }
+
+  const pathSignals = /\b(login|signin|sign-in|register|signup|sign-up|auth|account|user|credentials?)\b/i;
+  if (pathSignals.test(filePath)) {
+    return true;
+  }
+
+  const contentSignals =
+    /(\b(body|req\.body|credentials?|user|account)\.password\b|\bpassword\b\s*[:=]\s*(body|req|credentials?|user|account)\b)/i;
+  return contentSignals.test(content);
+}

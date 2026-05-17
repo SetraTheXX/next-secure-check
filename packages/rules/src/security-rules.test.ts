@@ -53,6 +53,12 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/no-eval")).toBe(true);
   });
 
+  it("does not flag eval text inside metadata strings", async () => {
+    const result = await scanFixture({ "index.ts": 'const title = "eval() usage detected";' });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-eval")).toBe(false);
+  });
+
   it("detects dangerouslySetInnerHTML usage", async () => {
     const result = await scanFixture({ "app/page.tsx": "export default () => <div dangerouslySetInnerHTML={{__html: html}} />;" });
 
@@ -81,6 +87,14 @@ describe("built-in security rules", () => {
     const result = await scanFixture({ "app/api/register/route.ts": "const password = body.password;" });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(true);
+  });
+
+  it("does not flag unrelated URL credential validation as password hashing risk", async () => {
+    const result = await scanFixture({
+      "lib/github-url.ts": "const url = new URL(input); if (url.username || url.password) return false;"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(false);
   });
 
   it("does not flag password handling when bcrypt is installed", async () => {
@@ -137,8 +151,28 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(true);
   });
 
+  it("does not flag new Function text inside metadata strings", async () => {
+    const result = await scanFixture({ "index.ts": 'const title = "new Function() usage detected";' });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
   it("detects shell command execution", async () => {
     const result = await scanFixture({ "index.ts": "import { exec } from 'child_process'; exec('ls');" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(true);
+  });
+
+  it("does not flag RegExp exec API usage as shell command execution", async () => {
+    const result = await scanFixture({
+      "index.ts": "while ((match = matcher.exec(lineContent)) !== null) { matches.push(match); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(false);
+  });
+
+  it("detects child_process imports", async () => {
+    const result = await scanFixture({ "index.ts": "import { exec } from 'child_process';" });
 
     expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(true);
   });
