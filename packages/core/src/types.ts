@@ -78,6 +78,7 @@ export type Rule = {
 
 export type ScanOptions = {
   categories?: string[];
+  excludePaths?: string[];
   rules?: Rule[];
   toolVersion?: string;
 };

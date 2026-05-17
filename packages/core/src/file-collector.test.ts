@@ -33,6 +33,45 @@ describe("collectFiles", () => {
     expect(files.map((file) => file.path)).toEqual(["index.ts"]);
   });
 
+  it("excludes files with glob patterns", async () => {
+    const root = await tempProject();
+    await mkdir(path.join(root, "src"), { recursive: true });
+    await writeFile(path.join(root, "src", "app.ts"), "export {};");
+    await writeFile(path.join(root, "src", "app.test.ts"), "eval('test')");
+
+    const files = await collectFiles(root, {
+      excludePaths: ["**/*.test.ts"]
+    });
+
+    expect(files.map((file) => file.path)).toEqual(["src/app.ts"]);
+  });
+
+  it("excludes example directories with forward-slash patterns", async () => {
+    const root = await tempProject();
+    await mkdir(path.join(root, "examples", "vulnerable"), { recursive: true });
+    await writeFile(path.join(root, "examples", "vulnerable", "route.ts"), "eval('x')");
+    await writeFile(path.join(root, "index.ts"), "export {};");
+
+    const files = await collectFiles(root, {
+      excludePaths: ["examples/**"]
+    });
+
+    expect(files.map((file) => file.path)).toEqual(["index.ts"]);
+  });
+
+  it("normalizes Windows separators in exclude patterns", async () => {
+    const root = await tempProject();
+    await mkdir(path.join(root, "src", "fixtures"), { recursive: true });
+    await writeFile(path.join(root, "src", "fixtures", "secret.ts"), "eval('x')");
+    await writeFile(path.join(root, "src", "app.ts"), "export {};");
+
+    const files = await collectFiles(root, {
+      excludePaths: ["src\\fixtures\\**"]
+    });
+
+    expect(files.map((file) => file.path)).toEqual(["src/app.ts"]);
+  });
+
   it("normalizes paths to forward slashes", async () => {
     const root = await tempProject();
     await mkdir(path.join(root, "src", "app"), { recursive: true });

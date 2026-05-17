@@ -8,7 +8,9 @@ import type { Finding, Rule, ScanContext, ScanOptions, ScanResult } from "./type
 export async function scanProject(targetPath: string, options: ScanOptions = {}): Promise<ScanResult> {
   const startedAt = Date.now();
   const rootPath = await resolveProjectPath(targetPath);
-  const files = await collectFiles(rootPath);
+  const files = await collectFiles(rootPath, {
+    excludePaths: options.excludePaths
+  });
   const detection = detectProject(files, rootPath);
   const categories = normalizeCategories(options.categories);
   const rules = (options.rules ?? []).filter((rule) => categories.size === 0 || categories.has(rule.category));

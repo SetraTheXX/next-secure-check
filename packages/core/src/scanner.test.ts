@@ -64,4 +64,50 @@ describe("scanProject", () => {
 
     expect(result.findings).toEqual([]);
   });
+
+  it("passes all files to rules when excludePaths is not set", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "index.ts"), "export {};");
+    await writeFile(path.join(root, "index.test.ts"), "export {};");
+
+    const result = await scanProject(root, {
+      rules: [createFileListRule()]
+    });
+
+    expect(result.findings.map((finding) => finding.filePath)).toEqual(["index.test.ts", "index.ts"]);
+  });
+
+  it("excludes files before rules run", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "index.ts"), "export {};");
+    await writeFile(path.join(root, "index.test.ts"), "export {};");
+
+    const result = await scanProject(root, {
+      excludePaths: ["**/*.test.ts"],
+      rules: [createFileListRule()]
+    });
+
+    expect(result.findings.map((finding) => finding.filePath)).toEqual(["index.ts"]);
+  });
 });
+
+function createFileListRule(): Rule {
+  return {
+    id: "test/file-list",
+    title: "File list",
+    severity: "LOW",
+    category: "test",
+    scan: (context) =>
+      context.files.map((file) => ({
+        id: `test/file-list:${file.path}`,
+        ruleId: "test/file-list",
+        title: "File list",
+        severity: "LOW",
+        confidence: "HIGH",
+        category: "test",
+        filePath: file.path,
+        description: "description",
+        recommendation: "recommendation"
+      }))
+  };
+}

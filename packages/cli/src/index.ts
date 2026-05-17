@@ -20,11 +20,13 @@ program
   .option("--output <path>", "Write the report to a file")
   .option("--fail-on <severity>", "Exit with code 1 when findings at or above severity exist")
   .option("--category <categories>", "Comma-separated categories to run, e.g. secrets,auth,xss")
+  .option("--exclude <patterns>", "Comma-separated relative path globs to exclude, e.g. **/*.test.ts,examples/**")
   .action(async (targetPath: string, options: ScanCommandOptions) => {
     try {
       const format = parseFormat(options.format);
       const result = await scanProject(targetPath, {
         categories: parseCategories(options.category),
+        excludePaths: parseList(options.exclude),
         rules: getBuiltInRules(),
         toolVersion: program.version()
       });
@@ -52,6 +54,7 @@ type ScanCommandOptions = {
   output?: string;
   failOn?: string;
   category?: string;
+  exclude?: string;
 };
 
 function parseFormat(format: string): ReportFormat {
@@ -63,9 +66,13 @@ function parseFormat(format: string): ReportFormat {
 }
 
 function parseCategories(categories?: string): string[] | undefined {
-  return categories
+  return parseList(categories);
+}
+
+function parseList(value?: string): string[] | undefined {
+  return value
     ?.split(",")
-    .map((category) => category.trim())
+    .map((item) => item.trim())
     .filter(Boolean);
 }
 
