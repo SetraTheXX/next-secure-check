@@ -105,6 +105,48 @@ describe("extractTarballSafely", () => {
     await expect(readdir(tempRoot)).resolves.toEqual([]);
   });
 
+  it("preserves the extraction error when failure cleanup succeeds", async () => {
+    const archive = await createTarGz([{ name: "../secret.txt", data: "secret" }]);
+
+    const result = await extractTarballSafely(archive, { tempRoot });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "PATH_TRAVERSAL_DETECTED",
+      message: "Archive entry path is unsafe"
+    });
+  });
+
+  it("preserves the extraction error when failure cleanup fails", async () => {
+    const archive = await createTarGz([{ name: "../secret.txt", data: "secret" }]);
+    const rmMock = await mockSafeExtractRmFailure();
+    const { extractTarballSafely: extractWithFailingRm } = await import("./safe-extract");
+
+    const result = await extractWithFailingRm(archive, { tempRoot });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "PATH_TRAVERSAL_DETECTED",
+      message: "Archive entry path is unsafe"
+    });
+    expect(rmMock).toHaveBeenCalled();
+  });
+
+  it("keeps explicit cleanup failures visible after successful extraction", async () => {
+    const archive = await createTarGz([{ name: "file.txt", data: "content" }]);
+    const rmMock = await mockSafeExtractRmFailure();
+    const { extractTarballSafely: extractWithFailingRm } = await import("./safe-extract");
+    const result = await extractWithFailingRm(archive, { tempRoot });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    await expect(result.cleanup()).rejects.toThrow("cleanup failed");
+    expect(rmMock).toHaveBeenCalled();
+  });
+
   it("rejects path traversal", async () => {
     const archive = await createTarGz([{ name: "../secret.txt", data: "secret" }]);
 
@@ -383,4 +425,19 @@ function createFetchMock(
     ok: status >= 200 && status < 300,
     status
   }) as unknown as typeof fetch;
+}
+
+async function mockSafeExtractRmFailure(): Promise<ReturnType<typeof vi.fn>> {
+  const rmMock = vi.fn().mockRejectedValue(new Error("cleanup failed"));
+
+  vi.resetModules();
+  vi.doMock("node:fs/promises", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("node:fs/promises")>();
+    return {
+      ...actual,
+      rm: rmMock
+    };
+  });
+
+  return rmMock;
 }

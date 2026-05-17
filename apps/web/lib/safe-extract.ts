@@ -332,6 +332,6 @@ async function cleanupAfterFailure(extractedPath: string): Promise<void> {
       recursive: true
     });
   } catch {
-    throw new ArchiveExtractionError("CLEANUP_FAILED", "Extraction cleanup failed");
+    // Preserve the original extraction error; cleanup failure must not mask it.
   }
 }
