@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getScanClientIp, tryAcquireScanSlot } from "../../../lib/scan-abuse-guard";
 import { scanPublicGitHubRepo } from "../../../lib/scan-public-repo";
 
 type ScanRequestBody = {
@@ -32,6 +33,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
+  const guard = tryAcquireScanSlot(getScanClientIp(request.headers));
+  if (!guard.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: guard.code,
+        message: guard.message
+      },
+      { status: 429 }
+    );
+  }
+
   let result: Awaited<ReturnType<typeof scanPublicGitHubRepo>>;
 
   try {
@@ -45,6 +58,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
       { status: 500 }
     );
+  } finally {
+    guard.release();
   }
 
   if (result.ok) {
