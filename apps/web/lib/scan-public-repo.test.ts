@@ -79,6 +79,48 @@ describe("scanPublicGitHubRepo", () => {
     });
   });
 
+  it("continues scanning when repo size is within the configured limit", async () => {
+    const downloadAndExtractImpl = vi.fn().mockResolvedValue({
+      cleanup: vi.fn().mockResolvedValue(undefined),
+      extractedPath: "C:/tmp/extracted",
+      fileCount: 1,
+      ok: true,
+      tempId: "temp-id",
+      totalBytes: 1
+    });
+
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      downloadAndExtractImpl,
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata({ sizeKb: 100 })),
+      limits: {
+        maxRepoSizeKb: 100
+      },
+      scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([]))
+    });
+
+    expect(result.ok).toBe(true);
+    expect(downloadAndExtractImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects repos over the configured size limit before download and extraction", async () => {
+    const downloadAndExtractImpl = vi.fn();
+
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      downloadAndExtractImpl,
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata({ sizeKb: 101 })),
+      limits: {
+        maxRepoSizeKb: 100
+      }
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "ARCHIVE_TOO_LARGE",
+      message: "Repository is too large to scan. Maximum supported size is 100 KB."
+    });
+    expect(downloadAndExtractImpl).not.toHaveBeenCalled();
+  });
+
   it("returns download and extraction failures", async () => {
     const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
       downloadAndExtractImpl: vi.fn().mockResolvedValue({
@@ -142,7 +184,7 @@ describe("scanPublicGitHubRepo", () => {
   });
 });
 
-function createMetadata() {
+function createMetadata(overrides?: Partial<ReturnType<typeof createMetadata>>) {
   return {
     archived: false,
     defaultBranch: "main",
@@ -154,7 +196,8 @@ function createMetadata() {
     owner: "owner",
     repo: "repo",
     sizeKb: 1,
-    tarballUrl: "https://api.github.com/repos/owner/repo/tarball"
+    tarballUrl: "https://api.github.com/repos/owner/repo/tarball",
+    ...overrides
   };
 }
 

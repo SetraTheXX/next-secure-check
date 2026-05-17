@@ -5,7 +5,7 @@ import { fetchPublicGitHubRepoMetadata } from "./github-repo";
 import { parseGitHubRepoUrl } from "./github-url";
 import { redactScanResult, type RedactedScanResult } from "./redact-findings";
 import { downloadAndExtractGitHubTarball } from "./safe-extract";
-import type { ScanLimits } from "./scan-limits";
+import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "./scan-limits";
 
 export type ScanPublicGitHubRepoOptions = {
   tempRoot?: string;
@@ -76,9 +76,18 @@ export async function scanPublicGitHubRepo(
     };
   }
 
+  const limits = { ...DEFAULT_SCAN_LIMITS, ...options?.limits };
+  if (metadata.sizeKb > limits.maxRepoSizeKb) {
+    return {
+      ok: false,
+      code: "ARCHIVE_TOO_LARGE",
+      message: `Repository is too large to scan. Maximum supported size is ${limits.maxRepoSizeKb} KB.`
+    };
+  }
+
   const downloadAndExtract = options?.downloadAndExtractImpl ?? downloadAndExtractGitHubTarball;
   const extraction = await downloadAndExtract(metadata.tarballUrl, {
-    limits: options?.limits,
+    limits,
     tempRoot: options?.tempRoot,
     timeoutMs: options?.timeoutMs
   });
