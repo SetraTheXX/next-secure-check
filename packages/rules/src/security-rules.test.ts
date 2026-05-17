@@ -65,6 +65,22 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(true);
   });
 
+  it("does not flag dangerouslySetInnerHTML text inside metadata strings", async () => {
+    const result = await scanFixture({
+      "index.ts": 'const title = "dangerouslySetInnerHTML usage detected";'
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
+  it("does not flag dangerouslySetInnerHTML inside rule regex literals", async () => {
+    const result = await scanFixture({
+      "index.ts": "const pattern = /dangerouslySetInnerHTML/;"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
   it("detects wildcard CORS", async () => {
     const result = await scanFixture({ "app/api/data/route.ts": 'headers: { "Access-Control-Allow-Origin": "*" }' });
 
@@ -236,6 +252,14 @@ describe("built-in security rules", () => {
   it("does not flag API routes with input validation", async () => {
     const result = await scanFixture({
       "app/api/users/route.ts": "import { z } from 'zod'; const schema = z.object({ name: z.string() }); export async function POST(req) { const body = await req.json(); return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
+  it("does not flag API routes with custom typeof validation", async () => {
+    const result = await scanFixture({
+      "app/api/scans/route.ts": "export async function POST(request) { const body = await request.json(); if (!body || typeof body.repoUrl !== 'string' || !body.repoUrl.trim()) return Response.json({ ok: false }, { status: 400 }); return Response.json({ ok: true }); }"
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);

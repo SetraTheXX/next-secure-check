@@ -141,17 +141,20 @@ export const dangerouslySetInnerHtmlRule: Rule = {
   confidence: "HIGH",
   scan(context) {
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, /dangerouslySetInnerHTML/).map((match) =>
-        createFinding({
-          rule: dangerouslySetInnerHtmlRule,
-          file,
-          line: match.line,
-          column: match.column,
-          evidence: match.evidence,
-          description: "Rendering raw HTML can introduce XSS if the content is user-controlled.",
-          recommendation: "Avoid raw HTML rendering or sanitize trusted markup with a proven sanitizer."
-        })
-      )
+      findMatches(file, /dangerouslySetInnerHTML/)
+        .filter((match) => !isInsideQuotedLiteral(match.evidence, match.column))
+        .filter((match) => !isRegexLiteralLine(match.evidence))
+        .map((match) =>
+          createFinding({
+            rule: dangerouslySetInnerHtmlRule,
+            file,
+            line: match.line,
+            column: match.column,
+            evidence: match.evidence,
+            description: "Rendering raw HTML can introduce XSS if the content is user-controlled.",
+            recommendation: "Avoid raw HTML rendering or sanitize trusted markup with a proven sanitizer."
+          })
+        )
     );
   }
 };
@@ -456,7 +459,8 @@ export const apiRouteWithoutValidationRule: Rule = {
   scan(context) {
     const pathSignals = /\b(app\/api|pages\/api)\b/i;
     const contentSignals = /(\breq\.body\b|\breq\.query\b|\breq\.json\(|request\.json\(|request\.formData\(|searchParams|nextUrl\.searchParams)/i;
-    const validationSignals = /\b(zod|yup|joi|safeParse|parse\(|validate|validator|schema)\b/i;
+    const validationSignals =
+      /\b(zod|yup|joi|safeParse|parse\(|validate|validator|schema)\b|typeof\s+[\w.]+\s*[!=]={1,2}\s*["'](?:string|number|boolean|object)["']|Array\.isArray\(/i;
 
     return codeFiles(context)
       .filter((file) => pathSignals.test(file.path))
@@ -615,6 +619,10 @@ function isInsideQuotedLiteral(line: string, column: number): boolean {
 
 function isMethodCall(line: string, column: number): boolean {
   return /\.\s*(exec|execSync|spawn|spawnSync)\s*\(/.test(line);
+}
+
+function isRegexLiteralLine(line: string): boolean {
+  return /\/[^/\n]*dangerouslySetInnerHTML[^/\n]*\/[a-z]*/.test(line);
 }
 
 function hasPasswordHandlingContext(filePath: string, content: string): boolean {
