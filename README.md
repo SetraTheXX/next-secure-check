@@ -91,6 +91,44 @@ npx next-secure-check scan . --exclude "**/*.test.ts,examples/**"
 node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
 
+## CLI Config
+
+The CLI can read a local JSON config file named `.next-secure-check.json` from the scan target root.
+
+Supported fields:
+
+- `excludePaths`: relative path glob patterns to ignore
+- `categories`: rule categories to run
+- `failOn`: minimum severity that should make the command exit with code 1
+- `format`: report output format
+
+Example:
+
+```json
+{
+  "excludePaths": ["**/*.test.ts", "**/*.spec.tsx", "examples/**"],
+  "categories": ["secrets", "auth", "headers"],
+  "failOn": "high",
+  "format": "json"
+}
+```
+
+CLI flags always take priority over config values:
+
+```txt
+CLI flag > config file > default
+```
+
+For example, if the config file sets `"format": "markdown"` but the command uses `--format json`, the CLI prints JSON.
+
+You can also point to an explicit config file:
+
+```bash
+npx next-secure-check scan . --config path/to/config.json
+```
+
+The web demo does not read `.next-secure-check.json` files from scanned repositories. Hosted/public scans use the web demo's own server-side options instead.
+
 ## Monorepo Layout
 
 ```txt
