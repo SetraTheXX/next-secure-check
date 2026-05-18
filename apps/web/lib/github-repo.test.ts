@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchPublicGitHubRepoMetadata } from "./github-repo";
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
@@ -26,6 +27,11 @@ describe("fetchPublicGitHubRepoMetadata", () => {
     vi.stubGlobal("fetch", fetchMock as typeof fetch);
 
     const result = await fetchPublicGitHubRepoMetadata("vercel", "next.js");
+    const headers = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
+
+    expect(headers.get("Accept")).toBe("application/vnd.github+json");
+    expect(headers.get("User-Agent")).toBe("next-secure-check");
+    expect(headers.has("Authorization")).toBe(false);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.fullName).toBe("vercel/next.js");
@@ -34,6 +40,22 @@ describe("fetchPublicGitHubRepoMetadata", () => {
       expect(result.sizeKb).toBe(123);
       expect(result.tarballUrl).toBe("https://api.github.com/repos/vercel/next.js/tarball/main");
     }
+  });
+
+  it("uses an optional GitHub token without exposing it in metadata errors", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "github-secret-token");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500
+    });
+    vi.stubGlobal("fetch", fetchMock as typeof fetch);
+
+    const result = await fetchPublicGitHubRepoMetadata("owner", "repo");
+    const headers = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
+
+    expect(headers.get("Authorization")).toBe("Bearer github-secret-token");
+    expect(headers.get("User-Agent")).toBe("next-secure-check");
+    expect(JSON.stringify(result)).not.toContain("github-secret-token");
   });
 
   it("normalizes templated tarball URLs from GitHub metadata", async () => {

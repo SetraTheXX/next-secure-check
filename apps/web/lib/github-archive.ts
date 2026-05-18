@@ -1,4 +1,5 @@
 import type { TarballDownloadResult } from "./archive-types";
+import { createGitHubRequestHeaders } from "./github-request";
 import { DEFAULT_SCAN_LIMITS } from "./scan-limits";
 
 const ALLOWED_TARBALL_CONTENT_TYPES = new Set([
@@ -147,9 +148,7 @@ function parseContentLength(contentLength: string | null): number | undefined {
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
   return Promise.race([
     fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json"
-      }
+      headers: createGitHubRequestHeaders()
     }),
     new Promise<Response>((_, reject) => {
       const timer = setTimeout(() => {

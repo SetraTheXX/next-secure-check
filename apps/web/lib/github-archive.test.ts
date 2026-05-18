@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { downloadGitHubTarball } from "./github-archive";
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
@@ -21,7 +22,11 @@ describe("downloadGitHubTarball", () => {
     const result = await downloadGitHubTarball(
       "https://api.github.com/repos/vercel/next.js/tarball"
     );
+    const headers = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
 
+    expect(headers.get("Accept")).toBe("application/vnd.github+json");
+    expect(headers.get("User-Agent")).toBe("next-secure-check");
+    expect(headers.has("Authorization")).toBe(false);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.bytes).toEqual(bytes);
@@ -29,6 +34,28 @@ describe("downloadGitHubTarball", () => {
       expect(result.contentType).toBe("application/x-gzip");
       expect(result.sourceUrl).toBe("https://api.github.com/repos/vercel/next.js/tarball");
     }
+  });
+
+  it("uses an optional GitHub token without exposing it in download errors", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "github-secret-token");
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse({
+        body: new Uint8Array(),
+        contentType: "application/json",
+        ok: false,
+        status: 403
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock as typeof fetch);
+
+    const result = await downloadGitHubTarball(
+      "https://api.github.com/repos/owner/repo/tarball"
+    );
+    const headers = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
+
+    expect(headers.get("Authorization")).toBe("Bearer github-secret-token");
+    expect(headers.get("User-Agent")).toBe("next-secure-check");
+    expect(JSON.stringify(result)).not.toContain("github-secret-token");
   });
 
   it("rejects non-GitHub tarball URLs", async () => {

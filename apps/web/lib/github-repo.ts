@@ -1,3 +1,5 @@
+import { createGitHubRequestHeaders } from "./github-request";
+
 export type GitHubRepoMetadataResult =
   | {
       ok: true;
@@ -31,9 +33,7 @@ export async function fetchPublicGitHubRepoMetadata(
   try {
     const response = (await Promise.race([
       fetch(url, {
-        headers: {
-          Accept: "application/vnd.github+json"
-        }
+        headers: createGitHubRequestHeaders()
       }),
       new Promise<Response>((_, reject) => {
         const timer = setTimeout(() => {
