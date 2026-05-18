@@ -257,6 +257,23 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "headers/missing-security-headers")).toBe(false);
   });
 
+  it("does not flag missing security headers when headers are configured in middleware", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": "export default function Page() { return null; }",
+      "middleware.ts": [
+        "import { NextResponse } from 'next/server';",
+        "export function middleware() {",
+        "  const response = NextResponse.next();",
+        "  response.headers.set('X-Frame-Options', 'DENY');",
+        "  response.headers.set('X-Content-Type-Options', 'nosniff');",
+        "  return response;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "headers/missing-security-headers")).toBe(false);
+  });
+
   it("detects NEXT_PUBLIC secret-like variables", async () => {
     const result = await scanFixture({ ".env": "NEXT_PUBLIC_STRIPE_SECRET=sk_test_123" });
 
