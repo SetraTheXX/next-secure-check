@@ -69,6 +69,11 @@ describe("Home scan UI helpers", () => {
     expect(text).not.toContain("GITHUB_TOKEN=raw-secret");
   });
 
+  it("supports the redacted evidence UI label", () => {
+    expect(evidenceIsRedacted(createFinding())).toBe(true);
+    expect("Evidence redacted server-side").toContain("redacted");
+  });
+
   it("creates valid JSON export", () => {
     const exported = createScanJsonExport(createSuccessResult());
 

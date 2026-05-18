@@ -373,8 +373,9 @@ button:disabled {
 
 .metric span,
 .repo-meta,
-.finding-header p,
-.location {
+.location span,
+.finding-meta dt,
+.recommendation span {
   color: var(--muted);
   font-size: 13px;
 }
@@ -452,23 +453,67 @@ button:disabled {
   background: #ffffff;
   padding: 16px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .finding-header {
   align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
 }
 
-.finding-header p {
-  margin: 5px 0 0;
+.finding-title-block {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.finding-title-block h4 {
+  line-height: 1.35;
+}
+
+.finding-title-block code,
+.finding-meta dd,
+.location code {
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.finding-badges {
+.finding-title-block code {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.finding-meta {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
+  margin: 0;
+}
+
+.finding-meta div {
+  display: grid;
+  gap: 3px;
+  min-width: 110px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-strong);
+}
+
+.finding-meta dt,
+.recommendation span,
+.location span {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.finding-meta dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
 }
 
 .severity-high {
@@ -494,6 +539,21 @@ button:disabled {
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 }
 
+.location {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.location code {
+  color: var(--ink);
+  font-size: 13px;
+}
+
 .evidence {
   margin: 0;
   overflow-x: auto;
@@ -504,11 +564,34 @@ button:disabled {
   font-size: 13px;
 }
 
+.redacted-evidence {
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 6px;
+  background: #f0fdfa;
+  color: #0f766e;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .recommendation,
 .empty-findings {
   margin: 0;
   color: #344054;
   line-height: 1.5;
+}
+
+.recommendation {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel-strong);
+}
+
+.recommendation p {
+  margin: 0;
 }
 
 .note {
@@ -588,5 +671,14 @@ button:disabled {
     min-height: 40px;
     overflow-wrap: anywhere;
     white-space: normal;
+  }
+
+  .finding-header {
+    align-items: flex-start;
+  }
+
+  .finding-meta {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }

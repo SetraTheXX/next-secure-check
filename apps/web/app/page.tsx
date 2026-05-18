@@ -5,6 +5,7 @@ import { DEFAULT_WEB_EXCLUDE_PATHS } from "../lib/scan-excludes";
 import {
   createScanJsonExport,
   createScanMarkdownExport,
+  evidenceIsRedacted,
   formatFindingLocation,
   getHiddenFindingCount,
   getVisibleFindings,
@@ -253,20 +254,43 @@ function ScanResultView({ result }: { result: ScanApiSuccess }) {
               {getVisibleFindings(result).map((finding) => (
               <li key={finding.id} className="finding-item">
                 <div className="finding-header">
-                  <div>
+                  <span className={`severity severity-${finding.severity.toLowerCase()}`}>
+                    {finding.severity}
+                  </span>
+                  <div className="finding-title-block">
                     <h4>{finding.title}</h4>
-                    <p>{finding.ruleId}</p>
-                  </div>
-                  <div className="finding-badges">
-                    <span className={`severity severity-${finding.severity.toLowerCase()}`}>
-                      {finding.severity}
-                    </span>
-                    <span>{finding.confidence}</span>
+                    <code>{finding.ruleId}</code>
                   </div>
                 </div>
-                <div className="location">{formatFindingLocation(finding)}</div>
-                {finding.evidence ? <pre className="evidence">{finding.evidence}</pre> : null}
-                <p className="recommendation">{finding.recommendation}</p>
+                <dl className="finding-meta" aria-label="Finding metadata">
+                  <div>
+                    <dt>Category</dt>
+                    <dd>{finding.category}</dd>
+                  </div>
+                  <div>
+                    <dt>Confidence</dt>
+                    <dd>{finding.confidence}</dd>
+                  </div>
+                  <div>
+                    <dt>Rule</dt>
+                    <dd>{finding.ruleId}</dd>
+                  </div>
+                </dl>
+                <div className="location">
+                  <span>Location</span>
+                  <code>{formatFindingLocation(finding)}</code>
+                </div>
+                {finding.evidence ? (
+                  evidenceIsRedacted(finding) ? (
+                    <div className="redacted-evidence">Evidence redacted server-side</div>
+                  ) : (
+                    <pre className="evidence">{finding.evidence}</pre>
+                  )
+                ) : null}
+                <div className="recommendation">
+                  <span>Recommendation</span>
+                  <p>{finding.recommendation}</p>
+                </div>
               </li>
               ))}
             </ul>
