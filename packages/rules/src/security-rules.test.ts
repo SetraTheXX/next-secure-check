@@ -36,7 +36,40 @@ describe("built-in security rules", () => {
   });
 
   it("detects hardcoded secrets", async () => {
-    const result = await scanFixture({ "index.ts": 'const apiKey = "1234567890";' });
+    const result = await scanFixture({ "index.ts": 'const apiKey = "aB3_dEfGh9JkLmN0";' });
+
+    expect(result.findings.some((finding) => finding.ruleId === "secrets/hardcoded-secret")).toBe(true);
+  });
+
+  it("does not flag low-signal hardcoded secret sample values", async () => {
+    const result = await scanFixture({
+      "index.ts": [
+        'const token = "test1234";',
+        'const password = "12345678";',
+        'const secret = "password";',
+        'const apiKey = "changeme";',
+        'const privateKey = "example";',
+        'const githubToken = "demo";',
+        'const stripeKey = "dummy";',
+        'const jwtSecret = "placeholder";'
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "secrets/hardcoded-secret")).toBe(false);
+  });
+
+  it("keeps detecting known provider token patterns with high confidence", async () => {
+    const result = await scanFixture({ "index.ts": 'const apiKey = "sk_live_super_secret";' });
+    const finding = result.findings.find((item) => item.ruleId === "secrets/hardcoded-secret");
+
+    expect(finding).toMatchObject({
+      confidence: "HIGH",
+      evidence: 'const apiKey = "sk_live_super_secret";'
+    });
+  });
+
+  it("keeps detecting long high-signal secret-like values", async () => {
+    const result = await scanFixture({ "index.ts": 'const githubToken = "gh_demo_A1b2C3d4E5f6G7h8";' });
 
     expect(result.findings.some((finding) => finding.ruleId === "secrets/hardcoded-secret")).toBe(true);
   });

@@ -41,6 +41,11 @@ export const hardcodedSecretRule: Rule = {
           continue;
         }
 
+        const literalValue = extractAssignedStringLiteral(match.evidence);
+        if (literalValue && isLowSignalSecretSample(literalValue)) {
+          continue;
+        }
+
         findings.push(
           createFinding({
             rule: hardcodedSecretRule,
@@ -624,6 +629,43 @@ function isMethodCall(line: string, column: number): boolean {
 
 function isRegexLiteralLine(line: string): boolean {
   return /\/[^/\n]*dangerouslySetInnerHTML[^/\n]*\/[a-z]*/.test(line);
+}
+
+function extractAssignedStringLiteral(line: string): string | undefined {
+  const match = /[:=]\s*["'`]([^"'`]*)["'`]/.exec(line);
+  return match?.[1];
+}
+
+function isLowSignalSecretSample(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  const sampleWords = ["password", "changeme", "change-me", "example", "demo", "dummy", "placeholder", "test"];
+
+  if (sampleWords.includes(normalized)) {
+    return true;
+  }
+
+  if (/^(?:test|demo|dummy|example|placeholder)[-_]?\d*$/i.test(normalized)) {
+    return true;
+  }
+
+  if (/^\d+$/.test(normalized)) {
+    return true;
+  }
+
+  if (normalized.length < 16 && countCharacterClasses(normalized) <= 2) {
+    return true;
+  }
+
+  return false;
+}
+
+function countCharacterClasses(value: string): number {
+  return [
+    /[a-z]/.test(value),
+    /[A-Z]/.test(value),
+    /\d/.test(value),
+    /[^A-Za-z0-9]/.test(value)
+  ].filter(Boolean).length;
 }
 
 function hasPasswordHandlingContext(filePath: string, content: string): boolean {
