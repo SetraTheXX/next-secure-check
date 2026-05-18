@@ -1,6 +1,9 @@
 import type { Finding, Rule, ScanOptions, ScanResult } from "@next-secure-check/core";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { scanPublicGitHubRepo } from "./scan-public-repo";
+import { resolveScanRoot, scanPublicGitHubRepo } from "./scan-public-repo";
 
 describe("scanPublicGitHubRepo", () => {
   it("runs metadata, download/extract, scanner, redaction, and cleanup", async () => {
@@ -41,10 +44,61 @@ describe("scanPublicGitHubRepo", () => {
       expect(result.scan.findings[0]?.evidence).toBe("[REDACTED]");
     }
     expect(scanProjectImpl).toHaveBeenCalledWith("C:/tmp/extracted", {
+      excludePaths: undefined,
       rules: expect.any(Array)
     });
     expect(getRulesImpl).toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards exclude paths to the core scanner", async () => {
+    const scanProjectImpl = vi.fn().mockResolvedValue(createScanResult([]));
+    const excludePaths = ["**/*.test.ts", "examples/**"];
+
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      downloadAndExtractImpl: vi.fn().mockResolvedValue({
+        cleanup: vi.fn().mockResolvedValue(undefined),
+        extractedPath: "C:/tmp/extracted",
+        fileCount: 2,
+        ok: true,
+        tempId: "temp-id",
+        totalBytes: 123
+      }),
+      excludePaths,
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
+      scanProjectImpl
+    });
+
+    expect(result.ok).toBe(true);
+    expect(scanProjectImpl).toHaveBeenCalledWith("C:/tmp/extracted", {
+      excludePaths,
+      rules: expect.any(Array)
+    });
+  });
+
+  it("scans the single GitHub tarball root directory so exclude globs match repo-relative paths", async () => {
+    const tempRoot = await mkdtemp(path.join(tmpdir(), "next-secure-check-test-"));
+    const repoRoot = path.join(tempRoot, "owner-repo-sha");
+    await mkdir(repoRoot);
+
+    try {
+      await expect(resolveScanRoot(tempRoot)).resolves.toBe(repoRoot);
+    } finally {
+      await rm(tempRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("keeps the extraction root when archives contain multiple top-level entries", async () => {
+    const tempRoot = await mkdtemp(path.join(tmpdir(), "next-secure-check-test-"));
+    await mkdir(path.join(tempRoot, "repo-a"));
+    await mkdir(path.join(tempRoot, "repo-b"));
+    await writeFile(path.join(tempRoot, "README.md"), "readme");
+
+    try {
+      await expect(resolveScanRoot(tempRoot)).resolves.toBe(tempRoot);
+    } finally {
+      await rm(tempRoot, { force: true, recursive: true });
+    }
   });
 
   it("returns invalid URL failures before network work", async () => {

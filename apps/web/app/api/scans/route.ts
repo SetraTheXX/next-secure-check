@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getScanClientIp, tryAcquireScanSlot } from "../../../lib/scan-abuse-guard";
+import { validateExcludePaths } from "../../../lib/scan-excludes";
 import { scanPublicGitHubRepo } from "../../../lib/scan-public-repo";
 
 type ScanRequestBody = {
+  excludePaths?: unknown;
   repoUrl?: unknown;
 };
 
@@ -33,6 +35,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
+  const excludePaths = validateExcludePaths(body.excludePaths);
+  if (!excludePaths) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "INVALID_REQUEST_BODY",
+        message: "excludePaths must be an array of safe relative glob patterns."
+      },
+      { status: 400 }
+    );
+  }
+
   const guard = tryAcquireScanSlot(getScanClientIp(request.headers));
   if (!guard.ok) {
     return NextResponse.json(
@@ -48,7 +62,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   let result: Awaited<ReturnType<typeof scanPublicGitHubRepo>>;
 
   try {
-    result = await scanPublicGitHubRepo(body.repoUrl);
+    result =
+      excludePaths.length > 0
+        ? await scanPublicGitHubRepo(body.repoUrl, { excludePaths })
+        : await scanPublicGitHubRepo(body.repoUrl);
   } catch {
     return NextResponse.json(
       {

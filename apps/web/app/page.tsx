@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { DEFAULT_WEB_EXCLUDE_PATHS } from "../lib/scan-excludes";
 import {
   createScanJsonExport,
   createScanMarkdownExport,
@@ -23,6 +24,7 @@ export default function Home() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanApiSuccess | null>(null);
   const [status, setStatus] = useState<ScanStatus>("idle");
+  const [excludeTestsAndExamples, setExcludeTestsAndExamples] = useState(true);
 
   const validationError = useMemo(() => {
     if (!input.trim()) {
@@ -48,9 +50,14 @@ export default function Home() {
     setScanError(null);
     setResult(null);
 
+    const requestBody = {
+      repoUrl: input.trim(),
+      ...(excludeTestsAndExamples ? { excludePaths: DEFAULT_WEB_EXCLUDE_PATHS } : {})
+    };
+
     try {
       const response = await fetch("/api/scans", {
-        body: JSON.stringify({ repoUrl: input.trim() }),
+        body: JSON.stringify(requestBody),
         headers: {
           "Content-Type": "application/json"
         },
@@ -121,6 +128,18 @@ export default function Home() {
               {EXAMPLE_REPO_URL}
             </button>
           </div>
+          <label className="exclude-toggle" htmlFor="exclude-tests-examples">
+            <input
+              id="exclude-tests-examples"
+              type="checkbox"
+              checked={excludeTestsAndExamples}
+              onChange={(event) => setExcludeTestsAndExamples(event.target.checked)}
+            />
+            <span>
+              <strong>Exclude tests and examples</strong>
+              <small>Ignore test/spec files and examples/** for a cleaner production-like scan.</small>
+            </span>
+          </label>
           {validationError ? <div className="validation error">{validationError}</div> : null}
           {submitError ? <div className="validation error">{submitError}</div> : null}
         </form>

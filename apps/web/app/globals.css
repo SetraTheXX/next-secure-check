@@ -141,6 +141,14 @@ input:focus {
   outline: 3px solid rgba(15, 118, 110, 0.15);
 }
 
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
 .repo-hint {
   display: flex;
   flex-wrap: wrap;
@@ -165,6 +173,34 @@ input:focus {
 .example-repo-button:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.exclude-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  cursor: pointer;
+}
+
+.exclude-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.exclude-toggle strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.exclude-toggle small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 button {

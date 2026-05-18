@@ -107,6 +107,67 @@ describe("POST /api/scans", () => {
     expect(scanPublicGitHubRepoMock).toHaveBeenCalledWith("https://github.com/owner/repo");
   });
 
+  it("passes valid exclude paths to the public repo scanner", async () => {
+    scanPublicGitHubRepoMock.mockResolvedValueOnce(createSuccessResult());
+
+    const excludePaths = [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.spec.tsx",
+      "examples/**"
+    ];
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body: JSON.stringify({
+          excludePaths,
+          repoUrl: "https://github.com/owner/repo"
+        }),
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(scanPublicGitHubRepoMock).toHaveBeenCalledWith("https://github.com/owner/repo", {
+      excludePaths
+    });
+  });
+
+  it("rejects invalid exclude paths before starting a scan", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body: JSON.stringify({
+          excludePaths: ["examples/**", "../secret"],
+          repoUrl: "https://github.com/owner/repo"
+        }),
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "INVALID_REQUEST_BODY",
+      message: "excludePaths must be an array of safe relative glob patterns."
+    });
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects overly long exclude path lists before starting a scan", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body: JSON.stringify({
+          excludePaths: Array.from({ length: 11 }, (_, index) => `path-${index}/**`),
+          repoUrl: "https://github.com/owner/repo"
+        }),
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
+  });
+
   it("allows scan requests below the per-IP rate limit", async () => {
     scanPublicGitHubRepoMock.mockResolvedValue(createSuccessResult());
 

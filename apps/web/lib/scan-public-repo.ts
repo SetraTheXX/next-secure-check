@@ -1,3 +1,5 @@
+import { readdir } from "node:fs/promises";
+import path from "node:path";
 import { scanProject, type ScanResult } from "@next-secure-check/core";
 import { getBuiltInRules } from "@next-secure-check/rules";
 import type { ArchiveErrorCode } from "./archive-types";
@@ -8,6 +10,7 @@ import { downloadAndExtractGitHubTarball } from "./safe-extract";
 import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "./scan-limits";
 
 export type ScanPublicGitHubRepoOptions = {
+  excludePaths?: string[];
   tempRoot?: string;
   timeoutMs?: number;
   limits?: Partial<ScanLimits>;
@@ -100,7 +103,9 @@ export async function scanPublicGitHubRepo(
   try {
     const runScan = options?.scanProjectImpl ?? scanProject;
     const getRules = options?.getRulesImpl ?? getBuiltInRules;
-    scan = await runScan(extraction.extractedPath, {
+    const scanRoot = await resolveScanRoot(extraction.extractedPath);
+    scan = await runScan(scanRoot, {
+      excludePaths: options?.excludePaths,
       rules: getRules()
     });
   } catch {
@@ -139,6 +144,22 @@ export async function scanPublicGitHubRepo(
     },
     scan: redactScanResult(scan)
   };
+}
+
+export async function resolveScanRoot(extractedPath: string): Promise<string> {
+  try {
+    const entries = await readdir(extractedPath, { withFileTypes: true });
+    const directories = entries.filter((entry) => entry.isDirectory());
+    const files = entries.filter((entry) => entry.isFile());
+
+    if (files.length === 0 && directories.length === 1) {
+      return path.join(extractedPath, directories[0].name);
+    }
+  } catch {
+    return extractedPath;
+  }
+
+  return extractedPath;
 }
 
 async function cleanupQuietly(cleanup: () => Promise<void>): Promise<void> {
