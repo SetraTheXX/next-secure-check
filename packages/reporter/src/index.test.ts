@@ -80,6 +80,9 @@ describe("formatSummary", () => {
     expect(sarif.version).toBe("2.1.0");
     expect(sarif.runs).toHaveLength(1);
     expect(sarif.runs[0].tool.driver.name).toBe("next-secure-check");
+    expect(sarif.runs[0].tool.driver.informationUri).toBe(
+      "https://github.com/SetraTheXX/next-secure-check"
+    );
     expect(sarif.runs[0].tool.driver.semanticVersion).toBe("0.0.0");
     expect(sarif.runs[0].tool.driver.rules).toEqual([]);
     expect(sarif.runs[0].results).toEqual([]);
@@ -165,6 +168,9 @@ describe("formatSummary", () => {
       ruleIndex: 0,
       level: "error",
       message: { text: "Possible hardcoded secret detected" },
+      partialFingerprints: {
+        "nextSecureCheck/v1": expect.any(String)
+      },
       locations: [
         {
           physicalLocation: {
@@ -181,6 +187,10 @@ describe("formatSummary", () => {
       }
     });
     expect(results[1].ruleIndex).toBe(0);
+    expect(results[1].partialFingerprints["nextSecureCheck/v1"]).toEqual(expect.any(String));
+    expect(results[1].partialFingerprints["nextSecureCheck/v1"]).not.toBe(
+      results[0].partialFingerprints["nextSecureCheck/v1"]
+    );
     expect(results[2]).toMatchObject({
       ruleId: "headers/missing-security-headers",
       ruleIndex: 1,
@@ -198,6 +208,32 @@ describe("formatSummary", () => {
     });
     expect(sarifText).not.toContain("sk_live_super_secret");
     expect(sarifText).not.toContain("demo-token");
+  });
+
+  it("generates stable SARIF partial fingerprints for the same finding", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [
+      {
+        id: "finding-1",
+        ruleId: "headers/missing-security-headers",
+        title: "Security headers were not detected",
+        severity: "LOW",
+        confidence: "LOW",
+        category: "headers",
+        filePath: "next.config.js",
+        line: 2,
+        column: 1,
+        description: "No common security header configuration was detected.",
+        recommendation: "Configure common security headers."
+      }
+    ];
+
+    const firstSarif = JSON.parse(formatSarif(result));
+    const secondSarif = JSON.parse(formatSarif(result));
+
+    expect(firstSarif.runs[0].results[0].partialFingerprints).toEqual(
+      secondSarif.runs[0].results[0].partialFingerprints
+    );
   });
 
   it("maps medium and info findings to SARIF levels and security severities", () => {

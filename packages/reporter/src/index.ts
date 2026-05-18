@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import type { ScanResult } from "@next-secure-check/core";
 
 export type ReportFormat = "terminal" | "json" | "markdown" | "github" | "sarif";
 
 const SEVERITY_ORDER = ["HIGH", "MEDIUM", "LOW", "INFO"] as const;
+const INFORMATION_URI = "https://github.com/SetraTheXX/next-secure-check";
 
 export function formatReport(result: ScanResult, format: ReportFormat): string {
   switch (format) {
@@ -160,6 +162,7 @@ export function formatSarif(result: ScanResult): string {
         tool: {
           driver: {
             name: "next-secure-check",
+            informationUri: INFORMATION_URI,
             semanticVersion: result.metadata.toolVersion,
             rules
           }
@@ -170,6 +173,9 @@ export function formatSarif(result: ScanResult): string {
           level: sarifLevel(finding.severity),
           message: {
             text: finding.title
+          },
+          partialFingerprints: {
+            "nextSecureCheck/v1": createFindingFingerprint(finding)
           },
           locations: [
             {
@@ -284,6 +290,18 @@ function sarifPrecision(confidence: ScanResult["findings"][number]["confidence"]
 
 function isSecretFinding(finding: ScanResult["findings"][number]): boolean {
   return finding.category === "secrets" || finding.ruleId.startsWith("secrets/");
+}
+
+function createFindingFingerprint(finding: ScanResult["findings"][number]): string {
+  const fingerprintInput = [
+    finding.ruleId,
+    finding.filePath,
+    finding.line ?? "",
+    finding.column ?? "",
+    finding.title
+  ].join("\u0000");
+
+  return createHash("sha256").update(fingerprintInput).digest("hex");
 }
 
 function formatSarifUri(filePath: string): string {
