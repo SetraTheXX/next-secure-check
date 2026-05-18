@@ -71,6 +71,7 @@ a {
 .header h1 {
   font-size: clamp(26px, 4vw, 42px);
   line-height: 1.05;
+  max-width: 780px;
 }
 
 .eyebrow {
@@ -95,9 +96,24 @@ a {
   white-space: nowrap;
 }
 
+.hero-copy {
+  max-width: 780px;
+  margin: 14px 0 0;
+  color: #344054;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.trust-copy {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 label {
@@ -123,6 +139,32 @@ input {
 input:focus {
   border-color: var(--accent);
   outline: 3px solid rgba(15, 118, 110, 0.15);
+}
+
+.repo-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.example-repo-button {
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #b9c2cf;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.example-repo-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 button {
@@ -154,7 +196,7 @@ button:disabled {
 
 .state-panel {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   padding: 16px;
   border: 1px solid var(--line);
@@ -165,6 +207,25 @@ button:disabled {
 .state-panel p {
   margin: 4px 0 0;
   color: var(--muted);
+}
+
+.loading-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loading-steps li {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: #ffffff;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .error-panel {
@@ -186,14 +247,24 @@ button:disabled {
   gap: 18px;
 }
 
+.summary-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(240, 253, 250, 0.82), rgba(255, 255, 255, 0.96)),
+    #ffffff;
+}
+
 .result-topline {
   align-items: flex-start;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
 }
 
 .result-topline h2 {
   font-size: 26px;
+  overflow-wrap: anywhere;
 }
 
 .risk-badge {
@@ -214,9 +285,39 @@ button:disabled {
   border-color: var(--warning);
 }
 
+.summary-layout {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.8fr) minmax(0, 2.2fr);
+  gap: 12px;
+}
+
+.score-card {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  min-height: 136px;
+  padding: 18px;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.score-card span,
+.score-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.score-card strong {
+  font-size: 54px;
+  line-height: 0.95;
+}
+
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
@@ -262,6 +363,13 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 14px;
+}
+
+.summary-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .export-actions {
@@ -391,9 +499,26 @@ button:disabled {
 
   .header,
   .result-topline,
-  .input-row {
+  .input-row,
+  .summary-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .hero-copy {
+    font-size: 15px;
+  }
+
+  .summary-panel {
+    padding: 14px;
+  }
+
+  .summary-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .score-card {
+    min-height: 0;
   }
 
   .metric-grid {
@@ -409,7 +534,23 @@ button:disabled {
     border-bottom: 0;
   }
 
+  .metric:nth-last-child(2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .export-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   button {
     min-height: 46px;
+  }
+
+  .example-repo-button {
+    width: 100%;
+    min-height: 40px;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }

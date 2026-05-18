@@ -15,6 +15,8 @@ import {
   type ScanStatus
 } from "../lib/scan-ui";
 
+const EXAMPLE_REPO_URL = "https://github.com/octocat/Hello-World";
+
 export default function Home() {
   const [input, setInput] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -76,7 +78,14 @@ export default function Home() {
         <header className="header">
           <div>
             <p className="eyebrow">Rule-based static scanner</p>
-            <h1 id="scan-title">next-secure-check Web Demo</h1>
+            <h1 id="scan-title">Scan a Next.js repo for common security risks</h1>
+            <p className="hero-copy">
+              Rule-based static analysis for leaked secrets, unsafe API routes, XSS patterns,
+              raw SQL, missing headers, and upload validation issues.
+            </p>
+            <p className="trust-copy">
+              No repo scripts are executed. Secret evidence is redacted server-side.
+            </p>
           </div>
           <div className="status-pill">Public repos only</div>
         </header>
@@ -87,7 +96,7 @@ export default function Home() {
             <input
               id="repo-url"
               type="url"
-              placeholder="https://github.com/owner/repo"
+              placeholder="Paste a public GitHub repo URL, for example https://github.com/owner/repo"
               autoComplete="off"
               value={input}
               onChange={(event) => {
@@ -99,6 +108,19 @@ export default function Home() {
               {status === "loading" ? "Scanning..." : "Scan"}
             </button>
           </div>
+          <div className="repo-hint">
+            <span>Try a public repo:</span>
+            <button
+              type="button"
+              className="example-repo-button"
+              onClick={() => {
+                setInput(EXAMPLE_REPO_URL);
+                setSubmitError(null);
+              }}
+            >
+              {EXAMPLE_REPO_URL}
+            </button>
+          </div>
           {validationError ? <div className="validation error">{validationError}</div> : null}
           {submitError ? <div className="validation error">{submitError}</div> : null}
         </form>
@@ -106,8 +128,6 @@ export default function Home() {
         {status === "loading" ? <LoadingState /> : null}
         {scanError ? <ErrorState message={scanError} /> : null}
         {result ? <ScanResultView result={result} /> : null}
-
-        <div className="note">No repo scripts are executed. Evidence for secret findings is redacted.</div>
       </section>
     </main>
   );
@@ -119,7 +139,12 @@ function LoadingState() {
       <div className="spinner" aria-hidden="true" />
       <div>
         <h2>{LOADING_STATE_TITLE}</h2>
-        <p>Downloading, extracting, running deterministic rules, and cleaning up.</p>
+        <ul className="loading-steps">
+          <li>Checking repository metadata</li>
+          <li>Downloading archive</li>
+          <li>Extracting safely</li>
+          <li>Running rules</li>
+        </ul>
       </div>
     </section>
   );
@@ -147,40 +172,50 @@ function ScanResultView({ result }: { result: ScanApiSuccess }) {
 
   return (
     <section className="results" aria-label="Scan results">
-      <div className="result-topline">
-        <div>
-          <p className="eyebrow">Scan complete</p>
-          <h2>
-            <a href={result.repo.htmlUrl} target="_blank" rel="noreferrer">
-              {result.repo.fullName}
-            </a>
-          </h2>
+      <div className="summary-panel">
+        <div className="result-topline">
+          <div>
+            <p className="eyebrow">Scan complete</p>
+            <h2>
+              <a href={result.repo.htmlUrl} target="_blank" rel="noreferrer">
+                {result.repo.fullName}
+              </a>
+            </h2>
+          </div>
+          <div className={`risk-badge risk-${summary.riskLevel}`}>{formatRiskLabel(summary.riskLevel)}</div>
         </div>
-        <div className={`risk-badge risk-${summary.riskLevel}`}>{summary.riskLevel}</div>
-      </div>
 
-      <div className="metric-grid">
-        <Metric label="Score" value={summary.score} />
-        <Metric label="Findings" value={summary.totalFindings} />
-        <Metric label="High" value={summary.high} tone="high" />
-        <Metric label="Medium" value={summary.medium} tone="medium" />
-        <Metric label="Low" value={summary.low} tone="low" />
-        <Metric label="Info" value={summary.info} />
-      </div>
+        <div className="summary-layout">
+          <div className="score-card">
+            <span>Security score</span>
+            <strong>{summary.score}</strong>
+            <p>{formatRiskLabel(summary.riskLevel)}</p>
+          </div>
+          <div className="metric-grid">
+            <Metric label="Findings" value={summary.totalFindings} />
+            <Metric label="High" value={summary.high} tone="high" />
+            <Metric label="Medium" value={summary.medium} tone="medium" />
+            <Metric label="Low" value={summary.low} tone="low" />
+            <Metric label="Info" value={summary.info} />
+          </div>
+        </div>
 
-      <div className="repo-meta">
-        <span>Branch: {result.repo.defaultBranch}</span>
-        <span>Files extracted: {result.extraction.fileCount}</span>
-        <span>Bytes: {result.extraction.totalBytes}</span>
-      </div>
+        <div className="summary-footer">
+          <div className="repo-meta">
+            <span>Branch: {result.repo.defaultBranch}</span>
+            <span>Files extracted: {result.extraction.fileCount}</span>
+            <span>Bytes: {result.extraction.totalBytes}</span>
+          </div>
 
-      <div className="export-actions" aria-label="Export scan result">
-        <button type="button" onClick={() => void copyExport("json")}>
-          {copiedFormat === "json" ? "JSON copied" : "Copy JSON"}
-        </button>
-        <button type="button" onClick={() => void copyExport("markdown")}>
-          {copiedFormat === "markdown" ? "Markdown copied" : "Copy Markdown"}
-        </button>
+          <div className="export-actions" aria-label="Export scan result">
+            <button type="button" onClick={() => void copyExport("json")}>
+              {copiedFormat === "json" ? "JSON copied" : "Export JSON"}
+            </button>
+            <button type="button" onClick={() => void copyExport("markdown")}>
+              {copiedFormat === "markdown" ? "Markdown copied" : "Export Markdown"}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="findings">
@@ -221,6 +256,10 @@ function ScanResultView({ result }: { result: ScanApiSuccess }) {
       </div>
     </section>
   );
+}
+
+function formatRiskLabel(riskLevel: string): string {
+  return `${riskLevel.charAt(0).toUpperCase()}${riskLevel.slice(1)} risk`;
 }
 
 function Metric({
