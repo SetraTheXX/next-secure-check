@@ -33,9 +33,9 @@ node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 
 ## Test Baseline
 
-- Packages: 79 tests.
-- Web app: 92 tests.
-- Total: 171 tests.
+- Packages: 105 tests.
+- Web app: 128 tests.
+- Total: 233 tests.
 - Build, typecheck, package tests, and web tests passed.
 
 ## CLI Smoke Results
@@ -43,7 +43,7 @@ node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ### vulnerable-next-app
 
 - Command: `node packages/cli/dist/index.js scan examples/vulnerable-next-app`
-- Result: 27 findings.
+- Result: 26 findings after the Phase 6 low-signal secret false positive cleanup.
 - Score: 0.
 - Risk: critical.
 - Expected vulnerable findings were preserved.

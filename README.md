@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: MVP and Phase 4.5 hardening are complete. Phase 5 is focused on demo video, portfolio polish, UI polish, and feedback from real public repository scans.
+> Current status: MVP and Phase 4.5 hardening are complete. Phase 5 demo/portfolio polish is underway, with Phase 6 CLI/reporting hardening started after external review.
 
 Demo video coming soon.
 
@@ -16,18 +16,18 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 192 passing tests across packages and the web demo
-- Terminal, JSON, Markdown, and GitHub report formats
+- 233 passing tests across packages and the web demo
+- Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - GitHub Actions proof with Step Summary output
 - Rule documentation in `docs/rules`
 - `apps/web` web demo for scanning public GitHub repositories
 - GitHub repository URL validation, metadata check, tarball download, safe extraction, cleanup, API scan endpoint, report UI, exclude toggle, and JSON/Markdown export
-- Phase 4.5 web demo hardening, including repo size checks, server-side redaction, scan abuse guard, hardened security headers, and orphan temp cleanup
+- Phase 4.5+ web demo hardening, including repo size checks, server-side redaction, scan abuse guard, hardened security headers, orphan temp cleanup, optional GitHub token support, and hardened client IP parsing
 
 Current focus:
 
 ```txt
-Phase 5: demo, portfolio, UI polish, and public feedback
+Phase 5/6: demo, portfolio, UI polish, external-review fixes, and public feedback
 ```
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
@@ -38,6 +38,7 @@ The CLI is exercised in GitHub Actions as part of this repository's CI.
 
 - The workflow runs the scanner with `--format github` and writes the markdown report to the job **Step Summary** via `$GITHUB_STEP_SUMMARY`.
 - When `--fail-on high` is used, the job fails if any HIGH severity finding is reported.
+- When `--fail-on critical` is used, the job fails only when the scan summary risk level is `critical`.
 - The step order is: build → typecheck → test → security check, ensuring workspace packages are compiled before typechecking.
 - The findings are deterministic pattern matches; no proof-of-exploit is executed.
 
@@ -85,11 +86,15 @@ npx next-secure-check scan .
 npx next-secure-check scan . --format json
 npx next-secure-check scan . --format markdown --output report.md
 npx next-secure-check scan . --format github
+npx next-secure-check scan . --format sarif --output report.sarif
 npx next-secure-check scan . --fail-on high
+npx next-secure-check scan . --fail-on critical
 npx next-secure-check scan . --category secrets,auth,xss
 npx next-secure-check scan . --exclude "**/*.test.ts,examples/**"
 node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
+
+`--fail-on critical` is a risk-level gate. It exits with code `1` only when `scan.summary.riskLevel` is `critical`. `--fail-on high`, `medium`, `low`, and `info` continue to work as severity thresholds.
 
 ## CLI Config
 
@@ -129,6 +134,24 @@ npx next-secure-check scan . --config path/to/config.json
 
 The web demo does not read `.next-secure-check.json` files from scanned repositories. Hosted/public scans use the web demo's own server-side options instead.
 
+## SARIF Output
+
+SARIF 2.1.0 output is available for tools such as GitHub Code Scanning:
+
+```bash
+npx next-secure-check scan . --format sarif --output report.sarif
+```
+
+The SARIF reporter includes:
+
+- tool metadata with `informationUri`
+- unique rule metadata
+- result locations with file, line, and column when available
+- `security-severity` and precision metadata
+- deterministic `partialFingerprints` for more stable result tracking
+
+Raw secret evidence is not included in SARIF output.
+
 ## Monorepo Layout
 
 ```txt
@@ -139,7 +162,7 @@ packages/
   core/       scanner orchestration, shared types, score engine
   cli/        command line entrypoint
   rules/      built-in rule modules
-  reporter/   terminal, JSON, markdown, GitHub report output
+  reporter/   terminal, JSON, markdown, GitHub, SARIF report output
 
 examples/
   vulnerable-next-app/
@@ -163,9 +186,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 79 tests
-apps/web: 113 tests
-total: 192 tests
+packages: 105 tests
+apps/web: 128 tests
+total: 233 tests
 ```
 
 After building, the CLI can be run locally:
@@ -175,6 +198,7 @@ node packages/cli/dist/index.js scan examples/vulnerable-next-app
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format json
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format markdown --output report.md
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format github --fail-on high
+node packages/cli/dist/index.js scan examples/vulnerable-next-app --format sarif --output report.sarif
 node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
 
@@ -202,9 +226,11 @@ The web demo includes:
 
 - public GitHub repository URL validation
 - public repository metadata checks
-- tarball download from GitHub
+- tarball download from GitHub with `User-Agent: next-secure-check`
+- optional `GITHUB_TOKEN` support for higher GitHub API rate limits
 - safe tarball extraction with archive limits and path checks
 - cleanup guarantee for extracted temporary files
+- cleanup warning behavior when a scan succeeds but immediate cleanup fails
 - core scanner integration
 - server-side evidence redaction before results reach the browser
 - `POST /api/scans` backend endpoint
@@ -277,10 +303,14 @@ The web demo is designed for public, static scans only:
 - symlink and hardlink rejection
 - duplicate archive path rejection
 - server-side secret evidence redaction
+- optional `GITHUB_TOKEN` support for GitHub metadata and tarball requests
+- `User-Agent: next-secure-check` on GitHub requests
 - in-memory IP rate limit and global concurrency guard
+- hardened client IP resolver with platform header priority, IPv4/IPv6 validation, and oversized header fallback
 - orphan temp cleanup for old scanner extraction directories
+- successful scan results are still returned if immediate cleanup fails, with a safe cleanup warning
 
-The in-memory scan guard is intended for the local/demo stage. A public multi-instance deployment should use a distributed rate limit or platform-level protection.
+The in-memory scan guard is intended for the local/single-instance demo stage. A public multi-instance or serverless deployment should use a distributed rate limit or platform-level protection.
 
 ## GitHub Actions
 
@@ -320,7 +350,7 @@ jobs:
           exit "$status"
 ```
 
-This fails the pull request when findings at `HIGH` or above are found. Change `--fail-on` to `medium`, `low`, or `info` if your team wants a stricter gate.
+This fails the pull request when findings at `HIGH` or above are found. Change `--fail-on` to `medium`, `low`, or `info` if your team wants a stricter severity gate. Use `--fail-on critical` when you only want to fail on a `critical` scan summary risk level.
 
 Findings are deterministic pattern matches, not proof of exploitation. Review the `confidence`, `evidence`, and `recommendation` fields before treating a finding as a confirmed vulnerability.
 
@@ -330,11 +360,12 @@ Manual validation notes:
 
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
+- [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)
 
 ## Immediate Goal
 
 ```txt
-Phase 5: prepare demo video, portfolio case study, README polish, UI polish, and public feedback.
+Phase 5/6: prepare demo video, portfolio case study, README polish, UI polish, external-review fixes, and public feedback.
 ```
 
 ## Release Gates

@@ -32,9 +32,9 @@ The web demo remains an early-development demo. It is public-repository-only and
 Automated test baseline:
 
 ```txt
-packages: 66 tests
-apps/web: 82 tests
-total: 148 tests
+packages: 105 tests
+apps/web: 128 tests
+total: 233 tests
 ```
 
 ## Web Demo Checks
@@ -69,7 +69,7 @@ Manual CLI checks passed.
 
 Validated scenarios:
 
-- `examples/vulnerable-next-app` scan returned 27 findings.
+- `examples/vulnerable-next-app` scan returned 26 findings after the Phase 6 low-signal secret false positive cleanup.
 - `examples/vulnerable-next-app` was rated `critical`.
 - `--fail-on high` returned exit code `1` for the vulnerable app.
 - `examples/secure-next-app` scan returned score `99`.
