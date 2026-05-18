@@ -47,7 +47,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const guard = tryAcquireScanSlot(getScanClientIp(request.headers));
+  const guard = await tryAcquireScanSlot(getScanClientIp(request.headers));
   if (!guard.ok) {
     return NextResponse.json(
       {
@@ -76,7 +76,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 500 }
     );
   } finally {
-    guard.release();
+    await guard.release();
   }
 
   if (result.ok) {

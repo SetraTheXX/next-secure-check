@@ -1,9 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getScanClientIp,
   resetScanAbuseGuardForTests,
   tryAcquireScanSlot
 } from "./scan-abuse-guard";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  resetScanAbuseGuardForTests();
+});
 
 describe("getScanClientIp", () => {
   it("falls back to unknown when client IP headers are missing", () => {
@@ -73,11 +79,11 @@ describe("getScanClientIp", () => {
 });
 
 describe("tryAcquireScanSlot", () => {
-  it("keeps the existing per-IP rate limit behavior", () => {
+  it("keeps the existing per-IP rate limit behavior without distributed env", async () => {
     resetScanAbuseGuardForTests();
 
-    const first = tryAcquireScanSlot("203.0.113.60", 1_000);
-    const second = tryAcquireScanSlot("203.0.113.60", 1_000);
+    const first = await tryAcquireScanSlot("203.0.113.60", 1_000);
+    const second = await tryAcquireScanSlot("203.0.113.60", 1_000);
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
     if (first.ok) {
@@ -87,17 +93,108 @@ describe("tryAcquireScanSlot", () => {
       second.release();
     }
 
-    const third = tryAcquireScanSlot("203.0.113.60", 1_000);
+    const third = await tryAcquireScanSlot("203.0.113.60", 1_000);
     expect(third.ok).toBe(true);
     if (third.ok) {
       third.release();
     }
 
-    const result = tryAcquireScanSlot("203.0.113.60", 1_000);
+    const result = await tryAcquireScanSlot("203.0.113.60", 1_000);
 
     expect(result).toMatchObject({
       code: "SCAN_RATE_LIMITED",
       ok: false
     });
   });
+
+  it("uses Upstash REST when distributed env is configured", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 1 }, { result: 1 }]))
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 1 }, { result: 1 }]))
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 0 }]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await tryAcquireScanSlot("203.0.113.70", 1_000);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      await result.release();
+    }
+
+    const firstRequest = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(firstRequest.headers);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://redis.example.com/pipeline");
+    expect(headers.get("Authorization")).toBe("Bearer upstash-secret-token");
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(JSON.stringify(result)).not.toContain("upstash-secret-token");
+  });
+
+  it("rate limits through the distributed store", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(createUpstashResponse([{ result: 4 }, { result: 1 }]))
+    );
+
+    const result = await tryAcquireScanSlot("203.0.113.71", 1_000);
+
+    expect(result).toEqual({
+      ok: false,
+      code: "SCAN_RATE_LIMITED",
+      message: "Too many scan requests. Please wait before starting another scan."
+    });
+  });
+
+  it("enforces distributed concurrent scan limits", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 1 }, { result: 1 }]))
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 3 }, { result: 1 }]))
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 2 }]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await tryAcquireScanSlot("203.0.113.72", 1_000);
+
+    expect(result).toEqual({
+      ok: false,
+      code: "CONCURRENT_SCAN_LIMIT_EXCEEDED",
+      message: "Too many scans are running. Please try again shortly."
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails closed without leaking tokens when the distributed store fails", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500
+      })
+    );
+
+    const result = await tryAcquireScanSlot("203.0.113.73", 1_000);
+
+    expect(result).toEqual({
+      ok: false,
+      code: "CONCURRENT_SCAN_LIMIT_EXCEEDED",
+      message: "Too many scans are running. Please try again shortly."
+    });
+    expect(JSON.stringify(result)).not.toContain("upstash-secret-token");
+  });
 });
+
+function createUpstashResponse(payload: unknown): Response {
+  return new Response(JSON.stringify(payload), {
+    headers: {
+      "content-type": "application/json"
+    },
+    status: 200
+  });
+}

@@ -11,6 +11,8 @@ const scanPublicGitHubRepoMock = vi.mocked(scanPublicGitHubRepo);
 
 describe("POST /api/scans", () => {
   beforeEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     resetScanAbuseGuardForTests();
     scanPublicGitHubRepoMock.mockReset();
   });
@@ -198,6 +200,25 @@ describe("POST /api/scans", () => {
     expect(scanPublicGitHubRepoMock).toHaveBeenCalledTimes(3);
   });
 
+  it("preserves 429 rate limit responses when the distributed scan guard is configured", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(createUpstashResponse([{ result: 4 }, { result: 1 }]))
+    );
+
+    const response = await POST(createScanRequest({ ip: "203.0.113.10" }));
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "SCAN_RATE_LIMITED",
+      message: "Too many scan requests. Please wait before starting another scan."
+    });
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
+  });
+
   it("rejects scans over the concurrent scan limit before starting another scan", async () => {
     const firstScan = createDeferredScan();
     const secondScan = createDeferredScan();
@@ -222,6 +243,29 @@ describe("POST /api/scans", () => {
     firstScan.resolve(createSuccessResult());
     secondScan.resolve(createSuccessResult());
     await Promise.all([firstResponse, secondResponse]);
+  });
+
+  it("preserves 429 concurrency responses when the distributed scan guard is configured", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(createUpstashResponse([{ result: 1 }, { result: 1 }]))
+        .mockResolvedValueOnce(createUpstashResponse([{ result: 3 }, { result: 1 }]))
+        .mockResolvedValueOnce(createUpstashResponse([{ result: 2 }]))
+    );
+
+    const response = await POST(createScanRequest({ ip: "203.0.113.11" }));
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "CONCURRENT_SCAN_LIMIT_EXCEEDED",
+      message: "Too many scans are running. Please try again shortly."
+    });
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
   });
 
   it("releases the active scan counter after successful scans", async () => {
@@ -365,4 +409,13 @@ function createSuccessResult(): Awaited<ReturnType<typeof scanPublicGitHubRepo>>
       }
     }
   };
+}
+
+function createUpstashResponse(payload: unknown): Response {
+  return new Response(JSON.stringify(payload), {
+    headers: {
+      "content-type": "application/json"
+    },
+    status: 200
+  });
 }
