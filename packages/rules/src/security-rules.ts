@@ -270,17 +270,19 @@ export const rawSqlConcatRule: Rule = {
     const pattern = /`[^`]*(SELECT|INSERT|UPDATE|DELETE)[^`]*\$\{[^}]+}[^`]*`|["'][^"']*(SELECT|INSERT|UPDATE|DELETE)[^"']*["']\s*\+/i;
 
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, pattern).map((match) =>
-        createFinding({
-          rule: rawSqlConcatRule,
-          file,
-          line: match.line,
-          column: match.column,
-          evidence: match.evidence,
-          description: "SQL built with string interpolation or concatenation can lead to SQL injection.",
-          recommendation: "Use parameterized queries, prepared statements, or a safe ORM query builder."
-        })
-      )
+      findMatches(file, pattern)
+        .filter((match) => !isLowRiskSqlStringContext(match.sourceLine, match.column))
+        .map((match) =>
+          createFinding({
+            rule: rawSqlConcatRule,
+            file,
+            line: match.line,
+            column: match.column,
+            evidence: match.evidence,
+            description: "SQL built with string interpolation or concatenation can lead to SQL injection.",
+            recommendation: "Use parameterized queries, prepared statements, or a safe ORM query builder."
+          })
+        )
     );
   }
 };
@@ -629,6 +631,13 @@ function isMethodCall(line: string, column: number): boolean {
 
 function isRegexLiteralLine(line: string): boolean {
   return /\/[^/\n]*dangerouslySetInnerHTML[^/\n]*\/[a-z]*/.test(line);
+}
+
+function isLowRiskSqlStringContext(line: string, column: number): boolean {
+  const beforeMatch = line.slice(0, Math.max(0, column - 1));
+  return /(?:^|[^\w$.])(?:console\.(?:log|debug|info|warn|error)|logger\.(?:debug|info)|throw\s+new\s+Error)\s*\(\s*$/.test(
+    beforeMatch
+  );
 }
 
 function extractAssignedStringLiteral(line: string): string | undefined {

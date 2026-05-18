@@ -161,6 +161,47 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(true);
   });
 
+  it("detects raw SQL interpolation passed to query APIs", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "db.query(`SELECT * FROM users WHERE email = ${email}`);",
+        "connection.execute(`DELETE FROM users WHERE id = ${id}`);"
+      ].join("\n")
+    });
+
+    const findings = result.findings.filter((finding) => finding.ruleId === "injection/raw-sql-concat");
+    expect(findings).toHaveLength(2);
+  });
+
+  it("does not flag raw SQL text in low-risk logging and error contexts", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "console.log(`SELECT * FROM users WHERE id = ${id}`);",
+        "logger.debug(`SELECT * FROM users WHERE id = ${id}`);",
+        "logger.info(`UPDATE users SET name = ${name} WHERE id = ${id}`);",
+        "throw new Error(`DELETE FROM users WHERE id = ${id}`);"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(false);
+  });
+
+  it("does not flag raw SQL concatenation in low-risk logging contexts", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": 'console.log("SELECT * FROM users WHERE id = " + id);'
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(false);
+  });
+
+  it("keeps flagging Prisma raw SQL tagged templates for review", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": "await prisma.$queryRaw`SELECT * FROM users WHERE id = ${id}`;"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(true);
+  });
+
   it("detects missing security headers in Next.js apps", async () => {
     const result = await scanFixture({ "package.json": '{"name":"demo"}', "app/page.tsx": "export default function Page() { return null; }" });
 
