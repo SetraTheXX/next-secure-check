@@ -1,6 +1,11 @@
+import { isIP } from "node:net";
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const MAX_SCANS_PER_WINDOW = 3;
 const MAX_ACTIVE_SCANS = 2;
+const MAX_IP_HEADER_LENGTH = 512;
+
+const CLIENT_IP_HEADERS = ["x-vercel-forwarded-for", "x-forwarded-for", "x-real-ip"] as const;
 
 type RateLimitBucket = {
   count: number;
@@ -22,14 +27,15 @@ const rateLimitBuckets = new Map<string, RateLimitBucket>();
 let activeScans = 0;
 
 export function getScanClientIp(headers: Headers): string {
-  const forwardedFor = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  if (forwardedFor) {
-    return forwardedFor;
-  }
+  for (const headerName of CLIENT_IP_HEADERS) {
+    const clientIp = parseClientIpHeader(headers.get(headerName));
+    if (clientIp === "too-long") {
+      return "unknown";
+    }
 
-  const realIp = headers.get("x-real-ip")?.trim();
-  if (realIp) {
-    return realIp;
+    if (clientIp) {
+      return clientIp;
+    }
   }
 
   return "unknown";
@@ -87,4 +93,21 @@ function getRateLimitBucket(ip: string, nowMs: number): RateLimitBucket {
   }
 
   return current;
+}
+
+function parseClientIpHeader(value: string | null): string | "too-long" | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value.length > MAX_IP_HEADER_LENGTH) {
+    return "too-long";
+  }
+
+  const candidates = value.split(",").map((candidate) => candidate.trim());
+  return candidates.find(isValidClientIp);
+}
+
+function isValidClientIp(value: string): boolean {
+  return isIP(value) !== 0;
 }
