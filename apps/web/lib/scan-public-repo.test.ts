@@ -257,10 +257,10 @@ describe("scanPublicGitHubRepo", () => {
     expect(cleanup).toHaveBeenCalledTimes(1);
   });
 
-  it("reports cleanup failure after a successful scan", async () => {
+  it("returns a successful scan with a safe warning when cleanup fails after scanning", async () => {
     const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
       downloadAndExtractImpl: vi.fn().mockResolvedValue({
-        cleanup: vi.fn().mockRejectedValue(new Error("cleanup failed")),
+        cleanup: vi.fn().mockRejectedValue(new Error("cleanup failed at C:/tmp/extracted\nstack trace")),
         extractedPath: "C:/tmp/extracted",
         fileCount: 1,
         ok: true,
@@ -271,11 +271,63 @@ describe("scanPublicGitHubRepo", () => {
       scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([]))
     });
 
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.scan.findings).toEqual([]);
+      expect(result.warnings).toEqual([
+        {
+          code: "CLEANUP_FAILED",
+          message: "Repository cleanup failed. Temporary files may be cleaned up by the next scan."
+        }
+      ]);
+      expect(JSON.stringify(result)).not.toContain("C:/tmp/extracted");
+      expect(JSON.stringify(result)).not.toContain("stack trace");
+    }
+  });
+
+  it("preserves scanner failures when cleanup also fails after scanner failure", async () => {
+    const cleanup = vi.fn().mockRejectedValue(new Error("cleanup failed"));
+
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      downloadAndExtractImpl: vi.fn().mockResolvedValue({
+        cleanup,
+        extractedPath: "C:/tmp/extracted",
+        fileCount: 1,
+        ok: true,
+        tempId: "temp-id",
+        totalBytes: 1
+      }),
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
+      scanProjectImpl: vi.fn().mockRejectedValue(new Error("scanner failed"))
+    });
+
     expect(result).toEqual({
       ok: false,
-      code: "CLEANUP_FAILED",
-      message: "Repository cleanup failed"
+      code: "SCAN_FAILED",
+      message: "Repository scan failed"
     });
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves extraction failures without running the scanner", async () => {
+    const scanProjectImpl = vi.fn();
+
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      downloadAndExtractImpl: vi.fn().mockResolvedValue({
+        code: "PATH_TRAVERSAL_DETECTED",
+        message: "Archive entry path is unsafe",
+        ok: false
+      }),
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
+      scanProjectImpl
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "PATH_TRAVERSAL_DETECTED",
+      message: "Archive entry path is unsafe"
+    });
+    expect(scanProjectImpl).not.toHaveBeenCalled();
   });
 });
 

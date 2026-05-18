@@ -21,6 +21,11 @@ export type ScanPublicGitHubRepoOptions = {
   cleanupOrphansImpl?: typeof cleanupOrphanExtractionDirs;
 };
 
+type ScanWarning = {
+  code: "CLEANUP_FAILED";
+  message: string;
+};
+
 export type ScanPublicGitHubRepoResult =
   | {
       ok: true;
@@ -37,6 +42,7 @@ export type ScanPublicGitHubRepoResult =
         totalBytes: number;
         tempId: string;
       };
+      warnings?: ScanWarning[];
       scan: RedactedScanResult;
     }
   | {
@@ -122,14 +128,17 @@ export async function scanPublicGitHubRepo(
     };
   }
 
+  let cleanupWarning: ScanWarning[] | undefined;
+
   try {
     await extraction.cleanup();
   } catch {
-    return {
-      ok: false,
-      code: "CLEANUP_FAILED",
-      message: "Repository cleanup failed"
-    };
+    cleanupWarning = [
+      {
+        code: "CLEANUP_FAILED",
+        message: "Repository cleanup failed. Temporary files may be cleaned up by the next scan."
+      }
+    ];
   }
 
   return {
@@ -147,6 +156,7 @@ export async function scanPublicGitHubRepo(
       totalBytes: extraction.totalBytes,
       tempId: extraction.tempId
     },
+    ...(cleanupWarning ? { warnings: cleanupWarning } : {}),
     scan: redactScanResult(scan)
   };
 }
