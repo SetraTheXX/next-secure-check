@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
 import { Command } from "commander";
-import { scanProject, type Severity } from "@next-secure-check/core";
+import { scanProject } from "@next-secure-check/core";
 import { getBuiltInRules } from "@next-secure-check/rules";
 import { formatReport } from "@next-secure-check/reporter";
 import { resolveScanCommandSettings, type ScanCommandOptions } from "./config.js";
+import { shouldFail } from "./fail-on.js";
 
 const program = new Command();
 
@@ -49,7 +50,7 @@ program
         console.log(output);
       }
 
-      if (shouldFail(result.findings.map((finding) => finding.severity), settings.failOn)) {
+      if (shouldFail(result, settings.failOn)) {
         process.exitCode = 1;
       }
     } catch (error) {
@@ -59,34 +60,3 @@ program
   });
 
 program.parse();
-
-function shouldFail(severities: Severity[], failOn?: string): boolean {
-  if (!failOn) {
-    return false;
-  }
-
-  const threshold = failOn.toLowerCase() === "critical" ? 4 : severityRank(parseSeverity(failOn));
-  return severities.some((severity) => severityRank(severity) >= threshold);
-}
-
-function parseSeverity(value: string): Severity {
-  const normalized = value.toUpperCase();
-  if (["HIGH", "MEDIUM", "LOW", "INFO"].includes(normalized)) {
-    return normalized as Severity;
-  }
-
-  throw new Error(`Unsupported fail-on severity: ${value}`);
-}
-
-function severityRank(severity: Severity): number {
-  switch (severity) {
-    case "HIGH":
-      return 3;
-    case "MEDIUM":
-      return 2;
-    case "LOW":
-      return 1;
-    case "INFO":
-      return 0;
-  }
-}
