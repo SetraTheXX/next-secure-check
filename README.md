@@ -4,7 +4,9 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: This project is in early development. The CLI MVP is functional, GitHub Actions integration has been proven, 20 deterministic rules are documented, and the Phase 4 web demo can run a limited public GitHub repository scan flow.
+> Current status: MVP and Phase 4.5 hardening are complete. Phase 5 is focused on demo video, portfolio polish, UI polish, and feedback from real public repository scans.
+
+Demo video coming soon.
 
 Started on May 9, 2026.
 
@@ -14,17 +16,18 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 148 passing tests across packages and the web demo
+- 192 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, and GitHub report formats
 - GitHub Actions proof with Step Summary output
 - Rule documentation in `docs/rules`
 - `apps/web` web demo for scanning public GitHub repositories
-- GitHub repository URL validation, metadata check, tarball download, safe extraction, cleanup, API scan endpoint, report UI, and JSON/Markdown export
+- GitHub repository URL validation, metadata check, tarball download, safe extraction, cleanup, API scan endpoint, report UI, exclude toggle, and JSON/Markdown export
+- Phase 4.5 web demo hardening, including repo size checks, server-side redaction, scan abuse guard, hardened security headers, and orphan temp cleanup
 
 Current focus:
 
 ```txt
-Phase 4: safe public web demo hardening and review
+Phase 5: demo, portfolio, UI polish, and public feedback
 ```
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
@@ -84,6 +87,8 @@ npx next-secure-check scan . --format markdown --output report.md
 npx next-secure-check scan . --format github
 npx next-secure-check scan . --fail-on high
 npx next-secure-check scan . --category secrets,auth,xss
+npx next-secure-check scan . --exclude "**/*.test.ts,examples/**"
+node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
 
 ## Monorepo Layout
@@ -120,9 +125,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 66 tests
-apps/web: 82 tests
-total: 148 tests
+packages: 79 tests
+apps/web: 113 tests
+total: 192 tests
 ```
 
 After building, the CLI can be run locally:
@@ -132,11 +137,12 @@ node packages/cli/dist/index.js scan examples/vulnerable-next-app
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format json
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format markdown --output report.md
 node packages/cli/dist/index.js scan examples/vulnerable-next-app --format github --fail-on high
+node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
 
 ## Web Demo Status
 
-The Phase 4 web demo lives under `apps/web`. It is an early-development demo, not a production-ready scanning service.
+The web demo lives under `apps/web`. It is a local demo for scanning public GitHub repositories, not a production-ready hosted scanning service.
 
 Current web demo flow:
 
@@ -150,6 +156,7 @@ Public GitHub repo URL
 -> server-side evidence redaction
 -> cleanup
 -> report UI
+-> optional test/example exclusion
 -> JSON / Markdown export
 ```
 
@@ -164,6 +171,7 @@ The web demo includes:
 - server-side evidence redaction before results reach the browser
 - `POST /api/scans` backend endpoint
 - UI scan flow with loading, error, and result states
+- **Exclude tests and examples** toggle for cleaner production-like scans
 - JSON and Markdown export actions
 
 The web demo is intentionally limited.
@@ -179,6 +187,16 @@ It will not:
 - perform dynamic analysis
 
 The goal is to scan public GitHub repositories using safe static analysis only. Secret-related evidence is redacted server-side for web responses and exports.
+
+By default, the web demo can exclude test/spec files and `examples/**`:
+
+```txt
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+examples/**
+```
 
 Run the local web demo:
 
@@ -197,7 +215,8 @@ POST /api/scans
 Content-Type: application/json
 
 {
-  "repoUrl": "https://github.com/owner/repo"
+  "repoUrl": "https://github.com/owner/repo",
+  "excludePaths": ["**/*.test.ts", "examples/**"]
 }
 ```
 
@@ -206,6 +225,24 @@ A real local API smoke test passed with:
 ```txt
 https://github.com/octocat/Hello-World
 ```
+
+## Security Model / Hardening
+
+The web demo is designed for public, static scans only:
+
+- public repositories only
+- no scanned repository scripts are executed
+- no dependency installation inside scanned repositories
+- GitHub repository metadata and size checks before download
+- safe tarball extraction with archive limits
+- path traversal protection
+- symlink and hardlink rejection
+- duplicate archive path rejection
+- server-side secret evidence redaction
+- in-memory IP rate limit and global concurrency guard
+- orphan temp cleanup for old scanner extraction directories
+
+The in-memory scan guard is intended for the local/demo stage. A public multi-instance deployment should use a distributed rate limit or platform-level protection.
 
 ## GitHub Actions
 
@@ -249,19 +286,18 @@ This fails the pull request when findings at `HIGH` or above are found. Change `
 
 Findings are deterministic pattern matches, not proof of exploitation. Review the `confidence`, `evidence`, and `recommendation` fields before treating a finding as a confirmed vulnerability.
 
+## Validation Notes
+
+Manual validation notes:
+
+- [Phase 4 validation](./docs/validation/phase-4-validation.md)
+- [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
+
 ## Immediate Goal
 
 ```txt
-Phase 4: build a safe public web demo for scanning public GitHub repositories without executing code.
+Phase 5: prepare demo video, portfolio case study, README polish, UI polish, and public feedback.
 ```
-
-Current Phase 4 focus:
-
-- keep the web demo limited to public repositories
-- validate GitHub repository URLs safely
-- design secure static scan ingestion
-- avoid code execution, dependency installation, and test execution
-- keep private repositories, login, and payment out of scope
 
 ## Release Gates
 
