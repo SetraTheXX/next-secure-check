@@ -151,7 +151,10 @@ export const dangerouslySetInnerHtmlRule: Rule = {
         .filter((match) => !isRegexLiteralLine(match.evidence))
         .map((match) =>
           createFinding({
-            rule: dangerouslySetInnerHtmlRule,
+            rule: {
+              ...dangerouslySetInnerHtmlRule,
+              severity: getDangerouslySetInnerHtmlSeverity(match.sourceLine)
+            },
             file,
             line: match.line,
             column: match.column,
@@ -631,6 +634,32 @@ function isMethodCall(line: string, column: number): boolean {
 
 function isRegexLiteralLine(line: string): boolean {
   return /\/[^/\n]*dangerouslySetInnerHTML[^/\n]*\/[a-z]*/.test(line);
+}
+
+function getDangerouslySetInnerHtmlSeverity(line: string): "LOW" | "MEDIUM" {
+  const htmlValue = /__html\s*:\s*([^}\n]+)/.exec(line)?.[1]?.trim();
+  if (!htmlValue) {
+    return "LOW";
+  }
+
+  if (isStaticHtmlLiteral(htmlValue)) {
+    return "LOW";
+  }
+
+  if (/(userInput|html|content|body|params|searchParams|query|req|request|props|children|markdown)/i.test(htmlValue)) {
+    return "MEDIUM";
+  }
+
+  return "LOW";
+}
+
+function isStaticHtmlLiteral(value: string): boolean {
+  const trimmed = value.replace(/[,;]+$/, "").trim();
+  if (/^["'][\s\S]*["']$/.test(trimmed)) {
+    return true;
+  }
+
+  return /^`[\s\S]*`$/.test(trimmed) && !trimmed.includes("${");
 }
 
 function isLowRiskSqlStringContext(line: string, column: number): boolean {
