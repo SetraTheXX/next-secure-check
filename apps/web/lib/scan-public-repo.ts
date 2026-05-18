@@ -6,7 +6,7 @@ import type { ArchiveErrorCode } from "./archive-types";
 import { fetchPublicGitHubRepoMetadata } from "./github-repo";
 import { parseGitHubRepoUrl } from "./github-url";
 import { redactScanResult, type RedactedScanResult } from "./redact-findings";
-import { downloadAndExtractGitHubTarball } from "./safe-extract";
+import { cleanupOrphanExtractionDirs, downloadAndExtractGitHubTarball } from "./safe-extract";
 import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "./scan-limits";
 
 export type ScanPublicGitHubRepoOptions = {
@@ -18,6 +18,7 @@ export type ScanPublicGitHubRepoOptions = {
   getRulesImpl?: typeof getBuiltInRules;
   fetchMetadataImpl?: typeof fetchPublicGitHubRepoMetadata;
   downloadAndExtractImpl?: typeof downloadAndExtractGitHubTarball;
+  cleanupOrphansImpl?: typeof cleanupOrphanExtractionDirs;
 };
 
 export type ScanPublicGitHubRepoResult =
@@ -64,6 +65,10 @@ export async function scanPublicGitHubRepo(
       message: parsedUrl.error
     };
   }
+
+  await cleanupOrphansQuietly(options?.cleanupOrphansImpl ?? cleanupOrphanExtractionDirs, {
+    tempRoot: options?.tempRoot
+  });
 
   const fetchMetadata = options?.fetchMetadataImpl ?? fetchPublicGitHubRepoMetadata;
   const metadata = await fetchMetadata(parsedUrl.owner, parsedUrl.repo, {
@@ -167,5 +172,16 @@ async function cleanupQuietly(cleanup: () => Promise<void>): Promise<void> {
     await cleanup();
   } catch {
     // The public response must not expose cleanup internals or stack traces.
+  }
+}
+
+async function cleanupOrphansQuietly(
+  cleanupOrphans: typeof cleanupOrphanExtractionDirs,
+  options: Parameters<typeof cleanupOrphanExtractionDirs>[0]
+): Promise<void> {
+  try {
+    await cleanupOrphans(options);
+  } catch {
+    // Orphan cleanup is opportunistic and must never mask the scan result.
   }
 }

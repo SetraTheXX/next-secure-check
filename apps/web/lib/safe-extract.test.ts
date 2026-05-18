@@ -1,12 +1,14 @@
-import { mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { pack, type Headers } from "tar-stream";
 import {
+  cleanupOrphanExtractionDirs,
   downloadAndExtractGitHubTarball,
-  extractTarballSafely
+  extractTarballSafely,
+  ORPHAN_EXTRACTION_MAX_AGE_MS
 } from "./safe-extract";
 
 let tempRoot: string;
@@ -361,6 +363,79 @@ describe("downloadAndExtractGitHubTarball", () => {
     expect(result.ok).toBe(false);
     await expect(readdir(tempRoot)).resolves.toEqual([]);
   });
+
+  it("ignores orphan cleanup removal failures", async () => {
+    await createManagedExtractionDir("old");
+    const rmMock = await mockSafeExtractRmFailure();
+    const { cleanupOrphanExtractionDirs: cleanupWithFailingRm } = await import("./safe-extract");
+
+    await expect(cleanupWithFailingRm({ tempRoot })).resolves.toBeUndefined();
+
+    expect(rmMock).toHaveBeenCalled();
+  });
+});
+
+describe("cleanupOrphanExtractionDirs", () => {
+  it("removes old managed extraction directories", async () => {
+    const orphanDir = await createManagedExtractionDir("old");
+
+    await cleanupOrphanExtractionDirs({
+      nowMs: Date.now(),
+      tempRoot
+    });
+
+    await expect(stat(orphanDir)).rejects.toThrow();
+  });
+
+  it("keeps new managed extraction directories", async () => {
+    const activeDir = await createManagedExtractionDir("new");
+
+    await cleanupOrphanExtractionDirs({
+      nowMs: Date.now(),
+      tempRoot
+    });
+
+    await expect(stat(activeDir)).resolves.toMatchObject({
+      isDirectory: expect.any(Function)
+    });
+  });
+
+  it("never removes directories outside the managed UUID extraction prefix", async () => {
+    const legacySmokeDir = path.join(tempRoot, "next-secure-check-test-smoke");
+    const unrelatedDir = path.join(tempRoot, "unrelated");
+    await mkdir(legacySmokeDir);
+    await mkdir(unrelatedDir);
+    await makeOld(legacySmokeDir);
+    await makeOld(unrelatedDir);
+
+    await cleanupOrphanExtractionDirs({
+      nowMs: Date.now(),
+      tempRoot
+    });
+
+    await expect(stat(legacySmokeDir)).resolves.toMatchObject({
+      isDirectory: expect.any(Function)
+    });
+    await expect(stat(unrelatedDir)).resolves.toMatchObject({
+      isDirectory: expect.any(Function)
+    });
+  });
+
+  it("does not remove managed extraction files", async () => {
+    const managedFile = path.join(
+      tempRoot,
+      "next-secure-check-00000000-0000-0000-0000-000000000000-"
+    );
+    await writeFile(managedFile, "not a directory");
+    await makeOld(managedFile);
+
+    await cleanupOrphanExtractionDirs({
+      nowMs: Date.now(),
+      tempRoot
+    });
+
+    await expect(readFile(managedFile, "utf8")).resolves.toBe("not a directory");
+  });
 });
 
 type TarEntry = {
@@ -440,4 +515,20 @@ async function mockSafeExtractRmFailure(): Promise<ReturnType<typeof vi.fn>> {
   });
 
   return rmMock;
+}
+
+async function createManagedExtractionDir(age: "new" | "old"): Promise<string> {
+  const dir = path.join(tempRoot, `next-secure-check-00000000-0000-0000-0000-00000000000${age === "old" ? "1" : "2"}-`);
+  await mkdir(dir);
+
+  if (age === "old") {
+    await makeOld(dir);
+  }
+
+  return dir;
+}
+
+async function makeOld(targetPath: string): Promise<void> {
+  const oldDate = new Date(Date.now() - ORPHAN_EXTRACTION_MAX_AGE_MS - 60_000);
+  await utimes(targetPath, oldDate, oldDate);
 }

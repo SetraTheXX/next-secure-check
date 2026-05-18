@@ -76,6 +76,47 @@ describe("scanPublicGitHubRepo", () => {
     });
   });
 
+  it("does not let orphan cleanup failures mask successful scans", async () => {
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      cleanupOrphansImpl: vi.fn().mockRejectedValue(new Error("orphan cleanup failed")),
+      downloadAndExtractImpl: vi.fn().mockResolvedValue({
+        cleanup: vi.fn().mockResolvedValue(undefined),
+        extractedPath: "C:/tmp/extracted",
+        fileCount: 2,
+        ok: true,
+        tempId: "temp-id",
+        totalBytes: 123
+      }),
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
+      scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([]))
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("runs orphan cleanup at scan start", async () => {
+    const cleanupOrphansImpl = vi.fn().mockResolvedValue(undefined);
+
+    await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      cleanupOrphansImpl,
+      downloadAndExtractImpl: vi.fn().mockResolvedValue({
+        cleanup: vi.fn().mockResolvedValue(undefined),
+        extractedPath: "C:/tmp/extracted",
+        fileCount: 2,
+        ok: true,
+        tempId: "temp-id",
+        totalBytes: 123
+      }),
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
+      scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([])),
+      tempRoot: "C:/tmp/scans"
+    });
+
+    expect(cleanupOrphansImpl).toHaveBeenCalledWith({
+      tempRoot: "C:/tmp/scans"
+    });
+  });
+
   it("scans the single GitHub tarball root directory so exclude globs match repo-relative paths", async () => {
     const tempRoot = await mkdtemp(path.join(tmpdir(), "next-secure-check-test-"));
     const repoRoot = path.join(tempRoot, "owner-repo-sha");

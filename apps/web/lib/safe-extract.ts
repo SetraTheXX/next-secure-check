@@ -1,5 +1,5 @@
 import { createWriteStream } from "node:fs";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -23,6 +23,12 @@ type DownloadAndExtractOptions = {
   limits?: Partial<ScanLimits>;
 };
 
+type CleanupOrphanExtractionDirsOptions = {
+  maxAgeMs?: number;
+  nowMs?: number;
+  tempRoot?: string;
+};
+
 type ExtractionState = {
   fileCount: number;
   totalBytes: number;
@@ -36,6 +42,48 @@ class ArchiveExtractionError extends Error {
   ) {
     super(message);
     this.name = "ArchiveExtractionError";
+  }
+}
+
+export const EXTRACTION_DIR_PREFIX = "next-secure-check-";
+export const ORPHAN_EXTRACTION_MAX_AGE_MS = 30 * 60 * 1000;
+
+const EXTRACTION_DIR_NAME_PATTERN =
+  /^next-secure-check-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-(?:[A-Za-z0-9_-]+)?$/i;
+
+export async function cleanupOrphanExtractionDirs(
+  options?: CleanupOrphanExtractionDirsOptions
+): Promise<void> {
+  const tempRoot = options?.tempRoot ?? tmpdir();
+  const maxAgeMs = options?.maxAgeMs ?? ORPHAN_EXTRACTION_MAX_AGE_MS;
+  const nowMs = options?.nowMs ?? Date.now();
+
+  try {
+    const entries = await readdir(tempRoot, { withFileTypes: true });
+    await Promise.all(
+      entries.map(async (entry) => {
+        if (!entry.isDirectory() || !isManagedExtractionDirName(entry.name)) {
+          return;
+        }
+
+        const entryPath = path.join(tempRoot, entry.name);
+        try {
+          const entryStat = await stat(entryPath);
+          if (nowMs - entryStat.mtimeMs < maxAgeMs) {
+            return;
+          }
+
+          await rm(entryPath, {
+            force: true,
+            recursive: true
+          });
+        } catch {
+          // Orphan cleanup is best-effort and must never fail a user scan.
+        }
+      })
+    );
+  } catch {
+    return;
   }
 }
 
@@ -113,7 +161,7 @@ export async function downloadAndExtractGitHubTarball(
 }
 
 async function createExtractionDirectory(tempRoot: string): Promise<string> {
-  const prefix = path.join(tempRoot, `next-secure-check-${randomUUID()}-`);
+  const prefix = path.join(tempRoot, `${EXTRACTION_DIR_PREFIX}${randomUUID()}-`);
   try {
     await mkdir(prefix, { recursive: false });
     return prefix;
@@ -121,6 +169,10 @@ async function createExtractionDirectory(tempRoot: string): Promise<string> {
     const { mkdtemp } = await import("node:fs/promises");
     return mkdtemp(prefix);
   }
+}
+
+function isManagedExtractionDirName(name: string): boolean {
+  return name.startsWith(EXTRACTION_DIR_PREFIX) && EXTRACTION_DIR_NAME_PATTERN.test(name);
 }
 
 async function extractArchiveBytes(
