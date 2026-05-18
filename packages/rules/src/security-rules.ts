@@ -379,8 +379,8 @@ export const commandExecRule: Rule = {
     return codeFiles(context).flatMap((file) =>
       [
         ...findMatches(file, commandCallPattern)
-          .filter((match) => !isMethodCall(match.evidence, match.column))
-          .filter((match) => !isInsideQuotedLiteral(match.evidence, match.column)),
+          .filter((match) => !isMethodCall(match.sourceLine, match.column))
+          .filter((match) => !isInsideQuotedLiteral(match.sourceLine, match.column)),
         ...findMatches(file, childProcessImportPattern)
       ].map((match) =>
         createFinding({
@@ -618,7 +618,8 @@ function isInsideQuotedLiteral(line: string, column: number): boolean {
 }
 
 function isMethodCall(line: string, column: number): boolean {
-  return /\.\s*(exec|execSync|spawn|spawnSync)\s*\(/.test(line);
+  const beforeMatch = line.slice(0, Math.max(0, column - 1));
+  return /\.\s*$/.test(beforeMatch);
 }
 
 function isRegexLiteralLine(line: string): boolean {

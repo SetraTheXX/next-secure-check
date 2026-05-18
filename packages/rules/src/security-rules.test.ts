@@ -187,6 +187,42 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(false);
   });
 
+  it("does not flag indented RegExp exec API usage as shell command execution", async () => {
+    const result = await scanFixture({
+      "index.ts": "function collect() {\n  while ((match = matcher.exec(lineContent)) !== null) { matches.push(match); }\n}"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(false);
+  });
+
+  it("does not flag other exec method calls as shell command execution", async () => {
+    const result = await scanFixture({
+      "index.ts": "regex.exec(input);\nrouter.exec();\napp.exec();"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(false);
+  });
+
+  it("detects bare command execution after a safe exec method call on the same line", async () => {
+    const result = await scanFixture({
+      "index.ts": 'regex.exec(input); exec("ls");'
+    });
+
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+    expect(commandFindings).toHaveLength(1);
+    expect(commandFindings[0]?.evidence).toBe('regex.exec(input); exec("ls");');
+  });
+
+  it("detects bare spawn after a safe exec method call on the same line", async () => {
+    const result = await scanFixture({
+      "index.ts": 'object.exec(); spawn("ls");'
+    });
+
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+    expect(commandFindings).toHaveLength(1);
+    expect(commandFindings[0]?.evidence).toBe('object.exec(); spawn("ls");');
+  });
+
   it("detects child_process imports", async () => {
     const result = await scanFixture({ "index.ts": "import { exec } from 'child_process';" });
 

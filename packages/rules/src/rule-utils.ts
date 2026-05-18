@@ -30,8 +30,11 @@ export function createFinding(input: FindingInput): Finding {
   };
 }
 
-export function findMatches(file: SourceFile, pattern: RegExp): Array<{ line: number; column: number; evidence: string }> {
-  const matches: Array<{ line: number; column: number; evidence: string }> = [];
+export function findMatches(
+  file: SourceFile,
+  pattern: RegExp
+): Array<{ line: number; column: number; evidence: string; sourceLine: string }> {
+  const matches: Array<{ line: number; column: number; evidence: string; sourceLine: string }> = [];
   const matcher = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
 
   file.lines.forEach((lineContent, lineIndex) => {
@@ -42,7 +45,8 @@ export function findMatches(file: SourceFile, pattern: RegExp): Array<{ line: nu
       matches.push({
         line: lineIndex + 1,
         column: match.index + 1,
-        evidence: lineContent.trim()
+        evidence: lineContent.trim(),
+        sourceLine: lineContent
       });
 
       if (match[0].length === 0) {

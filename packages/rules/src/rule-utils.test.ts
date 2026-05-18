@@ -16,8 +16,8 @@ describe("findMatches", () => {
     const matches = findMatches(sourceFile("eval('a'); eval('b');"), /\beval\s*\(/);
 
     expect(matches).toEqual([
-      { line: 1, column: 1, evidence: "eval('a'); eval('b');" },
-      { line: 1, column: 12, evidence: "eval('a'); eval('b');" }
+      { line: 1, column: 1, evidence: "eval('a'); eval('b');", sourceLine: "eval('a'); eval('b');" },
+      { line: 1, column: 12, evidence: "eval('a'); eval('b');", sourceLine: "eval('a'); eval('b');" }
     ]);
   });
 
@@ -25,8 +25,8 @@ describe("findMatches", () => {
     const matches = findMatches(sourceFile("eval('a');\nconst safe = true;\neval('b');"), /\beval\s*\(/);
 
     expect(matches).toEqual([
-      { line: 1, column: 1, evidence: "eval('a');" },
-      { line: 3, column: 1, evidence: "eval('b');" }
+      { line: 1, column: 1, evidence: "eval('a');", sourceLine: "eval('a');" },
+      { line: 3, column: 1, evidence: "eval('b');", sourceLine: "eval('b');" }
     ]);
   });
 
@@ -48,10 +48,10 @@ describe("findMatches", () => {
     const pattern = /\beval\s*\(/g;
 
     expect(findMatches(sourceFile("eval('a');"), pattern)).toEqual([
-      { line: 1, column: 1, evidence: "eval('a');" }
+      { line: 1, column: 1, evidence: "eval('a');", sourceLine: "eval('a');" }
     ]);
     expect(findMatches(sourceFile("const safe = true;\neval('b');"), pattern)).toEqual([
-      { line: 2, column: 1, evidence: "eval('b');" }
+      { line: 2, column: 1, evidence: "eval('b');", sourceLine: "eval('b');" }
     ]);
     expect(pattern.lastIndex).toBe(0);
   });
@@ -59,6 +59,6 @@ describe("findMatches", () => {
   it("advances safely for zero-length matches", () => {
     const matches = findMatches(sourceFile("abc"), /(?=b)/g);
 
-    expect(matches).toEqual([{ line: 1, column: 2, evidence: "abc" }]);
+    expect(matches).toEqual([{ line: 1, column: 2, evidence: "abc", sourceLine: "abc" }]);
   });
 });
