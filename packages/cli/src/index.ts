@@ -17,7 +17,7 @@ program
   .command("scan")
   .description("Scan a project directory.")
   .argument("[path]", "Project path", ".")
-  .option("--format <format>", "Output format: terminal, json, markdown, or github")
+  .option("--format <format>", "Output format: terminal, json, markdown, github, or sarif")
   .option("--output <path>", "Write the report to a file")
   .option("--fail-on <severity>", "Exit with code 1 when findings at or above severity exist")
   .option("--category <categories>", "Comma-separated categories to run, e.g. secrets,auth,xss")

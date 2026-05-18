@@ -7,7 +7,7 @@ export const MAX_EXCLUDE_PATHS = 50;
 export const MAX_EXCLUDE_PATH_LENGTH = 160;
 
 const SUPPORTED_CONFIG_KEYS = new Set(["excludePaths", "categories", "failOn", "format"]);
-const SUPPORTED_FORMATS = new Set(["terminal", "json", "markdown", "github"]);
+const SUPPORTED_FORMATS = new Set(["terminal", "json", "markdown", "github", "sarif"]);
 const SUPPORTED_FAIL_ON_VALUES = new Set(["critical", "high", "medium", "low", "info"]);
 
 export type CliConfig = {

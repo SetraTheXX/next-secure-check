@@ -1,6 +1,6 @@
 import type { ScanResult } from "@next-secure-check/core";
 
-export type ReportFormat = "terminal" | "json" | "markdown" | "github";
+export type ReportFormat = "terminal" | "json" | "markdown" | "github" | "sarif";
 
 const SEVERITY_ORDER = ["HIGH", "MEDIUM", "LOW", "INFO"] as const;
 
@@ -12,6 +12,8 @@ export function formatReport(result: ScanResult, format: ReportFormat): string {
       return formatMarkdown(result);
     case "github":
       return formatGithub(result);
+    case "sarif":
+      return formatSarif(result);
     case "terminal":
       return formatTerminal(result);
   }
@@ -147,6 +149,59 @@ export function formatGithub(result: ScanResult): string {
   return lines.join("\n");
 }
 
+export function formatSarif(result: ScanResult): string {
+  const rules = uniqueRules(result);
+  const ruleIndexes = new Map(rules.map((rule, index) => [rule.id, index]));
+  const sarif = {
+    $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+    version: "2.1.0",
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: "next-secure-check",
+            semanticVersion: result.metadata.toolVersion,
+            rules
+          }
+        },
+        results: result.findings.map((finding) => ({
+          ruleId: finding.ruleId,
+          ruleIndex: ruleIndexes.get(finding.ruleId) ?? 0,
+          level: sarifLevel(finding.severity),
+          message: {
+            text: finding.title
+          },
+          locations: [
+            {
+              physicalLocation: {
+                artifactLocation: {
+                  uri: formatSarifUri(finding.filePath)
+                },
+                ...(finding.line
+                  ? {
+                      region: {
+                        startLine: finding.line,
+                        ...(finding.column ? { startColumn: finding.column } : {})
+                      }
+                    }
+                  : {})
+              }
+            }
+          ],
+          properties: {
+            category: finding.category,
+            confidence: finding.confidence,
+            nextSecureCheckFindingId: finding.id,
+            evidenceRedacted: isSecretFinding(finding)
+          }
+        }))
+      }
+    ]
+  };
+
+  return JSON.stringify(sarif, null, 2);
+}
+
 function githubStatus(high: number, totalFindings: number): string {
   if (high > 0) {
     return "Action required";
@@ -157,6 +212,82 @@ function githubStatus(high: number, totalFindings: number): string {
   }
 
   return "No findings";
+}
+
+function uniqueRules(result: ScanResult): Array<Record<string, unknown>> {
+  const rules = new Map<string, ScanResult["findings"][number]>();
+  for (const finding of result.findings) {
+    if (!rules.has(finding.ruleId)) {
+      rules.set(finding.ruleId, finding);
+    }
+  }
+
+  return [...rules.values()].map((finding) => ({
+    id: finding.ruleId,
+    name: finding.ruleId,
+    shortDescription: {
+      text: finding.title
+    },
+    fullDescription: {
+      text: finding.description
+    },
+    defaultConfiguration: {
+      level: sarifLevel(finding.severity)
+    },
+    help: {
+      markdown: finding.recommendation,
+      text: finding.recommendation
+    },
+    properties: {
+      tags: ["security", finding.category],
+      precision: sarifPrecision(finding.confidence),
+      "security-severity": sarifSecuritySeverity(finding.severity)
+    }
+  }));
+}
+
+function sarifLevel(severity: ScanResult["findings"][number]["severity"]): "error" | "warning" | "note" {
+  switch (severity) {
+    case "HIGH":
+      return "error";
+    case "MEDIUM":
+    case "LOW":
+      return "warning";
+    case "INFO":
+      return "note";
+  }
+}
+
+function sarifSecuritySeverity(severity: ScanResult["findings"][number]["severity"]): string {
+  switch (severity) {
+    case "HIGH":
+      return "8.0";
+    case "MEDIUM":
+      return "5.0";
+    case "LOW":
+      return "2.0";
+    case "INFO":
+      return "0.0";
+  }
+}
+
+function sarifPrecision(confidence: ScanResult["findings"][number]["confidence"]): "high" | "medium" | "low" {
+  switch (confidence) {
+    case "HIGH":
+      return "high";
+    case "MEDIUM":
+      return "medium";
+    case "LOW":
+      return "low";
+  }
+}
+
+function isSecretFinding(finding: ScanResult["findings"][number]): boolean {
+  return finding.category === "secrets" || finding.ruleId.startsWith("secrets/");
+}
+
+function formatSarifUri(filePath: string): string {
+  return filePath.replace(/\\/g, "/");
 }
 
 function formatLocation(finding: ScanResult["findings"][number]): string {

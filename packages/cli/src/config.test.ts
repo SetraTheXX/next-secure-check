@@ -52,13 +52,13 @@ describe("resolveScanCommandSettings", () => {
     await writeConfig(targetPath, {
       categories: ["secrets", "headers"],
       failOn: "high",
-      format: "markdown"
+      format: "sarif"
     });
 
     await expect(resolveScanCommandSettings(targetPath, {}, allowedCategories)).resolves.toMatchObject({
       categories: ["secrets", "headers"],
       failOn: "high",
-      format: "markdown"
+      format: "sarif"
     });
   });
 
@@ -87,6 +87,14 @@ describe("resolveScanCommandSettings", () => {
       excludePaths: ["**/*.test.ts"],
       failOn: "low",
       format: "json"
+    });
+  });
+
+  it("accepts sarif as an explicit CLI format", async () => {
+    const targetPath = await createTempDir();
+
+    await expect(resolveScanCommandSettings(targetPath, { format: "sarif" }, allowedCategories)).resolves.toMatchObject({
+      format: "sarif"
     });
   });
 
