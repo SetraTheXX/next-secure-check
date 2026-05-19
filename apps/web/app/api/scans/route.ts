@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getScanClientIp, tryAcquireScanSlot } from "../../../lib/scan-abuse-guard";
 import { validateExcludePaths } from "../../../lib/scan-excludes";
 import { scanPublicGitHubRepo } from "../../../lib/scan-public-repo";
+import { logSafeScanEvent } from "../../../lib/safe-log";
 
 type ScanRequestBody = {
   excludePaths?: unknown;
@@ -9,54 +11,60 @@ type ScanRequestBody = {
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const scanId = randomUUID();
+  const startedAt = Date.now();
   let body: ScanRequestBody;
 
   try {
     body = (await request.json()) as ScanRequestBody;
   } catch {
-    return NextResponse.json(
-      {
+    return jsonWithSafeLog(scanId, startedAt, {
+      body: {
         ok: false,
         code: "INVALID_REQUEST_BODY",
         message: "Request body must be valid JSON."
       },
-      { status: 400 }
-    );
+      code: "INVALID_REQUEST_BODY",
+      status: 400
+    });
   }
 
   if (!body || typeof body.repoUrl !== "string" || !body.repoUrl.trim()) {
-    return NextResponse.json(
-      {
+    return jsonWithSafeLog(scanId, startedAt, {
+      body: {
         ok: false,
         code: "INVALID_REQUEST_BODY",
         message: "repoUrl is required."
       },
-      { status: 400 }
-    );
+      code: "INVALID_REQUEST_BODY",
+      status: 400
+    });
   }
 
   const excludePaths = validateExcludePaths(body.excludePaths);
   if (!excludePaths) {
-    return NextResponse.json(
-      {
+    return jsonWithSafeLog(scanId, startedAt, {
+      body: {
         ok: false,
         code: "INVALID_REQUEST_BODY",
         message: "excludePaths must be an array of safe relative glob patterns."
       },
-      { status: 400 }
-    );
+      code: "INVALID_REQUEST_BODY",
+      status: 400
+    });
   }
 
   const guard = await tryAcquireScanSlot(getScanClientIp(request.headers));
   if (!guard.ok) {
-    return NextResponse.json(
-      {
+    return jsonWithSafeLog(scanId, startedAt, {
+      body: {
         ok: false,
         code: guard.code,
         message: guard.message
       },
-      { status: 429 }
-    );
+      code: guard.code,
+      status: 429
+    });
   }
 
   let result: Awaited<ReturnType<typeof scanPublicGitHubRepo>>;
@@ -67,23 +75,31 @@ export async function POST(request: Request): Promise<NextResponse> {
         ? await scanPublicGitHubRepo(body.repoUrl, { excludePaths })
         : await scanPublicGitHubRepo(body.repoUrl);
   } catch {
-    return NextResponse.json(
-      {
+    return jsonWithSafeLog(scanId, startedAt, {
+      body: {
         ok: false,
         code: "SCAN_FAILED",
         message: "Scan failed unexpectedly."
       },
-      { status: 500 }
-    );
+      code: "SCAN_FAILED",
+      status: 500
+    });
   } finally {
     await guard.release();
   }
 
   if (result.ok) {
-    return NextResponse.json(result, { status: 200 });
+    return jsonWithSafeLog(scanId, startedAt, {
+      body: result,
+      status: 200
+    });
   }
 
-  return NextResponse.json(result, { status: statusForErrorCode(result.code) });
+  return jsonWithSafeLog(scanId, startedAt, {
+    body: result,
+    code: result.code,
+    status: statusForErrorCode(result.code)
+  });
 }
 
 function statusForErrorCode(code: string): number {
@@ -97,6 +113,7 @@ function statusForErrorCode(code: string): number {
 
   if (
     code === "DOWNLOAD_TIMEOUT" ||
+    code === "SCAN_TIMEOUT" ||
     code === "RATE_LIMITED" ||
     code === "NETWORK_ERROR" ||
     code === "UNSUPPORTED_CONTENT_TYPE"
@@ -105,4 +122,29 @@ function statusForErrorCode(code: string): number {
   }
 
   return 500;
+}
+
+function jsonWithSafeLog<T>(
+  scanId: string,
+  startedAt: number,
+  options: {
+    body: T;
+    code?: string;
+    status: number;
+  }
+): NextResponse {
+  logSafeScanEvent({
+    code: options.code,
+    durationMs: Date.now() - startedAt,
+    event:
+      options.status >= 500
+        ? "scan_failed"
+        : options.status >= 400
+          ? "scan_rejected"
+          : "scan_completed",
+    scanId,
+    status: options.status
+  });
+
+  return NextResponse.json(options.body, { status: options.status });
 }

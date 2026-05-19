@@ -2,8 +2,12 @@ import type { Finding, Rule, ScanOptions, ScanResult } from "@next-secure-check/
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveScanRoot, scanPublicGitHubRepo } from "./scan-public-repo";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("scanPublicGitHubRepo", () => {
   it("runs metadata, download/extract, scanner, redaction, and cleanup", async () => {
@@ -255,6 +259,33 @@ describe("scanPublicGitHubRepo", () => {
       message: "Repository scan failed"
     });
     expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a safe scan timeout error and cleans up extracted files", async () => {
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      downloadAndExtractImpl: vi.fn().mockResolvedValue({
+        cleanup,
+        extractedPath: "C:/tmp/extracted",
+        fileCount: 1,
+        ok: true,
+        tempId: "temp-id",
+        totalBytes: 1
+      }),
+      fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
+      scanProjectImpl: vi.fn().mockReturnValue(new Promise(() => {})),
+      scanTimeoutMs: 1
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "SCAN_TIMEOUT",
+      message: "Repository scan timed out"
+    });
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(result)).not.toContain("C:/tmp/extracted");
+    expect(JSON.stringify(result)).not.toContain("stack");
   });
 
   it("returns a successful scan with a safe warning when cleanup fails after scanning", async () => {

@@ -1,4 +1,5 @@
 import { createGitHubRequestHeaders } from "./github-request";
+import { fetchWithAbortTimeout, getGitHubTimeoutMs, OperationTimeoutError } from "./timeout";
 
 export type GitHubRepoMetadataResult =
   | {
@@ -20,30 +21,22 @@ export type GitHubRepoMetadataResult =
       status?: number;
     };
 
-const DEFAULT_TIMEOUT_MS = 8000;
-
 export async function fetchPublicGitHubRepoMetadata(
   owner: string,
   repo: string,
   options?: { timeoutMs?: number }
 ): Promise<GitHubRepoMetadataResult> {
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs = options?.timeoutMs ?? getGitHubTimeoutMs();
   const url = `https://api.github.com/repos/${owner}/${repo}`;
 
   try {
-    const response = (await Promise.race([
-      fetch(url, {
+    const response = await fetchWithAbortTimeout(
+      url,
+      {
         headers: createGitHubRequestHeaders()
-      }),
-      new Promise<Response>((_, reject) => {
-        const timer = setTimeout(() => {
-          clearTimeout(timer);
-          const error = new Error("timeout");
-          error.name = "TimeoutError";
-          reject(error);
-        }, timeoutMs);
-      })
-    ])) as Response;
+      },
+      timeoutMs
+    );
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -98,7 +91,7 @@ export async function fetchPublicGitHubRepoMetadata(
       tarballUrl: createGitHubTarballUrl(owner, repo, data.default_branch)
     };
   } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
+    if (error instanceof OperationTimeoutError) {
       return { ok: false, error: "Request timed out" };
     }
 

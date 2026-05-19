@@ -27,11 +27,13 @@ describe("fetchPublicGitHubRepoMetadata", () => {
     vi.stubGlobal("fetch", fetchMock as typeof fetch);
 
     const result = await fetchPublicGitHubRepoMetadata("vercel", "next.js");
-    const headers = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit).headers);
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
 
     expect(headers.get("Accept")).toBe("application/vnd.github+json");
     expect(headers.get("User-Agent")).toBe("next-secure-check");
     expect(headers.has("Authorization")).toBe(false);
+    expect(requestInit.signal).toBeInstanceOf(AbortSignal);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.fullName).toBe("vercel/next.js");
@@ -158,8 +160,12 @@ describe("fetchPublicGitHubRepoMetadata", () => {
 
   it("handles timeout", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn().mockImplementation(
-      () => new Promise(() => {})
+    const fetchMock = vi.fn().mockImplementation((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        });
+      })
     );
     vi.stubGlobal("fetch", fetchMock as typeof fetch);
 
@@ -168,6 +174,7 @@ describe("fetchPublicGitHubRepoMetadata", () => {
 
     const result = await promise;
     expect(result).toEqual({ ok: false, error: "Request timed out" });
+    expect(JSON.stringify(result)).not.toContain("github-secret-token");
     vi.useRealTimers();
   });
 

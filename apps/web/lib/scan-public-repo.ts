@@ -8,10 +8,12 @@ import { parseGitHubRepoUrl } from "./github-url";
 import { redactScanResult, type RedactedScanResult } from "./redact-findings";
 import { cleanupOrphanExtractionDirs, downloadAndExtractGitHubTarball } from "./safe-extract";
 import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "./scan-limits";
+import { getGitHubTimeoutMs, getScanTimeoutMs, OperationTimeoutError, withTimeout } from "./timeout";
 
 export type ScanPublicGitHubRepoOptions = {
   excludePaths?: string[];
   tempRoot?: string;
+  scanTimeoutMs?: number;
   timeoutMs?: number;
   limits?: Partial<ScanLimits>;
   scanProjectImpl?: typeof scanProject;
@@ -56,6 +58,7 @@ export type ScanPublicGitHubRepoErrorCode =
   | "INVALID_REPO_URL"
   | "METADATA_FETCH_FAILED"
   | ArchiveErrorCode
+  | "SCAN_TIMEOUT"
   | "SCAN_FAILED"
   | "CLEANUP_FAILED";
 
@@ -77,8 +80,9 @@ export async function scanPublicGitHubRepo(
   });
 
   const fetchMetadata = options?.fetchMetadataImpl ?? fetchPublicGitHubRepoMetadata;
+  const githubTimeoutMs = options?.timeoutMs ?? getGitHubTimeoutMs();
   const metadata = await fetchMetadata(parsedUrl.owner, parsedUrl.repo, {
-    timeoutMs: options?.timeoutMs
+    timeoutMs: githubTimeoutMs
   });
 
   if (!metadata.ok) {
@@ -103,7 +107,7 @@ export async function scanPublicGitHubRepo(
   const extraction = await downloadAndExtract(metadata.tarballUrl, {
     limits,
     tempRoot: options?.tempRoot,
-    timeoutMs: options?.timeoutMs
+    timeoutMs: githubTimeoutMs
   });
 
   if (!extraction.ok) {
@@ -115,12 +119,23 @@ export async function scanPublicGitHubRepo(
     const runScan = options?.scanProjectImpl ?? scanProject;
     const getRules = options?.getRulesImpl ?? getBuiltInRules;
     const scanRoot = await resolveScanRoot(extraction.extractedPath);
-    scan = await runScan(scanRoot, {
-      excludePaths: options?.excludePaths,
-      rules: getRules()
-    });
-  } catch {
+    scan = await withTimeout(
+      runScan(scanRoot, {
+        excludePaths: options?.excludePaths,
+        rules: getRules()
+      }),
+      options?.scanTimeoutMs ?? getScanTimeoutMs()
+    );
+  } catch (error) {
     await cleanupQuietly(extraction.cleanup);
+    if (isTimeoutError(error)) {
+      return {
+        ok: false,
+        code: "SCAN_TIMEOUT",
+        message: "Repository scan timed out"
+      };
+    }
+
     return {
       ok: false,
       code: "SCAN_FAILED",
@@ -159,6 +174,10 @@ export async function scanPublicGitHubRepo(
     ...(cleanupWarning ? { warnings: cleanupWarning } : {}),
     scan: redactScanResult(scan)
   };
+}
+
+function isTimeoutError(error?: unknown): boolean {
+  return error instanceof OperationTimeoutError;
 }
 
 export async function resolveScanRoot(extractedPath: string): Promise<string> {

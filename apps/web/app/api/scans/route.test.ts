@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import { resetScanAbuseGuardForTests } from "../../../lib/scan-abuse-guard";
 import { scanPublicGitHubRepo } from "../../../lib/scan-public-repo";
@@ -13,8 +13,14 @@ describe("POST /api/scans", () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     resetScanAbuseGuardForTests();
     scanPublicGitHubRepoMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("rejects invalid JSON body", async () => {
@@ -318,6 +324,30 @@ describe("POST /api/scans", () => {
       message: "Only github.com repositories are supported.",
       ok: false
     });
+  });
+
+  it("maps scan timeout errors to safe responses", async () => {
+    scanPublicGitHubRepoMock.mockResolvedValueOnce({
+      code: "SCAN_TIMEOUT",
+      message: "Repository scan timed out",
+      ok: false
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body: JSON.stringify({ repoUrl: "https://github.com/owner/repo" }),
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(502);
+    const payload = await response.json();
+    expect(payload).toEqual({
+      code: "SCAN_TIMEOUT",
+      message: "Repository scan timed out",
+      ok: false
+    });
+    expect(JSON.stringify(payload)).not.toContain("stack");
   });
 
   it("returns safe response for unexpected scan exceptions", async () => {

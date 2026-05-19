@@ -1,6 +1,7 @@
 import type { TarballDownloadResult } from "./archive-types";
 import { createGitHubRequestHeaders } from "./github-request";
 import { DEFAULT_SCAN_LIMITS } from "./scan-limits";
+import { fetchWithAbortTimeout, getGitHubTimeoutMs, OperationTimeoutError } from "./timeout";
 
 const ALLOWED_TARBALL_CONTENT_TYPES = new Set([
   "application/gzip",
@@ -28,7 +29,7 @@ export async function downloadGitHubTarball(
     };
   }
 
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_SCAN_LIMITS.timeoutMs;
+  const timeoutMs = options?.timeoutMs ?? getGitHubTimeoutMs();
   const maxDownloadBytes =
     options?.maxDownloadBytes ?? DEFAULT_SCAN_LIMITS.maxArchiveDownloadBytes;
 
@@ -91,7 +92,7 @@ export async function downloadGitHubTarball(
       sourceUrl: parsedUrl.toString()
     };
   } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
+    if (error instanceof OperationTimeoutError) {
       return {
         ok: false,
         code: "DOWNLOAD_TIMEOUT",
@@ -146,19 +147,13 @@ function parseContentLength(contentLength: string | null): number | undefined {
 }
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
-  return Promise.race([
-    fetch(url, {
+  return fetchWithAbortTimeout(
+    url,
+    {
       headers: createGitHubRequestHeaders()
-    }),
-    new Promise<Response>((_, reject) => {
-      const timer = setTimeout(() => {
-        clearTimeout(timer);
-        const error = new Error("timeout");
-        error.name = "TimeoutError";
-        reject(error);
-      }, timeoutMs);
-    })
-  ]);
+    },
+    timeoutMs
+  );
 }
 
 async function readResponseBytes(
