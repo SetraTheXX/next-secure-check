@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI scanner for local Next.js project scans.
 - 20 deterministic security rules across secrets, injection, XSS, auth, config, headers, upload, and validation categories.
 - Terminal, JSON, Markdown, GitHub Actions Summary, and SARIF 2.1.0 report formats.
+- SARIF metadata, deterministic partial fingerprints, and concise result messages for GitHub Code Scanning usage.
 - `.next-secure-check.json` config support for `excludePaths`, `categories`, `failOn`, and `format`.
 - CLI flags for `--exclude`, `--category`, `--fail-on`, `--format`, `--output`, and `--config`.
 - Public GitHub repository web demo with JSON and Markdown export.
@@ -21,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional `GITHUB_TOKEN` support for GitHub metadata and tarball requests.
 - Optional Upstash Redis REST distributed scan abuse guard.
 - GitHub request and scan-stage timeout handling.
+- Safe minimal logging and error responses for public scan operations.
 - Package README files for npm tarball presentation.
+- NPM publish readiness metadata for the CLI, core, rules, and reporter packages.
 
 ### Fixed
 - `--fail-on critical` now gates on critical scan summary risk level.

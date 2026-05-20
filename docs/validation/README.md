@@ -2,6 +2,14 @@
 
 This folder contains manual validation notes for project phases and milestone checks.
 
+Current v0.1 validation baseline:
+
+```txt
+packages: 118 tests
+apps/web: 143 tests
+total: 261 tests
+```
+
 Phase 0-3 do not have separate manual validation reports in this folder. Those phases were validated through automated tests, CI checks, README/CHANGELOG updates, and commit history.
 
 Phase 4 has a separate manual validation note because the web demo required additional end-to-end checks across the UI, API, public GitHub repository scanning flow, exports, and CLI smoke behavior.

@@ -4,9 +4,9 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: MVP and hardening are complete. Phase 5/6 demo, portfolio, pre-publish polish, and external-review fixes are in progress.
+> Current status: MVP and hardening are complete. `next-secure-check` is v0.1 release-ready.
 
-Demo video coming soon.
+Demo video planned.
 
 Started on May 9, 2026.
 
@@ -25,10 +25,10 @@ Completed:
 - Phase 4.5+ web demo hardening, including repo size checks, server-side redaction, scan abuse guard, hardened security headers, orphan temp cleanup, optional GitHub token support, and hardened client IP parsing
 - Pre-publish rule coverage polish for committed `.env.*` variants and partial security header detection
 
-Current focus:
+Release focus:
 
 ```txt
-Phase 5/6: demo, portfolio, UI polish, external-review fixes, and public feedback
+v0.1: publish the CLI package, collect real project feedback, and keep the rule set honest.
 ```
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
@@ -159,6 +159,7 @@ The SARIF reporter includes:
 - result locations with file, line, and column when available
 - `security-severity` and precision metadata
 - deterministic `partialFingerprints` for more stable result tracking
+- concise result messages built from the finding title, description, and recommendation
 
 Raw secret evidence is not included in SARIF output.
 
@@ -166,7 +167,7 @@ Raw secret evidence is not included in SARIF output.
 
 ```txt
 apps/
-  web/        Phase 4 web demo app
+  web/        local public-repository web demo app
 
 packages/
   core/       scanner orchestration, shared types, score engine
@@ -384,11 +385,17 @@ Manual validation notes:
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)
 
-## Immediate Goal
+## Post-v0.1 Roadmap
 
-```txt
-Phase 5/6: prepare demo video, portfolio case study, README polish, UI polish, external-review fixes, and public feedback.
-```
+Planned follow-up work:
+
+- AST-assisted analysis for rules that need better context.
+- Custom rule configuration and rule enable/disable controls.
+- Nonce/hash-based CSP hardening for the web demo.
+- Public hosted demo hardening.
+- More GitHub Code Scanning integration examples.
+- Rule noise reduction and false positive tracking.
+- VS Code extension or ESLint plugin exploration.
 
 ## Release Gates
 

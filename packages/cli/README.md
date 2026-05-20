@@ -4,6 +4,15 @@ Deterministic security checks for Next.js projects. No AI required.
 
 ## Usage
 
+Install globally:
+
+```bash
+npm install -g next-secure-check
+next-secure-check scan .
+```
+
+Or run with `npx`:
+
 ```bash
 npx next-secure-check scan .
 npx next-secure-check scan . --format json
