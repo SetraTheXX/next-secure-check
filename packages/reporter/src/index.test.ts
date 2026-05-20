@@ -167,7 +167,9 @@ describe("formatSummary", () => {
       ruleId: "secrets/hardcoded-secret",
       ruleIndex: 0,
       level: "error",
-      message: { text: "Possible hardcoded secret detected" },
+      message: {
+        text: "Possible hardcoded secret detected A secret-like value appears in source code. Recommendation: Move secrets to environment variables and rotate exposed values."
+      },
       partialFingerprints: {
         "nextSecureCheck/v1": expect.any(String)
       },
@@ -208,6 +210,10 @@ describe("formatSummary", () => {
     });
     expect(sarifText).not.toContain("sk_live_super_secret");
     expect(sarifText).not.toContain("demo-token");
+    expect(results[0].message.text).toContain("Possible hardcoded secret detected");
+    expect(results[0].message.text).toContain("A secret-like value appears in source code.");
+    expect(results[0].message.text).toContain("Recommendation: Move secrets to environment variables");
+    expect(results[0].message.text).not.toContain("sk_live_super_secret");
   });
 
   it("generates stable SARIF partial fingerprints for the same finding", () => {

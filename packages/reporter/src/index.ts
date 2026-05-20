@@ -172,7 +172,7 @@ export function formatSarif(result: ScanResult): string {
           ruleIndex: ruleIndexes.get(finding.ruleId) ?? 0,
           level: sarifLevel(finding.severity),
           message: {
-            text: finding.title
+            text: createSarifMessageText(finding)
           },
           partialFingerprints: {
             "nextSecureCheck/v1": createFindingFingerprint(finding)
@@ -302,6 +302,23 @@ function createFindingFingerprint(finding: ScanResult["findings"][number]): stri
   ].join("\u0000");
 
   return createHash("sha256").update(fingerprintInput).digest("hex");
+}
+
+function createSarifMessageText(finding: ScanResult["findings"][number]): string {
+  return [
+    finding.title,
+    truncateSarifMessagePart(finding.description),
+    `Recommendation: ${truncateSarifMessagePart(finding.recommendation)}`
+  ].join(" ");
+}
+
+function truncateSarifMessagePart(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= 180) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 177).trimEnd()}...`;
 }
 
 function formatSarifUri(filePath: string): string {
