@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional `GITHUB_TOKEN` support for GitHub metadata and tarball requests.
 - Optional Upstash Redis REST distributed scan abuse guard.
 - GitHub request and scan-stage timeout handling.
+- Package README files for npm tarball presentation.
 
 ### Fixed
 - `--fail-on critical` now gates on critical scan summary risk level.
@@ -28,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Low-signal hardcoded secret sample values produce fewer false positives.
 - Raw SQL logging/error-message contexts produce fewer false positives.
 - `dangerouslySetInnerHTML` severity is context-aware for static literals versus user-controlled-looking values.
+- Committed environment file detection now covers common `.env.*` variants.
+- Missing security header detection now reports partial header configurations.
 - Successful web scans are preserved when immediate cleanup fails, with a safe cleanup warning.
 
 ### Security

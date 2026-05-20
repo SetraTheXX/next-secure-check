@@ -31,9 +31,9 @@ Remove-Item report.sarif -ErrorAction SilentlyContinue
 
 ## Test Baseline
 
-- Packages: 105 tests.
-- Web app: 128 tests.
-- Total: 233 tests.
+- Packages: 118 tests.
+- Web app: 143 tests.
+- Total: 261 tests.
 - Build, typecheck, package tests, web tests, and SARIF smoke passed.
 
 ## CLI Smoke Notes

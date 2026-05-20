@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: MVP and Phase 4.5 hardening are complete. Phase 5 demo/portfolio polish is underway, with Phase 6 CLI/reporting hardening started after external review.
+> Current status: MVP and hardening are complete. Phase 5/6 demo, portfolio, pre-publish polish, and external-review fixes are in progress.
 
 Demo video coming soon.
 
@@ -16,13 +16,14 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 252 passing tests across packages and the web demo
+- 261 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - GitHub Actions proof with Step Summary output
 - Rule documentation in `docs/rules`
 - `apps/web` web demo for scanning public GitHub repositories
 - GitHub repository URL validation, metadata check, tarball download, safe extraction, cleanup, API scan endpoint, report UI, exclude toggle, and JSON/Markdown export
 - Phase 4.5+ web demo hardening, including repo size checks, server-side redaction, scan abuse guard, hardened security headers, orphan temp cleanup, optional GitHub token support, and hardened client IP parsing
+- Pre-publish rule coverage polish for committed `.env.*` variants and partial security header detection
 
 Current focus:
 
@@ -39,7 +40,7 @@ The CLI is exercised in GitHub Actions as part of this repository's CI.
 - The workflow runs the scanner with `--format github` and writes the markdown report to the job **Step Summary** via `$GITHUB_STEP_SUMMARY`.
 - When `--fail-on high` is used, the job fails if any HIGH severity finding is reported.
 - When `--fail-on critical` is used, the job fails only when the scan summary risk level is `critical`.
-- The step order is: build → typecheck → test → security check, ensuring workspace packages are compiled before typechecking.
+- The step order is: build -> typecheck -> test -> security check, ensuring workspace packages are compiled before typechecking.
 - The findings are deterministic pattern matches; no proof-of-exploit is executed.
 
 ## Why This Exists
@@ -113,7 +114,7 @@ Supported fields:
 
 - `excludePaths`: relative path glob patterns to ignore
 - `categories`: rule categories to run
-- `failOn`: minimum severity that should make the command exit with code 1
+- `failOn`: severity threshold, or `critical` to gate on scan summary risk level
 - `format`: report output format
 
 Example:
@@ -195,9 +196,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 113 tests
-apps/web: 139 tests
-total: 252 tests
+packages: 118 tests
+apps/web: 143 tests
+total: 261 tests
 ```
 
 After building, the CLI can be run locally:
@@ -327,6 +328,7 @@ The in-memory scan guard is intended for the local/single-instance demo stage. P
 
 - Rules are deterministic and regex/lightweight-context based, so they can produce false positives and false negatives.
 - Findings are review signals, not proof of exploitation.
+- AST-based analysis is a v0.2 backlog item.
 - The in-memory scan guard is only a local/single-instance fallback.
 - Public deployments should use the optional Upstash/distributed guard or equivalent platform-level protection.
 - IP-based limits depend on trusted proxy/platform forwarded headers.

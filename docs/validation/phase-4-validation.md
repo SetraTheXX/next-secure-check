@@ -32,9 +32,9 @@ The web demo remains an early-development demo. It is public-repository-only and
 Automated test baseline:
 
 ```txt
-packages: 105 tests
-apps/web: 128 tests
-total: 233 tests
+packages: 118 tests
+apps/web: 143 tests
+total: 261 tests
 ```
 
 ## Web Demo Checks

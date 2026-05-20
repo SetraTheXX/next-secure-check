@@ -33,9 +33,9 @@ node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 
 ## Test Baseline
 
-- Packages: 105 tests.
-- Web app: 128 tests.
-- Total: 233 tests.
+- Packages: 118 tests.
+- Web app: 143 tests.
+- Total: 261 tests.
 - Build, typecheck, package tests, and web tests passed.
 
 ## CLI Smoke Results
