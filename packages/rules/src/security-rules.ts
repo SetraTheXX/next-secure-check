@@ -9,7 +9,7 @@ export const envFileCommittedRule: Rule = {
   confidence: "HIGH",
   scan(context) {
     return context.files
-      .filter((file) => /^\.env(\.local|\.production)?$/.test(file.path.split("/").at(-1) ?? ""))
+      .filter((file) => isCommittedEnvFileName(file.path.split("/").at(-1) ?? ""))
       .map((file) =>
         createFinding({
           rule: envFileCommittedRule,
@@ -301,9 +301,8 @@ export const missingSecurityHeadersRule: Rule = {
       return [];
     }
 
-    const headersPattern =
-      /(Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy|Permissions-Policy)/i;
-    if (configFiles(context).some((file) => headersPattern.test(file.content))) {
+    const configuredHeaders = getConfiguredSecurityHeaders(configFiles(context).map((file) => file.content).join("\n"));
+    if (configuredHeaders.missing.length === 0) {
       return [];
     }
 
@@ -316,8 +315,9 @@ export const missingSecurityHeadersRule: Rule = {
       createFinding({
         rule: missingSecurityHeadersRule,
         file: anchorFile,
-        description: "No common security header configuration was detected for this Next.js project.",
-        recommendation: "Configure CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy."
+        description: `Missing common security header configuration: ${configuredHeaders.missing.join(", ")}.`,
+        recommendation:
+          "Configure Content-Security-Policy, frame protection, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy."
       })
     ];
   }
@@ -667,6 +667,41 @@ function isLowRiskSqlStringContext(line: string, column: number): boolean {
   return /(?:^|[^\w$.])(?:console\.(?:log|debug|info|warn|error)|logger\.(?:debug|info)|throw\s+new\s+Error)\s*\(\s*$/.test(
     beforeMatch
   );
+}
+
+function isCommittedEnvFileName(fileName: string): boolean {
+  return /^\.env(?:\.(?:local|production|production\.local|development|development\.local|test|test\.local|staging|staging\.local))?$/.test(
+    fileName
+  );
+}
+
+function getConfiguredSecurityHeaders(content: string): { missing: string[] } {
+  const requiredHeaders = [
+    {
+      name: "Content-Security-Policy",
+      detected: /Content-Security-Policy/i.test(content)
+    },
+    {
+      name: "frame protection",
+      detected: /X-Frame-Options/i.test(content) || /frame-ancestors/i.test(content)
+    },
+    {
+      name: "X-Content-Type-Options",
+      detected: /X-Content-Type-Options/i.test(content)
+    },
+    {
+      name: "Referrer-Policy",
+      detected: /Referrer-Policy/i.test(content)
+    },
+    {
+      name: "Permissions-Policy",
+      detected: /Permissions-Policy/i.test(content)
+    }
+  ];
+
+  return {
+    missing: requiredHeaders.filter((header) => !header.detected).map((header) => header.name)
+  };
 }
 
 function extractAssignedStringLiteral(line: string): string | undefined {

@@ -20,9 +20,16 @@ const IGNORED_DIRECTORIES = new Set([
 const INCLUDED_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".json"]);
 const INCLUDED_FILENAMES = new Set([
   ".env",
+  ".env.development",
+  ".env.development.local",
+  ".env.example",
   ".env.local",
   ".env.production",
-  ".env.example",
+  ".env.production.local",
+  ".env.staging",
+  ".env.staging.local",
+  ".env.test",
+  ".env.test.local",
   "middleware.js",
   "middleware.ts",
   "next.config.js",

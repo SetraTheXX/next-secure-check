@@ -29,6 +29,21 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "secrets/env-file-committed")).toBe(true);
   });
 
+  it("detects committed env file variants", async () => {
+    const result = await scanFixture({
+      ".env.development": "TOKEN=dev",
+      ".env.production.local": "TOKEN=prod",
+      ".env.test": "TOKEN=test"
+    });
+
+    const envFindings = result.findings.filter((finding) => finding.ruleId === "secrets/env-file-committed");
+    expect(envFindings.map((finding) => finding.filePath)).toEqual([
+      ".env.development",
+      ".env.production.local",
+      ".env.test"
+    ]);
+  });
+
   it("does not flag env example files as committed env secrets", async () => {
     const result = await scanFixture({ ".env.example": "TOKEN=" });
 
@@ -251,13 +266,32 @@ describe("built-in security rules", () => {
   it("does not flag missing security headers when headers are configured", async () => {
     const result = await scanFixture({
       "app/page.tsx": "export default function Page() { return null; }",
-      "next.config.js": "module.exports = { async headers() { return [{ source: '/(.*)', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] }] } }"
+      "next.config.js": [
+        "module.exports = { async headers() { return [{ source: '/(.*)', headers: [",
+        "{ key: 'Content-Security-Policy', value: \"default-src 'self'; frame-ancestors 'none'\" },",
+        "{ key: 'X-Content-Type-Options', value: 'nosniff' },",
+        "{ key: 'Referrer-Policy', value: 'no-referrer' },",
+        "{ key: 'Permissions-Policy', value: 'camera=()' }",
+        "] }] } }"
+      ].join("\n")
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "headers/missing-security-headers")).toBe(false);
   });
 
-  it("does not flag missing security headers when headers are configured in middleware", async () => {
+  it("detects partial security headers in next config", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": "export default function Page() { return null; }",
+      "next.config.js": "module.exports = { async headers() { return [{ source: '/(.*)', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] }] } }"
+    });
+    const finding = result.findings.find((item) => item.ruleId === "headers/missing-security-headers");
+
+    expect(finding).toMatchObject({
+      description: expect.stringContaining("Content-Security-Policy")
+    });
+  });
+
+  it("detects partial security headers in middleware", async () => {
     const result = await scanFixture({
       "app/page.tsx": "export default function Page() { return null; }",
       "middleware.ts": [
@@ -266,6 +300,25 @@ describe("built-in security rules", () => {
         "  const response = NextResponse.next();",
         "  response.headers.set('X-Frame-Options', 'DENY');",
         "  response.headers.set('X-Content-Type-Options', 'nosniff');",
+        "  return response;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "headers/missing-security-headers")).toBe(true);
+  });
+
+  it("does not flag missing security headers when full headers are configured in middleware", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": "export default function Page() { return null; }",
+      "middleware.ts": [
+        "import { NextResponse } from 'next/server';",
+        "export function middleware() {",
+        "  const response = NextResponse.next();",
+        "  response.headers.set('Content-Security-Policy', \"default-src 'self'; frame-ancestors 'none'\");",
+        "  response.headers.set('X-Content-Type-Options', 'nosniff');",
+        "  response.headers.set('Referrer-Policy', 'no-referrer');",
+        "  response.headers.set('Permissions-Policy', 'camera=()');",
         "  return response;",
         "}"
       ].join("\n")

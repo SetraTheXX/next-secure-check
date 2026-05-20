@@ -20,6 +20,33 @@ describe("collectFiles", () => {
     expect(files.map((file) => file.path)).toEqual(["app/page.tsx", "package.json"]);
   });
 
+  it("collects supported env file variants", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, ".env.development"), "TOKEN=dev");
+    await writeFile(path.join(root, ".env.production.local"), "TOKEN=prod");
+    await writeFile(path.join(root, ".env.test"), "TOKEN=test");
+
+    const files = await collectFiles(root);
+
+    expect(files.map((file) => file.path)).toEqual([
+      ".env.development",
+      ".env.production.local",
+      ".env.test"
+    ]);
+  });
+
+  it("does not collect unrelated hidden files", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, ".envrc"), "export TOKEN=value");
+    await writeFile(path.join(root, ".npmrc"), "//registry.npmjs.org/:_authToken=value");
+    await writeFile(path.join(root, ".secret"), "TOKEN=value");
+    await writeFile(path.join(root, "index.ts"), "export {};");
+
+    const files = await collectFiles(root);
+
+    expect(files.map((file) => file.path)).toEqual(["index.ts"]);
+  });
+
   it("ignores build and dependency directories", async () => {
     const root = await tempProject();
     await mkdir(path.join(root, "node_modules", "pkg"), { recursive: true });
