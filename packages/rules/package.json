@@ -2,12 +2,25 @@
   "name": "@next-secure-check/rules",
   "version": "0.1.0",
   "description": "Security rules for next-secure-check",
+  "keywords": [
+    "nextjs",
+    "security",
+    "scanner",
+    "static-analysis",
+    "sast"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/SetraTheXX/next-secure-check.git"
   },
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

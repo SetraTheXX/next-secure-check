@@ -15,6 +15,9 @@
   },
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "bin": {
     "next-secure-check": "./dist/index.js"
   },

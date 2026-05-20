@@ -16,7 +16,7 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 233 passing tests across packages and the web demo
+- 252 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - GitHub Actions proof with Step Summary output
 - Rule documentation in `docs/rules`
@@ -80,6 +80,15 @@ The scanner currently checks for 20 common security patterns. You can read more 
 20. **[config/next-powered-by-header](./docs/rules/next-powered-by-header.md)**: Detects missing `poweredByHeader: false` in Next.js config.
 
 ## CLI Usage
+
+Install globally:
+
+```bash
+npm install -g next-secure-check
+next-secure-check scan .
+```
+
+Or run without a global install:
 
 ```bash
 npx next-secure-check scan .
@@ -186,9 +195,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 105 tests
-apps/web: 128 tests
-total: 233 tests
+packages: 113 tests
+apps/web: 139 tests
+total: 252 tests
 ```
 
 After building, the CLI can be run locally:
@@ -305,12 +314,23 @@ The web demo is designed for public, static scans only:
 - server-side secret evidence redaction
 - optional `GITHUB_TOKEN` support for GitHub metadata and tarball requests
 - `User-Agent: next-secure-check` on GitHub requests
-- in-memory IP rate limit and global concurrency guard
+- optional Upstash Redis REST distributed scan guard
+- in-memory IP rate limit and global concurrency guard fallback
 - hardened client IP resolver with platform header priority, IPv4/IPv6 validation, and oversized header fallback
+- GitHub request and scan-stage timeouts with safe error responses
 - orphan temp cleanup for old scanner extraction directories
 - successful scan results are still returned if immediate cleanup fails, with a safe cleanup warning
 
-The in-memory scan guard is intended for the local/single-instance demo stage. A public multi-instance or serverless deployment should use a distributed rate limit or platform-level protection.
+The in-memory scan guard is intended for the local/single-instance demo stage. Public multi-instance or serverless deployments should configure the distributed guard or equivalent platform-level protection.
+
+## Known Limitations
+
+- Rules are deterministic and regex/lightweight-context based, so they can produce false positives and false negatives.
+- Findings are review signals, not proof of exploitation.
+- The in-memory scan guard is only a local/single-instance fallback.
+- Public deployments should use the optional Upstash/distributed guard or equivalent platform-level protection.
+- IP-based limits depend on trusted proxy/platform forwarded headers.
+- The web demo scans public repositories only and does not run repository code.
 
 ## GitHub Actions
 
