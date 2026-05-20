@@ -49,11 +49,13 @@ AI-assisted development makes it easy to ship fast and miss security basics. Thi
 
 ## Learning Project and Development Philosophy
 
-This is a student-built learning project. I am developing it to improve my skills in TypeScript, Next.js security, static analysis, open-source project structure, testing, and product thinking.
+This is a student-built learning project. I am developing it as a first-year computer programming student to improve my skills in TypeScript, Next.js security, static analysis, open-source project structure, testing, and product thinking.
 
-The project is built with an AI-assisted development workflow, but the scanner itself is deterministic and does not require AI to run. Every rule is intended to be documented, tested, and designed to produce evidence-based findings rather than vague guesses.
+The project was built with an AI-assisted workflow, including tools such as Codex, Claude, and ChatGPT for iteration, code review, testing strategy, and documentation support. The scanner itself does not use AI at runtime. It performs deterministic, rule-based static analysis.
 
-AI helps with speed, structure, and iteration. Technical ownership, product direction, review, testing, and release decisions remain my responsibility.
+AI helps with speed, structure, and feedback, but technical ownership, product direction, code review, testing, release decisions, and final responsibility remain mine.
+
+I am still learning, so issues, feedback, and critical review are welcome. Findings should be treated as review signals rather than proof of exploitation, and false positives or false negatives are possible.
 
 ## Current Rules
 

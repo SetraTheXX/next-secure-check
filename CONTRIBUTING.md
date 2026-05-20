@@ -2,7 +2,9 @@
 
 Thanks for taking an interest in `next-secure-check`.
 
-This project is a deterministic static security scanner for Next.js projects. Contributions are welcome when they keep the scanner understandable, testable, and honest about false positives.
+This project is a deterministic static security scanner for Next.js projects. It is also a student-built learning project, so thoughtful feedback, issue reports, and critical review are very welcome.
+
+Contributions are most helpful when they keep the scanner understandable, testable, and honest about false positives and false negatives.
 
 ## Before Opening an Issue
 
