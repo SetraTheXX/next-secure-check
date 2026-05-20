@@ -2,6 +2,9 @@ export const RATE_LIMIT_WINDOW_MS = 60_000;
 export const MAX_SCANS_PER_WINDOW = 3;
 export const MAX_ACTIVE_SCANS = 2;
 
+const RATE_LIMIT_BUCKET_CLEANUP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
+const MAX_RATE_LIMIT_BUCKETS_BEFORE_CLEANUP = 1_024;
+
 export type ScanSlotAcquireResult =
   | {
       ok: true;
@@ -26,8 +29,11 @@ type RateLimitBucket = {
 export class InMemoryScanAbuseStore implements ScanAbuseStore {
   private readonly rateLimitBuckets = new Map<string, RateLimitBucket>();
   private activeScans = 0;
+  private nextRateLimitBucketCleanupMs = RATE_LIMIT_BUCKET_CLEANUP_INTERVAL_MS;
 
   acquire(ip: string, nowMs: number): ScanSlotAcquireResult {
+    this.cleanupExpiredRateLimitBucketsIfNeeded(nowMs);
+
     const bucket = this.getRateLimitBucket(ip, nowMs);
     if (bucket.count >= MAX_SCANS_PER_WINDOW) {
       return rateLimitedResult();
@@ -57,6 +63,7 @@ export class InMemoryScanAbuseStore implements ScanAbuseStore {
   resetForTests(): void {
     this.rateLimitBuckets.clear();
     this.activeScans = 0;
+    this.nextRateLimitBucketCleanupMs = RATE_LIMIT_BUCKET_CLEANUP_INTERVAL_MS;
   }
 
   private getRateLimitBucket(ip: string, nowMs: number): RateLimitBucket {
@@ -71,6 +78,23 @@ export class InMemoryScanAbuseStore implements ScanAbuseStore {
     }
 
     return current;
+  }
+
+  private cleanupExpiredRateLimitBucketsIfNeeded(nowMs: number): void {
+    if (
+      nowMs < this.nextRateLimitBucketCleanupMs &&
+      this.rateLimitBuckets.size <= MAX_RATE_LIMIT_BUCKETS_BEFORE_CLEANUP
+    ) {
+      return;
+    }
+
+    for (const [ip, bucket] of this.rateLimitBuckets) {
+      if (nowMs - bucket.windowStartMs >= RATE_LIMIT_WINDOW_MS) {
+        this.rateLimitBuckets.delete(ip);
+      }
+    }
+
+    this.nextRateLimitBucketCleanupMs = nowMs + RATE_LIMIT_BUCKET_CLEANUP_INTERVAL_MS;
   }
 }
 

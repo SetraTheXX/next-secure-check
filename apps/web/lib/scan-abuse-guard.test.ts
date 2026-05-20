@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { InMemoryScanAbuseStore, MAX_ACTIVE_SCANS, MAX_SCANS_PER_WINDOW } from "./scan-abuse-store";
 import {
   getScanClientIp,
   resetScanAbuseGuardForTests,
@@ -190,6 +191,96 @@ describe("tryAcquireScanSlot", () => {
   });
 });
 
+describe("InMemoryScanAbuseStore eviction", () => {
+  it("cleans up expired rate limit buckets", () => {
+    const store = new InMemoryScanAbuseStore();
+
+    const first = store.acquire("203.0.113.80", 1_000);
+    expect(first.ok).toBe(true);
+    if (first.ok) {
+      first.release();
+    }
+
+    expect(getInMemoryBucketCount(store)).toBe(1);
+
+    const second = store.acquire("203.0.113.81", 61_000);
+    expect(second.ok).toBe(true);
+    if (second.ok) {
+      second.release();
+    }
+
+    expect(getInMemoryBucketCount(store)).toBe(1);
+  });
+
+  it("keeps current rate limit buckets during cleanup", () => {
+    const store = new InMemoryScanAbuseStore();
+
+    const expired = store.acquire("203.0.113.82", 1_000);
+    const current = store.acquire("203.0.113.83", 30_000);
+    if (expired.ok) {
+      expired.release();
+    }
+    if (current.ok) {
+      current.release();
+    }
+
+    const next = store.acquire("203.0.113.84", 61_000);
+    expect(next.ok).toBe(true);
+    if (next.ok) {
+      next.release();
+    }
+
+    expect(getInMemoryBucketCount(store)).toBe(2);
+  });
+
+  it("does not run cleanup too early and clear active window state", () => {
+    const store = new InMemoryScanAbuseStore();
+
+    for (let index = 0; index < MAX_SCANS_PER_WINDOW; index += 1) {
+      const slot = store.acquire("203.0.113.85", 1_000);
+      expect(slot.ok).toBe(true);
+      if (slot.ok) {
+        slot.release();
+      }
+    }
+
+    const result = store.acquire("203.0.113.85", 30_000);
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "SCAN_RATE_LIMITED"
+    });
+    expect(getInMemoryBucketCount(store)).toBe(1);
+  });
+
+  it("preserves concurrency behavior while rate limit cleanup runs", () => {
+    const store = new InMemoryScanAbuseStore();
+
+    const expired = store.acquire("203.0.113.86", 1_000);
+    expect(expired.ok).toBe(true);
+    if (expired.ok) {
+      expired.release();
+    }
+
+    const activeSlots = Array.from({ length: MAX_ACTIVE_SCANS }, (_, index) =>
+      store.acquire(`203.0.113.${90 + index}`, 61_000)
+    );
+
+    expect(activeSlots.every((slot) => slot.ok)).toBe(true);
+    const blocked = store.acquire("203.0.113.99", 61_000);
+
+    expect(blocked).toMatchObject({
+      ok: false,
+      code: "CONCURRENT_SCAN_LIMIT_EXCEEDED"
+    });
+    activeSlots.forEach((slot) => {
+      if (slot.ok) {
+        slot.release();
+      }
+    });
+  });
+});
+
 function createUpstashResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     headers: {
@@ -197,4 +288,8 @@ function createUpstashResponse(payload: unknown): Response {
     },
     status: 200
   });
+}
+
+function getInMemoryBucketCount(store: InMemoryScanAbuseStore): number {
+  return (store as unknown as { rateLimitBuckets: Map<string, unknown> }).rateLimitBuckets.size;
 }
