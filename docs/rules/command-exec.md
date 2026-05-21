@@ -17,6 +17,14 @@ Avoid shell execution for user-controlled input. If command execution is require
 2. Use strict allowlists for commands and arguments.
 3. Sanitize all inputs.
 
+## Context and False Positives
+
+In v0.1, this rule uses lightweight static matching. It can flag intentional command execution in `.github/**`, release scripts, changeset/version scripts, and CLI tooling helpers.
+
+These findings are not automatic proof of exploitation. Command execution in app runtime code, API routes, or user-input paths is much higher risk. Command execution in CI, release, or local tooling code should still be reviewed, but it may be expected behavior.
+
+v0.2 is planned to add context-aware severity and confidence so tooling/release findings can be separated from application runtime findings.
+
 ## Examples
 
 ### Insecure

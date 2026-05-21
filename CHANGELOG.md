@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- Added app-focused scan guidance for large repositories and monorepos.
+- Documented known v0.1 noise sources around CI/release scripts, demo/example paths, and CLI tooling repositories.
+- Clarified that findings are review signals, not proof of exploitation.
+
 ## [0.1.0] - 2026-05-20
 
 ### Added

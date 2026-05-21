@@ -108,6 +108,18 @@ node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 
 `--fail-on critical` is a risk-level gate. It exits with code `1` only when `scan.summary.riskLevel` is `critical`. `--fail-on high`, `medium`, `low`, and `info` continue to work as severity thresholds.
 
+## App-Focused Scans for Large Repositories
+
+`next-secure-check` v0.1 is most useful as a quick review signal for application code. Large monorepos, template repositories, generator CLIs, release scripts, and demo/example-heavy repositories can produce extra noise because v0.1 uses lightweight deterministic rules and does not yet have a full context/preset system.
+
+For a production app-code-focused scan, you can start with:
+
+```bash
+npx next-secure-check scan . --exclude "**/*.test.ts,**/*.spec.ts,**/*.test.tsx,.github/**,examples/**"
+```
+
+Excluding `.github/**` is optional. Keep it included if you want CI, release, and workflow scripts to be reviewed too. This command is not a security audit replacement; it is a focused pre-release sanity check for common mistakes.
+
 ## CLI Config
 
 The CLI can read a local JSON config file named `.next-secure-check.json` from the scan target root.
@@ -331,6 +343,9 @@ The in-memory scan guard is intended for the local/single-instance demo stage. P
 
 - Rules are deterministic and regex/lightweight-context based, so they can produce false positives and false negatives.
 - Findings are review signals, not proof of exploitation.
+- Large monorepos, demo/example-heavy repositories, template repositories, and tooling-focused repositories can produce noisy findings in v0.1.
+- CLI generators and release/tooling scripts may trigger command execution findings even when that behavior is intentional for the tool.
+- v0.2 is planned to reduce this noise with context-aware scanning and presets.
 - AST-based analysis is a v0.2 backlog item.
 - The in-memory scan guard is only a local/single-instance fallback.
 - Public deployments should use the optional Upstash/distributed guard or equivalent platform-level protection.
