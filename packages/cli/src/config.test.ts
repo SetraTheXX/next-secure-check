@@ -29,6 +29,7 @@ describe("resolveScanCommandSettings", () => {
 
     await expect(resolveScanCommandSettings(targetPath, {}, allowedCategories)).resolves.toEqual({
       categories: undefined,
+      contextTuning: "standard",
       excludePaths: undefined,
       failOn: undefined,
       format: "terminal",
@@ -56,6 +57,7 @@ describe("resolveScanCommandSettings", () => {
 
     await expect(resolveScanCommandSettings(targetPath, {}, allowedCategories)).resolves.toMatchObject({
       preset: "app",
+      contextTuning: "standard",
       excludePaths: expect.arrayContaining([
         "**/*.test.ts",
         "**/*.test.tsx",
@@ -95,6 +97,7 @@ describe("resolveScanCommandSettings", () => {
 
     await expect(resolveScanCommandSettings(targetPath, {}, allowedCategories)).resolves.toMatchObject({
       categories: ["secrets", "headers"],
+      contextTuning: "standard",
       failOn: "high",
       format: "sarif",
       preset: "ci"
@@ -128,7 +131,22 @@ describe("resolveScanCommandSettings", () => {
       excludePaths: expect.arrayContaining([".github/**", "examples/**", "**/*.test.ts"]),
       failOn: "low",
       format: "json",
-      preset: "app"
+      preset: "app",
+      contextTuning: "standard"
+    });
+  });
+
+  it("turns context tuning off for strict and audit presets", async () => {
+    const targetPath = await createTempDir();
+
+    await expect(resolveScanCommandSettings(targetPath, { preset: "strict" }, allowedCategories)).resolves.toMatchObject({
+      contextTuning: "off",
+      preset: "strict"
+    });
+
+    await expect(resolveScanCommandSettings(targetPath, { preset: "audit" }, allowedCategories)).resolves.toMatchObject({
+      contextTuning: "off",
+      preset: "audit"
     });
   });
 

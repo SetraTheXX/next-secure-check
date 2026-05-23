@@ -30,6 +30,9 @@ export type Finding = {
   title: string;
   severity: Severity;
   confidence: Confidence;
+  originalSeverity?: Severity;
+  originalConfidence?: Confidence;
+  contextAdjustmentReason?: string;
   category: string;
   filePath: string;
   context?: FindingContext;
@@ -93,6 +96,7 @@ export type Rule = {
 
 export type ScanOptions = {
   categories?: string[];
+  contextTuning?: "standard" | "off";
   excludePaths?: string[];
   rules?: Rule[];
   toolVersion?: string;

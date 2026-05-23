@@ -39,6 +39,7 @@ program
 
       const result = await scanProject(targetPath, {
         categories: settings.categories,
+        contextTuning: settings.contextTuning,
         excludePaths: settings.excludePaths,
         rules,
         toolVersion: program.version()

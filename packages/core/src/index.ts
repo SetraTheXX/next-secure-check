@@ -14,6 +14,7 @@ export type {
 } from "./types.js";
 export { classifyFileContext } from "./context-classifier.js";
 export type { FileContextClassification } from "./context-classifier.js";
+export { applyContextTuning } from "./context-tuning.js";
 export { collectFiles, normalizePath } from "./file-collector.js";
 export { detectProject } from "./project-detector.js";
 export { riskLevelForScore, summarizeFindings } from "./score.js";

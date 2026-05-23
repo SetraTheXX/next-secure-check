@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
@@ -93,6 +93,53 @@ describe("scanProject", () => {
 
     expect(result.findings.map((finding) => finding.filePath)).toEqual(["index.ts"]);
   });
+
+  it("calculates score and risk from tuned finding severity by default", async () => {
+    const root = await tempProject();
+    await mkdir(path.join(root, ".github"));
+    await writeFile(path.join(root, ".github/changeset-version.js"), "exec('pnpm changeset version');");
+
+    const result = await scanProject(root, {
+      rules: [createSingleFindingRule(".github/changeset-version.js", "injection/command-exec")]
+    });
+
+    expect(result.findings[0]).toMatchObject({
+      severity: "LOW",
+      confidence: "LOW",
+      originalSeverity: "HIGH",
+      originalConfidence: "HIGH",
+      context: "release-tooling"
+    });
+    expect(result.summary).toMatchObject({
+      high: 0,
+      low: 1,
+      score: 99,
+      riskLevel: "excellent"
+    });
+  });
+
+  it("can disable context tuning", async () => {
+    const root = await tempProject();
+    await mkdir(path.join(root, ".github"));
+    await writeFile(path.join(root, ".github/changeset-version.js"), "exec('pnpm changeset version');");
+
+    const result = await scanProject(root, {
+      contextTuning: "off",
+      rules: [createSingleFindingRule(".github/changeset-version.js", "injection/command-exec")]
+    });
+
+    expect(result.findings[0]).toMatchObject({
+      severity: "HIGH",
+      confidence: "HIGH",
+      context: "release-tooling"
+    });
+    expect(result.findings[0]?.originalSeverity).toBeUndefined();
+    expect(result.summary).toMatchObject({
+      high: 1,
+      score: 85,
+      riskLevel: "good"
+    });
+  });
 });
 
 function createFileListRule(): Rule {
@@ -113,5 +160,30 @@ function createFileListRule(): Rule {
         description: "description",
         recommendation: "recommendation"
       }))
+  };
+}
+
+function createSingleFindingRule(filePath: string, ruleId: string): Rule {
+  return {
+    id: ruleId,
+    title: "Finding",
+    severity: "HIGH",
+    category: ruleId.split("/")[0] ?? "test",
+    confidence: "HIGH",
+    scan: () => [
+      {
+        id: `${ruleId}:${filePath}:1:1`,
+        ruleId,
+        title: "Finding",
+        severity: "HIGH",
+        confidence: "HIGH",
+        category: ruleId.split("/")[0] ?? "test",
+        filePath,
+        line: 1,
+        column: 1,
+        description: "description",
+        recommendation: "recommendation"
+      }
+    ]
   };
 }

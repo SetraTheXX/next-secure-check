@@ -33,6 +33,7 @@ export type ScanCommandOptions = {
 
 export type ResolvedScanCommandSettings = {
   categories?: string[];
+  contextTuning: "standard" | "off";
   excludePaths?: string[];
   failOn?: string;
   format: ReportFormat;
@@ -65,6 +66,7 @@ export async function resolveScanCommandSettings(
       options.category !== undefined
         ? parseCategoriesOption(options.category, allowedCategories)
         : config.categories,
+    contextTuning: getPresetContextTuning(preset),
     excludePaths: mergePresetExcludePaths(preset, userExcludePaths),
     failOn:
       options.failOn !== undefined
@@ -255,6 +257,20 @@ function getPresetExcludePaths(preset: ScanPreset): string[] {
     case "strict":
     case "audit":
       return [];
+  }
+}
+
+function getPresetContextTuning(preset: ScanPreset): "standard" | "off" {
+  switch (preset) {
+    case "strict":
+    case "audit":
+      return "off";
+    case "default":
+    case "app":
+    case "ci":
+    case "library":
+    case "monorepo":
+      return "standard";
   }
 }
 
