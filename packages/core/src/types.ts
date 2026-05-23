@@ -4,6 +4,19 @@ export type Confidence = "HIGH" | "MEDIUM" | "LOW";
 
 export type RiskLevel = "excellent" | "good" | "medium" | "high" | "critical";
 
+export type FindingContext =
+  | "app-code"
+  | "api-code"
+  | "test-code"
+  | "example-code"
+  | "docs-code"
+  | "github-actions"
+  | "release-tooling"
+  | "cli-tooling"
+  | "generated-code"
+  | "template-code"
+  | "unknown";
+
 export type ProjectInfo = {
   name?: string;
   framework: "nextjs" | "react" | "node" | "unknown";
@@ -19,6 +32,8 @@ export type Finding = {
   confidence: Confidence;
   category: string;
   filePath: string;
+  context?: FindingContext;
+  contextReason?: string;
   line?: number;
   column?: number;
   evidence?: string;

@@ -47,6 +47,10 @@ describe("scanProject", () => {
 
     expect(result.findings).toHaveLength(1);
     expect(result.summary.low).toBe(1);
+    expect(result.findings[0]).toMatchObject({
+      context: "unknown",
+      contextReason: "no known file context pattern matched"
+    });
   });
 
   it("filters rules by category", async () => {

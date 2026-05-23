@@ -1,5 +1,6 @@
 import { access, stat } from "node:fs/promises";
 import path from "node:path";
+import { classifyFileContext } from "./context-classifier.js";
 import { collectFiles } from "./file-collector.js";
 import { detectProject } from "./project-detector.js";
 import { summarizeFindings } from "./score.js";
@@ -21,7 +22,7 @@ export async function scanProject(targetPath: string, options: ScanOptions = {})
     project: detection.project,
     packageJson: detection.packageJson
   };
-  const findings = sortFindings(await runRules(rules, context));
+  const findings = sortFindings(enrichFindingsWithContext(await runRules(rules, context)));
 
   return {
     project: detection.project,
@@ -55,6 +56,18 @@ async function runRules(rules: Rule[], context: ScanContext): Promise<Finding[]>
   }
 
   return findings;
+}
+
+function enrichFindingsWithContext(findings: Finding[]): Finding[] {
+  return findings.map((finding) => {
+    const classification = classifyFileContext(finding.filePath);
+
+    return {
+      ...finding,
+      context: classification.context,
+      contextReason: classification.contextReason
+    };
+  });
 }
 
 function normalizeCategories(categories?: string[]): Set<string> {
