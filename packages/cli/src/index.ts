@@ -23,6 +23,7 @@ program
   .option("--fail-on <level>", "Exit with code 1 on severity threshold, or critical risk level")
   .option("--category <categories>", "Comma-separated categories to run, e.g. secrets,auth,xss")
   .option("--exclude <patterns>", "Comma-separated relative path globs to exclude, e.g. **/*.test.ts,examples/**")
+  .option("--preset <preset>", "Scan preset: default, app, strict, ci, audit, library, or monorepo")
   .option("--config <path>", "Read scan options from a JSON config file")
   .action(async (targetPath: string, options: ScanCommandOptions) => {
     try {

@@ -32,6 +32,7 @@ describe("resolveScanCommandSettings", () => {
       excludePaths: undefined,
       failOn: undefined,
       format: "terminal",
+      preset: "default",
       warnings: []
     });
   });
@@ -47,18 +48,56 @@ describe("resolveScanCommandSettings", () => {
     });
   });
 
+  it("applies preset excludePaths from the target config file", async () => {
+    const targetPath = await createTempDir();
+    await writeConfig(targetPath, {
+      preset: "app"
+    });
+
+    await expect(resolveScanCommandSettings(targetPath, {}, allowedCategories)).resolves.toMatchObject({
+      preset: "app",
+      excludePaths: expect.arrayContaining([
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        ".github/**",
+        "examples/**",
+        "apps/**/examples/**",
+        "docs/**",
+        "dist/**",
+        ".next/**",
+        "generated/**"
+      ])
+    });
+  });
+
+  it("merges preset excludePaths with config excludePaths", async () => {
+    const targetPath = await createTempDir();
+    await writeConfig(targetPath, {
+      preset: "app",
+      excludePaths: ["custom/**"]
+    });
+
+    await expect(resolveScanCommandSettings(targetPath, {}, allowedCategories)).resolves.toMatchObject({
+      excludePaths: expect.arrayContaining([".github/**", "examples/**", "custom/**"])
+    });
+  });
+
   it("applies categories, failOn, and format from the target config file", async () => {
     const targetPath = await createTempDir();
     await writeConfig(targetPath, {
       categories: ["secrets", "headers"],
       failOn: "high",
-      format: "sarif"
+      format: "sarif",
+      preset: "ci"
     });
 
     await expect(resolveScanCommandSettings(targetPath, {}, allowedCategories)).resolves.toMatchObject({
       categories: ["secrets", "headers"],
       failOn: "high",
-      format: "sarif"
+      format: "sarif",
+      preset: "ci"
     });
   });
 
@@ -68,7 +107,8 @@ describe("resolveScanCommandSettings", () => {
       categories: ["headers"],
       excludePaths: ["examples/**"],
       failOn: "high",
-      format: "markdown"
+      format: "markdown",
+      preset: "library"
     });
 
     await expect(
@@ -78,15 +118,34 @@ describe("resolveScanCommandSettings", () => {
           category: "secrets,auth",
           exclude: "**/*.test.ts",
           failOn: "low",
-          format: "json"
+          format: "json",
+          preset: "app"
         },
         allowedCategories
       )
     ).resolves.toMatchObject({
       categories: ["secrets", "auth"],
-      excludePaths: ["**/*.test.ts"],
+      excludePaths: expect.arrayContaining([".github/**", "examples/**", "**/*.test.ts"]),
       failOn: "low",
-      format: "json"
+      format: "json",
+      preset: "app"
+    });
+  });
+
+  it("merges CLI excludePaths with CLI preset excludePaths", async () => {
+    const targetPath = await createTempDir();
+
+    await expect(
+      resolveScanCommandSettings(
+        targetPath,
+        {
+          exclude: "custom/**",
+          preset: "app"
+        },
+        allowedCategories
+      )
+    ).resolves.toMatchObject({
+      excludePaths: expect.arrayContaining([".github/**", "examples/**", "custom/**"])
     });
   });
 
@@ -138,6 +197,10 @@ describe("resolveScanCommandSettings", () => {
     const categoryTarget = await createTempDir();
     await writeConfig(categoryTarget, { categories: ["unknown"] });
     await expect(resolveScanCommandSettings(categoryTarget, {}, allowedCategories)).rejects.toThrow("Unsupported category");
+
+    const presetTarget = await createTempDir();
+    await writeConfig(presetTarget, { preset: "mobile" });
+    await expect(resolveScanCommandSettings(presetTarget, {}, allowedCategories)).rejects.toThrow("Unsupported preset");
   });
 
   it("rejects unsafe excludePaths", async () => {

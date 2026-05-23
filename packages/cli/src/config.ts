@@ -6,15 +6,19 @@ export const CONFIG_FILE_NAME = ".next-secure-check.json";
 export const MAX_EXCLUDE_PATHS = 50;
 export const MAX_EXCLUDE_PATH_LENGTH = 160;
 
-const SUPPORTED_CONFIG_KEYS = new Set(["excludePaths", "categories", "failOn", "format"]);
+const SUPPORTED_CONFIG_KEYS = new Set(["excludePaths", "categories", "failOn", "format", "preset"]);
 const SUPPORTED_FORMATS = new Set(["terminal", "json", "markdown", "github", "sarif"]);
 const SUPPORTED_FAIL_ON_VALUES = new Set(["critical", "high", "medium", "low", "info"]);
+const SUPPORTED_PRESETS = new Set(["default", "app", "strict", "ci", "audit", "library", "monorepo"]);
+
+export type ScanPreset = "default" | "app" | "strict" | "ci" | "audit" | "library" | "monorepo";
 
 export type CliConfig = {
   excludePaths?: string[];
   categories?: string[];
   failOn?: string;
   format?: ReportFormat;
+  preset?: ScanPreset;
 };
 
 export type ScanCommandOptions = {
@@ -24,6 +28,7 @@ export type ScanCommandOptions = {
   category?: string;
   exclude?: string;
   config?: string;
+  preset?: string;
 };
 
 export type ResolvedScanCommandSettings = {
@@ -31,6 +36,7 @@ export type ResolvedScanCommandSettings = {
   excludePaths?: string[];
   failOn?: string;
   format: ReportFormat;
+  preset: ScanPreset;
   warnings: string[];
 };
 
@@ -45,16 +51,21 @@ export async function resolveScanCommandSettings(
   allowedCategories: Set<string>
 ): Promise<ResolvedScanCommandSettings> {
   const { config, warnings } = await loadConfig(targetPath, options.config, allowedCategories);
+  const preset =
+    options.preset !== undefined
+      ? parsePreset(options.preset, "CLI --preset")
+      : config.preset ?? "default";
+  const userExcludePaths =
+    options.exclude !== undefined
+      ? validateExcludePaths(parseListOption(options.exclude), "CLI --exclude")
+      : config.excludePaths;
 
   return {
     categories:
       options.category !== undefined
         ? parseCategoriesOption(options.category, allowedCategories)
         : config.categories,
-    excludePaths:
-      options.exclude !== undefined
-        ? validateExcludePaths(parseListOption(options.exclude), "CLI --exclude")
-        : config.excludePaths,
+    excludePaths: mergePresetExcludePaths(preset, userExcludePaths),
     failOn:
       options.failOn !== undefined
         ? parseFailOn(options.failOn, "CLI --fail-on")
@@ -63,6 +74,7 @@ export async function resolveScanCommandSettings(
       options.format !== undefined
         ? parseFormat(options.format, "CLI --format")
         : config.format ?? "terminal",
+    preset,
     warnings
   };
 }
@@ -129,7 +141,11 @@ function validateConfig(value: unknown, configPath: string, allowedCategories: S
       format:
         value.format === undefined
           ? undefined
-          : parseFormat(value.format, "config format")
+          : parseFormat(value.format, "config format"),
+      preset:
+        value.preset === undefined
+          ? undefined
+          : parsePreset(value.preset, "config preset")
     },
     warnings
   };
@@ -159,6 +175,87 @@ function parseFailOn(value: unknown, source: string): string {
   }
 
   throw new Error(`Unsupported fail-on severity in ${source}: ${value}`);
+}
+
+function parsePreset(value: unknown, source: string): ScanPreset {
+  if (typeof value !== "string") {
+    throw new Error(`${source} must be a string.`);
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (SUPPORTED_PRESETS.has(normalized)) {
+    return normalized as ScanPreset;
+  }
+
+  throw new Error(`Unsupported preset in ${source}: ${value}`);
+}
+
+function mergePresetExcludePaths(preset: ScanPreset, excludePaths?: string[]): string[] | undefined {
+  const presetExcludePaths = getPresetExcludePaths(preset);
+  if (presetExcludePaths.length === 0) {
+    return excludePaths;
+  }
+
+  return [...new Set([...presetExcludePaths, ...(excludePaths ?? [])])];
+}
+
+function getPresetExcludePaths(preset: ScanPreset): string[] {
+  switch (preset) {
+    case "app":
+      return [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        ".github/**",
+        "examples/**",
+        "apps/**/examples/**",
+        "docs/**",
+        "dist/**",
+        ".next/**",
+        "generated/**"
+      ];
+    case "ci":
+      return [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "dist/**",
+        ".next/**",
+        "generated/**"
+      ];
+    case "library":
+      return [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "docs/**",
+        "examples/**",
+        "apps/**/examples/**",
+        "dist/**",
+        ".next/**",
+        "generated/**"
+      ];
+    case "monorepo":
+      return [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "docs/**",
+        "examples/**",
+        "apps/**/examples/**",
+        "dist/**",
+        ".next/**",
+        "generated/**"
+      ];
+    case "default":
+    case "strict":
+    case "audit":
+      return [];
+  }
 }
 
 function parseCategoriesOption(value: string, allowedCategories: Set<string>): string[] | undefined {
