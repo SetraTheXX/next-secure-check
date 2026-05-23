@@ -1,5 +1,10 @@
 import type { Rule } from "@next-secure-check/core";
-import { findCommandExecutionMatches, findDangerouslySetInnerHtmlMatches, findRawSqlConcatMatches } from "./ast-utils.js";
+import {
+  findCommandExecutionMatches,
+  findDangerouslySetInnerHtmlMatches,
+  findPasswordHandlingMatches,
+  findRawSqlConcatMatches
+} from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
 
 export const envFileCommittedRule: Rule = {
@@ -248,16 +253,19 @@ export const passwordWithoutHashingRule: Rule = {
       return [];
     }
 
-    return codeFiles(context)
-      .filter((file) => hasPasswordHandlingContext(file.path, file.content))
-      .map((file) =>
+    return codeFiles(context).flatMap((file) =>
+      findPasswordHandlingMatches(file).map((match) =>
         createFinding({
           rule: passwordWithoutHashingRule,
           file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
           description: "Password-related code exists, but bcrypt/argon2 dependency usage was not detected.",
           recommendation: "Hash passwords with argon2 or bcrypt and avoid storing or comparing plaintext passwords."
         })
-      );
+      )
+    );
   }
 };
 
@@ -687,19 +695,4 @@ function countCharacterClasses(value: string): number {
     /\d/.test(value),
     /[^A-Za-z0-9]/.test(value)
   ].filter(Boolean).length;
-}
-
-function hasPasswordHandlingContext(filePath: string, content: string): boolean {
-  if (!/\bpassword\b/i.test(content)) {
-    return false;
-  }
-
-  const pathSignals = /\b(login|signin|sign-in|register|signup|sign-up|auth|account|user|credentials?)\b/i;
-  if (pathSignals.test(filePath)) {
-    return true;
-  }
-
-  const contentSignals =
-    /(\b(body|req\.body|credentials?|user|account)\.password\b|\bpassword\b\s*[:=]\s*(body|req|credentials?|user|account)\b)/i;
-  return contentSignals.test(content);
 }

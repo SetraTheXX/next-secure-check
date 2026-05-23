@@ -278,6 +278,52 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(true);
   });
 
+  it("detects destructured password from request json without hashing", async () => {
+    const result = await scanFixture({
+      "app/api/register/route.ts": "const { password } = await request.json();"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(true);
+  });
+
+  it("detects formData password reads without hashing", async () => {
+    const result = await scanFixture({
+      "app/api/register/route.ts": 'const password = formData.get("password");'
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(true);
+  });
+
+  it("does not flag password handling when hashing is used in the file", async () => {
+    const bcryptResult = await scanFixture({
+      "app/api/register/route.ts": "const password = body.password; await bcrypt.hash(password, 12);"
+    });
+    const argonResult = await scanFixture({
+      "app/api/register/route.ts": "const password = body.password; await argon2.hash(password);"
+    });
+    const scryptResult = await scanFixture({
+      "app/api/register/route.ts": "const password = body.password; crypto.scrypt(password, salt, 64, () => {});"
+    });
+
+    for (const result of [bcryptResult, argonResult, scryptResult]) {
+      expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(false);
+    }
+  });
+
+  it("does not flag password UI labels, placeholders, props, or type fields", async () => {
+    const result = await scanFixture({
+      "app/components/password-field.tsx": [
+        "type Props = { password?: string };",
+        "interface LoginForm { password: string }",
+        "export function PasswordField({ password }: Props) {",
+        "  return <label>Password<input placeholder=\"Password\" value={password} /></label>;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(false);
+  });
+
   it("does not flag unrelated URL credential validation as password hashing risk", async () => {
     const result = await scanFixture({
       "lib/github-url.ts": "const url = new URL(input); if (url.username || url.password) return false;"
