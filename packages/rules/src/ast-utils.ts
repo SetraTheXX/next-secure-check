@@ -117,6 +117,29 @@ export function findRouteHandlerExports(file: SourceFile): AstMatch[] {
   return dedupeMatches(matches);
 }
 
+export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
+  if (!isApiRouteFilePath(file.path)) {
+    return [];
+  }
+
+  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  const routeHandlerMatches: AstMatch[] = [];
+  let hasUploadHandling = false;
+
+  visit(sourceFile, (node) => {
+    const name = exportedRouteHandlerName(node);
+    if (name && (name === "DEFAULT" || name === "POST" || name === "PUT" || name === "PATCH")) {
+      routeHandlerMatches.push(matchFromNode(file, sourceFile, node));
+    }
+
+    if (!hasUploadHandling && isUploadHandlingNode(node)) {
+      hasUploadHandling = true;
+    }
+  });
+
+  return hasUploadHandling ? dedupeMatches(routeHandlerMatches) : [];
+}
+
 function collectChildProcessImports(
   node: ts.Node,
   commandIdentifiers: Set<string>,
@@ -429,6 +452,42 @@ function hasDefaultExportModifier(node: ts.Node): boolean {
     modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) &&
     modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
   );
+}
+
+function isApiRouteFilePath(filePath: string): boolean {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  return (
+    /^app\/api\/.*\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^src\/app\/api\/.*\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^pages\/api\/.*\.([tj]s)$/i.test(normalizedPath) ||
+    /^apps\/[^/]+\/app\/api\/.*\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^apps\/[^/]+\/src\/app\/api\/.*\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^apps\/[^/]+\/pages\/api\/.*\.([tj]s)$/i.test(normalizedPath)
+  );
+}
+
+function isUploadHandlingNode(node: ts.Node): boolean {
+  if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+    const methodName = node.expression.name.text;
+    if (methodName === "formData") {
+      return true;
+    }
+
+    if (methodName === "get") {
+      const [fieldName] = node.arguments;
+      return fieldName !== undefined && ts.isStringLiteralLike(fieldName) && /^(file|files|blob|image|avatar|media)$/i.test(fieldName.text);
+    }
+  }
+
+  if (ts.isIdentifier(node)) {
+    return /^(file|files|blob|formData)$/i.test(node.text);
+  }
+
+  if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) {
+    return /^(File|Blob|FormData)$/i.test(node.typeName.text);
+  }
+
+  return false;
 }
 
 function isRequireChildProcessCall(node: ts.Node): boolean {

@@ -774,6 +774,37 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.category === "upload")).toBe(false);
   });
 
+  it("does not flag frontend file input components as upload endpoints", async () => {
+    const result = await scanFixture({
+      "app/components/upload-button.tsx": [
+        "export function UploadButton() {",
+        "  return <input type=\"file\" accept=\"image/png\" />;",
+        "}"
+      ].join("\n"),
+      "app/media/file-card.tsx": "export function FileCard({ file }) { return <div>{file.name}</div>; }"
+    });
+
+    expect(result.findings.some((finding) => finding.category === "upload")).toBe(false);
+  });
+
+  it("does not flag upload route examples or templates as production upload endpoints", async () => {
+    const result = await scanFixture({
+      "examples/demo/app/api/upload/route.ts": "export async function POST(req) { const data = await req.formData(); return Response.json({ ok: true }); }",
+      "templates/default/app/api/upload/route.ts": "export async function POST(req) { const data = await req.formData(); return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.category === "upload")).toBe(false);
+  });
+
+  it("detects pages API upload handlers without validation", async () => {
+    const result = await scanFixture({
+      "pages/api/upload.ts": "export default async function handler(req, res) { const file = req.body.file; res.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "upload/missing-file-type-validation")).toBe(true);
+    expect(result.findings.some((finding) => finding.ruleId === "upload/missing-file-size-limit")).toBe(true);
+  });
+
   it("detects API routes without input validation", async () => {
     const result = await scanFixture({
       "app/api/users/route.ts": "export async function POST(req) { const body = await req.json(); return Response.json({ ok: true }); }"

@@ -4,7 +4,8 @@ import {
   findDangerouslySetInnerHtmlMatches,
   findPasswordHandlingMatches,
   findRawSqlConcatMatches,
-  findRouteHandlerExports
+  findRouteHandlerExports,
+  findUploadRouteHandlerMatches
 } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
 
@@ -408,23 +409,24 @@ export const missingFileTypeValidationRule: Rule = {
   category: "upload",
   confidence: "MEDIUM",
   scan(context) {
-    const pathSignals = /\b(upload|avatar|media|file|image)\b/i;
-    const contentSignals = /\b(formData|File|Blob|multer|formidable|busboy)\b/i;
-    const validationSignals =
-      /\b(mimetype|fileType|allowedTypes|allowedMimeTypes)\b|\.type\b|\.mime\b|content-type|includes\(|startsWith\(["']image\//i;
+    return codeFiles(context).flatMap((file) => {
+      if (hasFileTypeValidationSignal(file.content)) {
+        return [];
+      }
 
-    return codeFiles(context)
-      .filter((file) => pathSignals.test(file.path) && contentSignals.test(file.content))
-      .filter((file) => !validationSignals.test(file.content))
-      .map((file) =>
+      return findUploadRouteHandlerMatches(file).map((match) =>
         createFinding({
           rule: missingFileTypeValidationRule,
           file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
           description: "Upload endpoints should validate file types before accepting user-controlled files.",
           recommendation:
             "Validate MIME type and file extension with an allowlist before storing or processing uploaded files."
         })
       );
+    });
   }
 };
 
@@ -435,22 +437,24 @@ export const missingFileSizeLimitRule: Rule = {
   category: "upload",
   confidence: "MEDIUM",
   scan(context) {
-    const pathSignals = /\b(upload|avatar|media|file|image)\b/i;
-    const contentSignals = /\b(formData|File|Blob|multer|formidable|busboy)\b/i;
-    const sizeLimitSignals = /\b(maxSize|maxFileSize|fileSize|MAX_FILE_SIZE)\b|limit\s*[:=]|\.limit\b|\.size\s*[><=]/i;
+    return codeFiles(context).flatMap((file) => {
+      if (hasFileSizeLimitSignal(file.content)) {
+        return [];
+      }
 
-    return codeFiles(context)
-      .filter((file) => pathSignals.test(file.path) && contentSignals.test(file.content))
-      .filter((file) => !sizeLimitSignals.test(file.content))
-      .map((file) =>
+      return findUploadRouteHandlerMatches(file).map((match) =>
         createFinding({
           rule: missingFileSizeLimitRule,
           file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
           description: "Upload endpoints should enforce file size limits to reduce abuse and resource exhaustion risk.",
           recommendation:
             "Add a strict maximum file size and reject files that exceed it before storage or further processing."
         })
       );
+    });
   }
 };
 
@@ -714,6 +718,16 @@ function hasAdminAuthSignal(content: string): boolean {
   return /\b(auth\(|getServerSession|currentUser|clerk|getUser|requireAuth|middleware|withAuth|session|jwt\.verify|verifyToken|isAdmin|role|permission)\b/i.test(
     content
   );
+}
+
+function hasFileTypeValidationSignal(content: string): boolean {
+  return /\b(mimetype|mimeType|fileType|allowedTypes|allowedMimeTypes|allowedExtensions|extension|extname|accept)\b|\.type\b|\.mime\b|content-type|includes\(\s*file\.type|startsWith\(["']image\//i.test(
+    content
+  );
+}
+
+function hasFileSizeLimitSignal(content: string): boolean {
+  return /\b(maxSize|maxFileSize|sizeLimit|fileSize|MAX_FILE_SIZE)\b|limit\s*[:=]|\.limit\b|\.size\s*[><=]/i.test(content);
 }
 
 function countCharacterClasses(value: string): number {
