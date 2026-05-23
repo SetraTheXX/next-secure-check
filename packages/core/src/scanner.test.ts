@@ -140,7 +140,197 @@ describe("scanProject", () => {
       riskLevel: "good"
     });
   });
+
+  it("regresses release tooling command execution tuning", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, ".github/changeset-version.js", "exec('pnpm changeset version');");
+    const rule = createMatchingFindingRule(".github/changeset-version.js", "injection/command-exec", "HIGH", "MEDIUM");
+
+    const standard = await scanProject(root, { rules: [rule] });
+    const strict = await scanProject(root, { contextTuning: "off", rules: [rule] });
+
+    expect(standard.findings[0]).toMatchObject({
+      severity: "LOW",
+      confidence: "LOW",
+      originalSeverity: "HIGH",
+      originalConfidence: "MEDIUM",
+      context: "release-tooling",
+      contextAdjustmentReason: "lowered command execution finding in release/tooling context"
+    });
+    expect(strict.findings[0]).toMatchObject({
+      severity: "HIGH",
+      confidence: "MEDIUM",
+      context: "release-tooling"
+    });
+    expect(strict.findings[0]?.originalSeverity).toBeUndefined();
+  });
+
+  it("regresses CLI tooling command execution tuning", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "cli/src/helpers/git.ts", "spawn('git', ['status']);");
+
+    const result = await scanProject(root, {
+      rules: [createMatchingFindingRule("cli/src/helpers/git.ts", "injection/command-exec", "HIGH", "MEDIUM")]
+    });
+
+    expect(result.findings[0]).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "MEDIUM",
+      originalSeverity: "HIGH",
+      context: "cli-tooling",
+      contextAdjustmentReason: "lowered command execution finding in CLI tooling context"
+    });
+    expect(result.findings[0]?.originalConfidence).toBeUndefined();
+  });
+
+  it("keeps app runtime API findings at their original risk", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "app/api/admin/route.ts", "exec('id'); await request.json();");
+
+    const result = await scanProject(root, {
+      rules: [
+        createMatchingFindingRule("app/api/admin/route.ts", "injection/command-exec", "HIGH", "MEDIUM"),
+        createMatchingFindingRule("app/api/admin/route.ts", "auth/admin-route-without-auth", "HIGH", "MEDIUM"),
+        createMatchingFindingRule("app/api/admin/route.ts", "validation/api-route-without-validation", "MEDIUM", "MEDIUM")
+      ]
+    });
+
+    expect(result.findings).toHaveLength(3);
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ruleId: "injection/command-exec", severity: "HIGH", confidence: "MEDIUM", context: "api-code" }),
+        expect.objectContaining({ ruleId: "auth/admin-route-without-auth", severity: "HIGH", confidence: "MEDIUM", context: "api-code" }),
+        expect.objectContaining({ ruleId: "validation/api-route-without-validation", severity: "MEDIUM", confidence: "MEDIUM", context: "api-code" })
+      ])
+    );
+    expect(result.findings.some((finding) => finding.originalSeverity !== undefined)).toBe(false);
+  });
+
+  it("regresses example admin API tuning", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "examples/demo/app/api/admin/route.ts", "await request.json();");
+
+    const result = await scanProject(root, {
+      rules: [
+        createMatchingFindingRule("examples/demo/app/api/admin/route.ts", "auth/admin-route-without-auth", "HIGH", "MEDIUM"),
+        createMatchingFindingRule("examples/demo/app/api/admin/route.ts", "validation/api-route-without-validation", "MEDIUM", "MEDIUM"),
+        createMatchingFindingRule("examples/demo/app/api/admin/route.ts", "auth/login-without-rate-limit", "MEDIUM", "MEDIUM")
+      ]
+    });
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: "auth/admin-route-without-auth",
+          severity: "LOW",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM",
+          context: "example-code"
+        }),
+        expect.objectContaining({
+          ruleId: "validation/api-route-without-validation",
+          severity: "LOW",
+          confidence: "LOW",
+          originalSeverity: "MEDIUM",
+          originalConfidence: "MEDIUM",
+          context: "example-code"
+        }),
+        expect.objectContaining({
+          ruleId: "auth/login-without-rate-limit",
+          severity: "LOW",
+          confidence: "LOW",
+          originalSeverity: "MEDIUM",
+          originalConfidence: "MEDIUM",
+          context: "example-code"
+        })
+      ])
+    );
+  });
+
+  it("regresses template API tuning", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "templates/default/app/api/route.ts", "await request.json();");
+
+    const result = await scanProject(root, {
+      rules: [
+        createMatchingFindingRule("templates/default/app/api/route.ts", "validation/api-route-without-validation", "MEDIUM", "MEDIUM"),
+        createMatchingFindingRule("templates/default/app/api/route.ts", "injection/command-exec", "HIGH", "MEDIUM")
+      ]
+    });
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: "validation/api-route-without-validation",
+          severity: "LOW",
+          confidence: "LOW",
+          originalSeverity: "MEDIUM",
+          context: "template-code"
+        }),
+        expect.objectContaining({
+          ruleId: "injection/command-exec",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM",
+          context: "template-code"
+        })
+      ])
+    );
+  });
+
+  it("regresses raw SQL tuning in template code while preserving app API severity", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "templates/default/app/api/route.ts", "const sql = `SELECT * FROM users WHERE id = ${id}`;");
+    await writeProjectFile(root, "app/api/users/route.ts", "const sql = `SELECT * FROM users WHERE id = ${id}`;");
+    const templateRule = createMatchingFindingRule("templates/default/app/api/route.ts", "injection/raw-sql-concat", "HIGH", "MEDIUM");
+    const appRule = createMatchingFindingRule("app/api/users/route.ts", "injection/raw-sql-concat", "HIGH", "MEDIUM");
+
+    const result = await scanProject(root, { rules: [templateRule, appRule] });
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filePath: "templates/default/app/api/route.ts",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM",
+          context: "template-code"
+        }),
+        expect.objectContaining({
+          filePath: "app/api/users/route.ts",
+          severity: "HIGH",
+          confidence: "MEDIUM",
+          context: "api-code"
+        })
+      ])
+    );
+  });
+
+  it("regresses app preset path exclusions at scanner level", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, ".github/changeset-version.js", "exec('pnpm changeset version');");
+    await writeProjectFile(root, "examples/demo/app/api/admin/route.ts", "await request.json();");
+    await writeProjectFile(root, "docs/security.md", "const sql = `SELECT * FROM users WHERE id = ${id}`;");
+    await writeProjectFile(root, "generated/client.ts", "exec('generated');");
+    await writeProjectFile(root, "app/api/admin/route.ts", "exec('id');");
+
+    const result = await scanProject(root, {
+      excludePaths: [".github/**", "examples/**", "docs/**", "generated/**"],
+      rules: [createFileListRule()]
+    });
+
+    expect(result.findings.map((finding) => finding.filePath)).toEqual(["app/api/admin/route.ts"]);
+  });
 });
+
+async function writeProjectFile(root: string, relativePath: string, content: string): Promise<void> {
+  const absolutePath = path.join(root, relativePath);
+  await mkdir(path.dirname(absolutePath), { recursive: true });
+  await writeFile(absolutePath, content);
+}
 
 function createFileListRule(): Rule {
   return {
@@ -185,5 +375,31 @@ function createSingleFindingRule(filePath: string, ruleId: string): Rule {
         recommendation: "recommendation"
       }
     ]
+  };
+}
+
+function createMatchingFindingRule(filePath: string, ruleId: string, severity: Rule["severity"], confidence: "HIGH" | "MEDIUM" | "LOW"): Rule {
+  return {
+    id: `${ruleId}:${filePath}`,
+    title: "Finding",
+    severity,
+    category: ruleId.split("/")[0] ?? "test",
+    confidence,
+    scan: (context) =>
+      context.files
+        .filter((file) => file.path === filePath)
+        .map((file) => ({
+          id: `${ruleId}:${file.path}:1:1`,
+          ruleId,
+          title: "Finding",
+          severity,
+          confidence,
+          category: ruleId.split("/")[0] ?? "test",
+          filePath: file.path,
+          line: 1,
+          column: 1,
+          description: "description",
+          recommendation: "recommendation"
+        }))
   };
 }

@@ -74,6 +74,20 @@ describe("resolveScanCommandSettings", () => {
     });
   });
 
+  it("keeps default preset close to v0.1 behavior while using standard tuning", async () => {
+    const targetPath = await createTempDir();
+
+    await expect(resolveScanCommandSettings(targetPath, { preset: "default" }, allowedCategories)).resolves.toEqual({
+      categories: undefined,
+      contextTuning: "standard",
+      excludePaths: undefined,
+      failOn: undefined,
+      format: "terminal",
+      preset: "default",
+      warnings: []
+    });
+  });
+
   it("merges preset excludePaths with config excludePaths", async () => {
     const targetPath = await createTempDir();
     await writeConfig(targetPath, {
@@ -141,12 +155,35 @@ describe("resolveScanCommandSettings", () => {
 
     await expect(resolveScanCommandSettings(targetPath, { preset: "strict" }, allowedCategories)).resolves.toMatchObject({
       contextTuning: "off",
+      excludePaths: undefined,
       preset: "strict"
     });
 
     await expect(resolveScanCommandSettings(targetPath, { preset: "audit" }, allowedCategories)).resolves.toMatchObject({
       contextTuning: "off",
+      excludePaths: undefined,
       preset: "audit"
+    });
+  });
+
+  it("documents app preset as the app-focused exclude set", async () => {
+    const targetPath = await createTempDir();
+
+    await expect(resolveScanCommandSettings(targetPath, { preset: "app" }, allowedCategories)).resolves.toMatchObject({
+      contextTuning: "standard",
+      excludePaths: expect.arrayContaining([
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/*.test.tsx",
+        ".github/**",
+        "examples/**",
+        "apps/**/examples/**",
+        "docs/**",
+        "dist/**",
+        ".next/**",
+        "generated/**"
+      ]),
+      preset: "app"
     });
   });
 
