@@ -52,6 +52,28 @@ describe("applyContextTuning", () => {
     });
   });
 
+  it("lowers admin route findings in non-API app component context", () => {
+    expect(tune("auth/admin-route-without-auth", "app-code", "apps/v4/app/(app)/(styles)/admin-card.tsx")).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "LOW",
+      originalSeverity: "HIGH",
+      originalConfidence: "HIGH",
+      contextAdjustmentReason: "lowered admin route finding in non-API app component context"
+    });
+  });
+
+  it("keeps admin route findings in API context unchanged", () => {
+    const finding = tune("auth/admin-route-without-auth", "api-code", "apps/v4/app/api/admin/route.ts");
+
+    expect(finding).toMatchObject({
+      severity: "HIGH",
+      confidence: "HIGH"
+    });
+    expect(finding.originalSeverity).toBeUndefined();
+    expect(finding.originalConfidence).toBeUndefined();
+    expect(finding.contextAdjustmentReason).toBeUndefined();
+  });
+
   it("lowers API validation findings in template context", () => {
     expect(tune("validation/api-route-without-validation", "template-code")).toMatchObject({
       severity: "LOW",
@@ -71,7 +93,7 @@ describe("applyContextTuning", () => {
   });
 });
 
-function tune(ruleId: string, context: FindingContext): Finding {
+function tune(ruleId: string, context: FindingContext, filePath = "file.ts"): Finding {
   return applyContextTuning({
     id: "finding-1",
     ruleId,
@@ -79,7 +101,7 @@ function tune(ruleId: string, context: FindingContext): Finding {
     severity: "HIGH",
     confidence: "HIGH",
     category: ruleId.split("/")[0] ?? "test",
-    filePath: "file.ts",
+    filePath,
     context,
     contextReason: "test context",
     description: "description",

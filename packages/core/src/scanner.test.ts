@@ -206,6 +206,40 @@ describe("scanProject", () => {
     expect(result.findings.some((finding) => finding.originalSeverity !== undefined)).toBe(false);
   });
 
+  it("lowers admin route noise in non-API app components", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "apps/v4/app/(app)/(styles)/admin-card.tsx", "export function AdminCard() { return null; }");
+
+    const result = await scanProject(root, {
+      rules: [createMatchingFindingRule("apps/v4/app/(app)/(styles)/admin-card.tsx", "auth/admin-route-without-auth", "HIGH", "MEDIUM")]
+    });
+
+    expect(result.findings[0]).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "LOW",
+      originalSeverity: "HIGH",
+      originalConfidence: "MEDIUM",
+      context: "app-code",
+      contextAdjustmentReason: "lowered admin route finding in non-API app component context"
+    });
+  });
+
+  it("keeps monorepo API admin routes at high risk", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "apps/v4/app/api/admin/route.ts", "export async function GET() { return Response.json({ ok: true }); }");
+
+    const result = await scanProject(root, {
+      rules: [createMatchingFindingRule("apps/v4/app/api/admin/route.ts", "auth/admin-route-without-auth", "HIGH", "MEDIUM")]
+    });
+
+    expect(result.findings[0]).toMatchObject({
+      severity: "HIGH",
+      confidence: "MEDIUM",
+      context: "api-code"
+    });
+    expect(result.findings[0]?.originalSeverity).toBeUndefined();
+  });
+
   it("regresses example admin API tuning", async () => {
     const root = await tempProject();
     await writeProjectFile(root, "examples/demo/app/api/admin/route.ts", "await request.json();");

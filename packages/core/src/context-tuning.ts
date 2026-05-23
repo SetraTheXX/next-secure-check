@@ -38,7 +38,7 @@ function getContextAdjustment(finding: Finding): TuningAdjustment | undefined {
     case "injection/raw-sql-concat":
       return rawSqlAdjustment(finding.context);
     case "auth/admin-route-without-auth":
-      return adminRouteAdjustment(finding.context);
+      return adminRouteAdjustment(finding);
     case "validation/api-route-without-validation":
       return validationAdjustment(finding.context);
     case "auth/login-without-rate-limit":
@@ -90,8 +90,18 @@ function rawSqlAdjustment(context: FindingContext | undefined): TuningAdjustment
   }
 }
 
-function adminRouteAdjustment(context: FindingContext | undefined): TuningAdjustment | undefined {
-  switch (context) {
+function adminRouteAdjustment(finding: Finding): TuningAdjustment | undefined {
+  switch (finding.context) {
+    case "app-code":
+      if (isApiRoutePath(finding.filePath)) {
+        return undefined;
+      }
+
+      return {
+        severity: "MEDIUM",
+        confidence: "LOW",
+        reason: "lowered admin route finding in non-API app component context"
+      };
     case "docs-code":
     case "example-code":
     case "template-code":
@@ -103,6 +113,18 @@ function adminRouteAdjustment(context: FindingContext | undefined): TuningAdjust
     default:
       return undefined;
   }
+}
+
+function isApiRoutePath(filePath: string): boolean {
+  const normalizedPath = filePath.replace(/\\/g, "/").replace(/^\.\//, "");
+  return (
+    normalizedPath.startsWith("app/api/") ||
+    normalizedPath.startsWith("src/app/api/") ||
+    normalizedPath.startsWith("pages/api/") ||
+    /^apps\/[^/]+\/app\/api\//.test(normalizedPath) ||
+    /^apps\/[^/]+\/src\/app\/api\//.test(normalizedPath) ||
+    /^apps\/[^/]+\/pages\/api\//.test(normalizedPath)
+  );
 }
 
 function validationAdjustment(context: FindingContext | undefined): TuningAdjustment | undefined {

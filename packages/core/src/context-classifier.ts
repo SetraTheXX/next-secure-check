@@ -9,20 +9,6 @@ export function classifyFileContext(filePath: string): FileContextClassification
   const normalizedPath = normalizeContextPath(filePath);
   const basename = normalizedPath.split("/").at(-1) ?? normalizedPath;
 
-  if (matchesApiCode(normalizedPath)) {
-    return {
-      context: "api-code",
-      contextReason: "matched Next.js API route path"
-    };
-  }
-
-  if (matchesAppCode(normalizedPath)) {
-    return {
-      context: "app-code",
-      contextReason: "matched Next.js app/page runtime path"
-    };
-  }
-
   if (matchesTestCode(normalizedPath, basename)) {
     return {
       context: "test-code",
@@ -79,6 +65,20 @@ export function classifyFileContext(filePath: string): FileContextClassification
     };
   }
 
+  if (matchesApiCode(normalizedPath)) {
+    return {
+      context: "api-code",
+      contextReason: "matched Next.js API route path"
+    };
+  }
+
+  if (matchesAppCode(normalizedPath)) {
+    return {
+      context: "app-code",
+      contextReason: "matched Next.js app/page runtime path"
+    };
+  }
+
   return {
     context: "unknown",
     contextReason: "no known file context pattern matched"
@@ -93,7 +93,10 @@ function matchesApiCode(filePath: string): boolean {
   return (
     filePath.startsWith("app/api/") ||
     filePath.startsWith("src/app/api/") ||
-    filePath.startsWith("pages/api/")
+    filePath.startsWith("pages/api/") ||
+    /^apps\/[^/]+\/app\/api\//.test(filePath) ||
+    /^apps\/[^/]+\/src\/app\/api\//.test(filePath) ||
+    /^apps\/[^/]+\/pages\/api\//.test(filePath)
   );
 }
 
@@ -102,7 +105,12 @@ function matchesAppCode(filePath: string): boolean {
     filePath.startsWith("app/") ||
     filePath.startsWith("pages/") ||
     filePath.startsWith("src/app/") ||
-    filePath.startsWith("src/pages/")
+    filePath.startsWith("src/pages/") ||
+    /^apps\/[^/]+\/app\//.test(filePath) ||
+    /^apps\/[^/]+\/src\/app\//.test(filePath) ||
+    /^apps\/[^/]+\/pages\//.test(filePath) ||
+    /^packages\/[^/]+\/app\//.test(filePath) ||
+    /^packages\/[^/]+\/src\/app\//.test(filePath)
   );
 }
 
@@ -115,7 +123,11 @@ function matchesTestCode(filePath: string, basename: string): boolean {
 }
 
 function matchesExampleCode(filePath: string): boolean {
-  return filePath.startsWith("examples/") || /^apps\/[^/]+\/examples\//.test(filePath);
+  return (
+    filePath.startsWith("examples/") ||
+    /^apps\/[^/]+\/examples\//.test(filePath) ||
+    /^apps\/[^/]+\/app\/examples\//.test(filePath)
+  );
 }
 
 function matchesDocsCode(filePath: string, basename: string): boolean {
