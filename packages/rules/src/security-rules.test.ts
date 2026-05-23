@@ -116,15 +116,12 @@ describe("built-in security rules", () => {
     });
   });
 
-  it("keeps static dangerouslySetInnerHTML literals at low severity", async () => {
+  it("does not flag static dangerouslySetInnerHTML literals", async () => {
     const result = await scanFixture({
       "app/page.tsx": 'export default () => <div dangerouslySetInnerHTML={{__html: "<h1>Safe static copy</h1>"}} />;'
     });
-    const finding = result.findings.find((item) => item.ruleId === "xss/dangerously-set-inner-html");
 
-    expect(finding).toMatchObject({
-      severity: "LOW"
-    });
+    expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
   });
 
   it("raises user-controlled-looking dangerouslySetInnerHTML sources to medium severity", async () => {
@@ -132,6 +129,21 @@ describe("built-in security rules", () => {
       "app/page.tsx": [
         "export default function Page({ searchParams }) {",
         "  return <main dangerouslySetInnerHTML={{ __html: searchParams.preview }} />;",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "xss/dangerously-set-inner-html");
+
+    expect(finding).toMatchObject({
+      severity: "MEDIUM"
+    });
+  });
+
+  it("detects member expression dangerouslySetInnerHTML sources", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": [
+        "export default function Page({ post }) {",
+        "  return <main dangerouslySetInnerHTML={{ __html: post.content }} />;",
         "}"
       ].join("\n")
     });
@@ -153,6 +165,18 @@ describe("built-in security rules", () => {
     });
   });
 
+  it("does not flag normal JSX text or unrelated html props", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": [
+        "export default function Page({ html }) {",
+        "  return <><div>{html}</div><Component html={html} /></>;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
   it("does not flag dangerouslySetInnerHTML text inside metadata strings", async () => {
     const result = await scanFixture({
       "index.ts": 'const title = "dangerouslySetInnerHTML usage detected";'
@@ -167,6 +191,51 @@ describe("built-in security rules", () => {
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
+  it("preserves dangerouslySetInnerHTML context tuning for example and template paths", async () => {
+    const result = await scanFixture({
+      "examples/demo/app/page.tsx": "export default () => <div dangerouslySetInnerHTML={{ __html: markdownHtml }} />;",
+      "templates/default/app/page.tsx": "export default () => <div dangerouslySetInnerHTML={{ __html: post.content }} />;"
+    });
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filePath: "examples/demo/app/page.tsx",
+          ruleId: "xss/dangerously-set-inner-html",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalConfidence: "HIGH",
+          context: "example-code"
+        }),
+        expect.objectContaining({
+          filePath: "templates/default/app/page.tsx",
+          ruleId: "xss/dangerously-set-inner-html",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalConfidence: "HIGH",
+          context: "template-code"
+        })
+      ])
+    );
+  });
+
+  it("keeps dangerouslySetInnerHTML context tuning off when requested", async () => {
+    const result = await scanFixture(
+      {
+        "templates/default/app/page.tsx": "export default () => <div dangerouslySetInnerHTML={{ __html: post.content }} />;"
+      },
+      { contextTuning: "off" }
+    );
+    const finding = result.findings.find((item) => item.ruleId === "xss/dangerously-set-inner-html");
+
+    expect(finding).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "HIGH",
+      context: "template-code"
+    });
+    expect(finding?.originalConfidence).toBeUndefined();
   });
 
   it("detects wildcard CORS", async () => {

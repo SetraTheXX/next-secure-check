@@ -1,5 +1,5 @@
 import type { Rule } from "@next-secure-check/core";
-import { findCommandExecutionMatches, findRawSqlConcatMatches } from "./ast-utils.js";
+import { findCommandExecutionMatches, findDangerouslySetInnerHtmlMatches, findRawSqlConcatMatches } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
 
 export const envFileCommittedRule: Rule = {
@@ -147,23 +147,20 @@ export const dangerouslySetInnerHtmlRule: Rule = {
   confidence: "HIGH",
   scan(context) {
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, /dangerouslySetInnerHTML/)
-        .filter((match) => !isInsideQuotedLiteral(match.evidence, match.column))
-        .filter((match) => !isRegexLiteralLine(match.evidence))
-        .map((match) =>
-          createFinding({
-            rule: {
-              ...dangerouslySetInnerHtmlRule,
-              severity: getDangerouslySetInnerHtmlSeverity(match.sourceLine)
-            },
-            file,
-            line: match.line,
-            column: match.column,
-            evidence: match.evidence,
-            description: "Rendering raw HTML can introduce XSS if the content is user-controlled.",
-            recommendation: "Avoid raw HTML rendering or sanitize trusted markup with a proven sanitizer."
-          })
-        )
+      findDangerouslySetInnerHtmlMatches(file).map((match) =>
+        createFinding({
+          rule: {
+            ...dangerouslySetInnerHtmlRule,
+            severity: match.severity
+          },
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "Rendering raw HTML can introduce XSS if the content is user-controlled.",
+          recommendation: "Avoid raw HTML rendering or sanitize trusted markup with a proven sanitizer."
+        })
+      )
     );
   }
 };
@@ -618,36 +615,6 @@ function isInsideQuotedLiteral(line: string, column: number): boolean {
 function isMethodCall(line: string, column: number): boolean {
   const beforeMatch = line.slice(0, Math.max(0, column - 1));
   return /\.\s*$/.test(beforeMatch);
-}
-
-function isRegexLiteralLine(line: string): boolean {
-  return /\/[^/\n]*dangerouslySetInnerHTML[^/\n]*\/[a-z]*/.test(line);
-}
-
-function getDangerouslySetInnerHtmlSeverity(line: string): "LOW" | "MEDIUM" {
-  const htmlValue = /__html\s*:\s*([^}\n]+)/.exec(line)?.[1]?.trim();
-  if (!htmlValue) {
-    return "LOW";
-  }
-
-  if (isStaticHtmlLiteral(htmlValue)) {
-    return "LOW";
-  }
-
-  if (/(userInput|html|content|body|params|searchParams|query|req|request|props|children|markdown)/i.test(htmlValue)) {
-    return "MEDIUM";
-  }
-
-  return "LOW";
-}
-
-function isStaticHtmlLiteral(value: string): boolean {
-  const trimmed = value.replace(/[,;]+$/, "").trim();
-  if (/^["'][\s\S]*["']$/.test(trimmed)) {
-    return true;
-  }
-
-  return /^`[\s\S]*`$/.test(trimmed) && !trimmed.includes("${");
 }
 
 function isCommittedEnvFileName(fileName: string): boolean {

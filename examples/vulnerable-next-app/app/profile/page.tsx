@@ -1,3 +1,4 @@
 export default function ProfilePage() {
-  return <main dangerouslySetInnerHTML={{ __html: "<h1>Demo profile</h1>" }} />;
+  const profileHtml = "<h1>Demo profile</h1>";
+  return <main dangerouslySetInnerHTML={{ __html: profileHtml }} />;
 }

@@ -1,4 +1,4 @@
-import type { SourceFile } from "@next-secure-check/core";
+import type { Severity, SourceFile } from "@next-secure-check/core";
 import ts from "typescript";
 
 export type AstMatch = {
@@ -6,6 +6,10 @@ export type AstMatch = {
   column: number;
   evidence: string;
   sourceLine: string;
+};
+
+export type DangerouslySetInnerHtmlMatch = AstMatch & {
+  severity: Extract<Severity, "LOW" | "MEDIUM">;
 };
 
 const COMMAND_EXECUTION_NAMES = new Set(["exec", "execSync", "spawn", "spawnSync"]);
@@ -53,6 +57,29 @@ export function findRawSqlConcatMatches(file: SourceFile): AstMatch[] {
     if (ts.isTaggedTemplateExpression(node) && isRawSqlTaggedTemplate(node) && isInterpolatedSqlTemplate(node.template)) {
       matches.push(matchFromNode(file, sourceFile, node));
     }
+  });
+
+  return dedupeMatches(matches);
+}
+
+export function findDangerouslySetInnerHtmlMatches(file: SourceFile): DangerouslySetInnerHtmlMatch[] {
+  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  const matches: DangerouslySetInnerHtmlMatch[] = [];
+
+  visit(sourceFile, (node) => {
+    if (!ts.isJsxAttribute(node) || !ts.isIdentifier(node.name) || node.name.text !== "dangerouslySetInnerHTML") {
+      return;
+    }
+
+    const severity = dangerouslySetInnerHtmlSeverity(node.initializer);
+    if (!severity) {
+      return;
+    }
+
+    matches.push({
+      ...matchFromNode(file, sourceFile, node),
+      severity
+    });
   });
 
   return dedupeMatches(matches);
@@ -169,6 +196,43 @@ function isInterpolatedSqlTemplate(node: ts.Node | undefined): boolean {
   return node !== undefined && ts.isTemplateExpression(node) && SQL_KEYWORD_PATTERN.test(node.getText());
 }
 
+function dangerouslySetInnerHtmlSeverity(initializer: ts.JsxAttribute["initializer"]): "LOW" | "MEDIUM" | undefined {
+  if (!initializer || ts.isStringLiteral(initializer)) {
+    return undefined;
+  }
+
+  if (!ts.isJsxExpression(initializer) || !initializer.expression) {
+    return undefined;
+  }
+
+  const expression = initializer.expression;
+  if (!ts.isObjectLiteralExpression(expression)) {
+    return "LOW";
+  }
+
+  const htmlExpression = expression.properties
+    .filter(ts.isPropertyAssignment)
+    .find((property) => propertyNameText(property.name) === "__html")?.initializer;
+
+  if (!htmlExpression || isStaticHtmlExpression(htmlExpression)) {
+    return undefined;
+  }
+
+  return "MEDIUM";
+}
+
+function propertyNameText(name: ts.PropertyName): string | undefined {
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name) || ts.isNumericLiteral(name)) {
+    return name.text;
+  }
+
+  return undefined;
+}
+
+function isStaticHtmlExpression(expression: ts.Expression): boolean {
+  return ts.isStringLiteralLike(expression) || ts.isNoSubstitutionTemplateLiteral(expression);
+}
+
 function isRequireChildProcessCall(node: ts.Node): boolean {
   if (!ts.isCallExpression(node) || !ts.isIdentifier(node.expression) || node.expression.text !== "require") {
     return false;
@@ -206,9 +270,9 @@ function matchFromNode(file: SourceFile, sourceFile: ts.SourceFile, node: ts.Nod
   };
 }
 
-function dedupeMatches(matches: AstMatch[]): AstMatch[] {
+function dedupeMatches<TMatch extends AstMatch>(matches: TMatch[]): TMatch[] {
   const seen = new Set<string>();
-  const uniqueMatches: AstMatch[] = [];
+  const uniqueMatches: TMatch[] = [];
 
   for (const match of matches) {
     const key = `${match.line}:${match.column}:${match.evidence}`;
