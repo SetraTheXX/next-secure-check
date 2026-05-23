@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: MVP and hardening are complete. `next-secure-check` is v0.1 release-ready.
+> Current status: v0.2.0 release preparation. MVP, hardening, context-aware scanning, presets, and AST-assisted rule refinements are complete.
 
 Demo video planned.
 
@@ -16,8 +16,13 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 261 passing tests across packages and the web demo
+- 374 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
+- Context metadata on findings
+- CLI preset system for app-focused, strict, CI, audit, library, and monorepo scans
+- Context-aware severity/confidence tuning to reduce noisy findings in large repositories
+- AST-assisted checks for command execution, raw SQL interpolation, dangerous HTML rendering, and password handling
+- Route-aware admin route detection and endpoint-aware upload validation
 - GitHub Actions proof with Step Summary output
 - Rule documentation in `docs/rules`
 - `apps/web` web demo for scanning public GitHub repositories
@@ -28,7 +33,7 @@ Completed:
 Release focus:
 
 ```txt
-v0.1: publish the CLI package, collect real project feedback, and keep the rule set honest.
+v0.2.0: publish the context-aware CLI update, collect real project feedback, and keep false-positive handling honest.
 ```
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
@@ -103,22 +108,39 @@ npx next-secure-check scan . --fail-on high
 npx next-secure-check scan . --fail-on critical
 npx next-secure-check scan . --category secrets,auth,xss
 npx next-secure-check scan . --exclude "**/*.test.ts,examples/**"
+npx next-secure-check scan . --preset app
+npx next-secure-check scan . --preset strict
+npx next-secure-check scan . --preset ci
 node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
 
 `--fail-on critical` is a risk-level gate. It exits with code `1` only when `scan.summary.riskLevel` is `critical`. `--fail-on high`, `medium`, `low`, and `info` continue to work as severity thresholds.
 
+## Presets
+
+Presets adjust path coverage for common scan modes. They do not replace manual review; they help choose the right signal/noise tradeoff for the repository.
+
+| Preset | Best for | Behavior |
+| --- | --- | --- |
+| `default` | General local scans | Broad baseline coverage with standard context tuning |
+| `app` | Production app-code sanity checks | Excludes tests, examples, docs, generated output, and GitHub workflow/tooling paths |
+| `strict` | Aggressive review | Keeps tuning off and scans broadly |
+| `ci` | Pull request checks | Excludes tests and generated output while keeping CI-oriented behavior practical |
+| `audit` | Broad manual review | Scans broadly with tuning off for conservative review |
+| `library` | Component/library repositories | Reduces docs/examples/test/generated noise |
+| `monorepo` | Multi-app workspaces | App-focused coverage for apps/packages style repositories |
+
 ## App-Focused Scans for Large Repositories
 
-`next-secure-check` v0.1 is most useful as a quick review signal for application code. Large monorepos, template repositories, generator CLIs, release scripts, and demo/example-heavy repositories can produce extra noise because v0.1 uses lightweight deterministic rules and does not yet have a full context/preset system.
+`next-secure-check` v0.2 is most useful as a quick review signal for application code. Large monorepos, template repositories, generator CLIs, release scripts, and demo/example-heavy repositories can still produce noise, but context metadata, presets, and AST-assisted rules make the default experience more practical.
 
 For a production app-code-focused scan, you can start with:
 
 ```bash
-npx next-secure-check scan . --exclude "**/*.test.ts,**/*.spec.ts,**/*.test.tsx,.github/**,examples/**"
+npx next-secure-check scan . --preset app
 ```
 
-Excluding `.github/**` is optional. Keep it included if you want CI, release, and workflow scripts to be reviewed too. This command is not a security audit replacement; it is a focused pre-release sanity check for common mistakes.
+Use `--preset strict` when you want the more aggressive review mode. You can still add `--exclude` patterns when a repository has project-specific generated, demo, or fixture paths. Findings are not a security audit replacement; they are focused pre-release review signals for common mistakes.
 
 ## CLI Config
 
@@ -130,11 +152,13 @@ Supported fields:
 - `categories`: rule categories to run
 - `failOn`: severity threshold, or `critical` to gate on scan summary risk level
 - `format`: report output format
+- `preset`: scan preset (`default`, `app`, `strict`, `ci`, `audit`, `library`, or `monorepo`)
 
 Example:
 
 ```json
 {
+  "preset": "app",
   "excludePaths": ["**/*.test.ts", "**/*.spec.tsx", "examples/**"],
   "categories": ["secrets", "auth", "headers"],
   "failOn": "high",
@@ -211,9 +235,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 118 tests
+packages: 231 tests
 apps/web: 143 tests
-total: 261 tests
+total: 374 tests
 ```
 
 After building, the CLI can be run locally:
@@ -341,12 +365,11 @@ The in-memory scan guard is intended for the local/single-instance demo stage. P
 
 ## Known Limitations
 
-- Rules are deterministic and regex/lightweight-context based, so they can produce false positives and false negatives.
+- Rules are deterministic and combine lightweight pattern matching, syntax-level AST checks, and path/context signals, so they can still produce false positives and false negatives.
 - Findings are review signals, not proof of exploitation.
-- Large monorepos, demo/example-heavy repositories, template repositories, and tooling-focused repositories can produce noisy findings in v0.1.
+- Large monorepos, demo/example-heavy repositories, template repositories, and tooling-focused repositories can still produce noisy findings.
 - CLI generators and release/tooling scripts may trigger command execution findings even when that behavior is intentional for the tool.
-- v0.2 is planned to reduce this noise with context-aware scanning and presets.
-- AST-based analysis is a v0.2 backlog item.
+- Full type-aware analysis is a v0.3 roadmap item.
 - The in-memory scan guard is only a local/single-instance fallback.
 - Public deployments should use the optional Upstash/distributed guard or equivalent platform-level protection.
 - IP-based limits depend on trusted proxy/platform forwarded headers.
@@ -402,11 +425,14 @@ Manual validation notes:
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)
 
-## Post-v0.1 Roadmap
+## v0.3 Roadmap
 
 Planned follow-up work:
 
-- AST-assisted analysis for rules that need better context.
+- Full type-aware analysis for rules that need deeper data-flow context.
+- Deeper XSS sanitizer and source analysis.
+- Route graph and middleware-aware auth detection.
+- Better `unknown` context classification.
 - Custom rule configuration and rule enable/disable controls.
 - Nonce/hash-based CSP hardening for the web demo.
 - Public hosted demo hardening.

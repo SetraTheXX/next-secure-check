@@ -7,10 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
+## [0.2.0] - 2026-05-24
+
+### Added
+- Context metadata and context reasons on findings.
+- `--preset` CLI option for `default`, `app`, `strict`, `ci`, `audit`, `library`, and `monorepo` scan modes.
+- `preset` config option in `.next-secure-check.json`.
+- Context-aware severity and confidence tuning.
+- AST-assisted `injection/command-exec` detection.
+- AST-assisted `injection/raw-sql-concat` detection.
+- AST-assisted `xss/dangerously-set-inner-html` detection.
+- AST-assisted `auth/password-without-hashing-library` detection.
+- Route-aware `auth/admin-route-without-auth` detection.
+- Endpoint-aware upload validation checks.
+- Context-aware `config/next-powered-by-header` refinement.
+
+### Changed
+- Reduced noisy findings in large monorepos, template-heavy repositories, and tooling-heavy repositories.
+- Improved shadcn/ui benchmark from roughly 166+ noisy findings to 55 default / 47 app findings.
+- Improved create-t3-app app preset benchmark from 13 findings to 8 findings.
+- Reporter output now includes finding context in user-facing formats.
+- JSON and SARIF outputs now include context metadata.
 - Added app-focused scan guidance for large repositories and monorepos.
-- Documented known v0.1 noise sources around CI/release scripts, demo/example paths, and CLI tooling repositories.
 - Clarified that findings are review signals, not proof of exploitation.
+
+### Notes
+- Findings are review signals, not a full security audit.
+- False positives and false negatives are still possible.
+- Full AST/type-aware analysis remains a v0.3 roadmap item.
 
 ## [0.1.0] - 2026-05-20
 

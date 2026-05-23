@@ -1,6 +1,6 @@
 {
   "name": "next-secure-check",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Deterministic security checks for Next.js projects. No AI required.",
   "keywords": [
     "nextjs",

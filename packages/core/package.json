@@ -1,6 +1,6 @@
 {
   "name": "@next-secure-check/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Core scanning engine for next-secure-check",
   "keywords": [
     "nextjs",

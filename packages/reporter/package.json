@@ -1,6 +1,6 @@
 {
   "name": "@next-secure-check/reporter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Report formatting for next-secure-check",
   "keywords": [
     "nextjs",
