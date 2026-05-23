@@ -43,6 +43,8 @@ describe("formatSummary", () => {
         confidence: "HIGH",
         category: "secrets",
         filePath: "app/api/login/route.ts",
+        context: "api-code",
+        contextReason: "matched Next.js API route path",
         line: 12,
         description: "A secret-like value appears in source code.",
         recommendation: "Move secrets to environment variables and rotate exposed values."
@@ -53,7 +55,8 @@ describe("formatSummary", () => {
 
     expect(githubReport).toContain("## next-secure-check");
     expect(githubReport).toContain("| Metric | Value |");
-    expect(githubReport).toContain("| HIGH | `secrets/hardcoded-secret` | Possible hardcoded secret detected | `app/api/login/route.ts:12` | HIGH |");
+    expect(githubReport).toContain("| Severity | Rule | Title | Location | Confidence | Context |");
+    expect(githubReport).toContain("| HIGH | `secrets/hardcoded-secret` | Possible hardcoded secret detected | `app/api/login/route.ts:12` | HIGH | api-code |");
     expect(githubReport).toContain("<summary>Recommendations</summary>");
     expect(formatReport(result, "github")).toBe(githubReport);
     expect(githubReport).not.toBe(formatMarkdown(result));
@@ -70,6 +73,35 @@ describe("formatSummary", () => {
 
     expect(formatGithub(result)).toContain("**Status:** No findings");
     expect(formatGithub(result)).toContain("No findings detected.");
+  });
+
+  it("renders finding context in terminal reports", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [createContextFinding()];
+    result.summary = {
+      score: 80,
+      riskLevel: "medium",
+      totalFindings: 1,
+      high: 0,
+      medium: 1,
+      low: 0,
+      info: 0
+    };
+
+    const terminalReport = formatTerminal(result);
+
+    expect(terminalReport).toContain(
+      "API route may be missing input validation [validation/api-route-without-validation, confidence: MEDIUM, context: api-code]"
+    );
+  });
+
+  it("renders finding context in markdown reports", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [createContextFinding()];
+
+    const markdownReport = formatMarkdown(result);
+
+    expect(markdownReport).toContain("- Context: `api-code`");
   });
 
   it("renders SARIF reports with the minimum top-level structure", () => {
@@ -101,6 +133,8 @@ describe("formatSummary", () => {
         confidence: "HIGH",
         category: "secrets",
         filePath: "app/api/login/route.ts",
+        context: "api-code",
+        contextReason: "matched Next.js API route path",
         line: 12,
         column: 7,
         evidence: "const apiKey = \"sk_live_super_secret\"",
@@ -115,6 +149,8 @@ describe("formatSummary", () => {
         confidence: "MEDIUM",
         category: "secrets",
         filePath: "config/secrets.ts",
+        context: "unknown",
+        contextReason: "no known file context pattern matched",
         line: 3,
         evidence: "token: \"demo-token\"",
         description: "A secret-like value appears in source code.",
@@ -128,6 +164,8 @@ describe("formatSummary", () => {
         confidence: "LOW",
         category: "headers",
         filePath: "next.config.js",
+        context: "unknown",
+        contextReason: "no known file context pattern matched",
         description: "No common security header configuration was detected.",
         recommendation: "Configure common security headers."
       }
@@ -184,6 +222,8 @@ describe("formatSummary", () => {
       properties: {
         category: "secrets",
         confidence: "HIGH",
+        context: "api-code",
+        contextReason: "matched Next.js API route path",
         nextSecureCheckFindingId: "finding-1",
         evidenceRedacted: true
       }
@@ -205,7 +245,9 @@ describe("formatSummary", () => {
         }
       ],
       properties: {
-        evidenceRedacted: false
+        evidenceRedacted: false,
+        context: "unknown",
+        contextReason: "no known file context pattern matched"
       }
     });
     expect(sarifText).not.toContain("sk_live_super_secret");
@@ -227,6 +269,8 @@ describe("formatSummary", () => {
         confidence: "LOW",
         category: "headers",
         filePath: "next.config.js",
+        context: "unknown",
+        contextReason: "no known file context pattern matched",
         line: 2,
         column: 1,
         description: "No common security header configuration was detected.",
@@ -253,6 +297,8 @@ describe("formatSummary", () => {
         confidence: "MEDIUM",
         category: "validation",
         filePath: "app/api/users/route.ts",
+        context: "api-code",
+        contextReason: "matched Next.js API route path",
         description: "API routes that consume user input should validate the input.",
         recommendation: "Add input validation."
       },
@@ -264,6 +310,8 @@ describe("formatSummary", () => {
         confidence: "MEDIUM",
         category: "config",
         filePath: "next.config.js",
+        context: "unknown",
+        contextReason: "no known file context pattern matched",
         description: "The default header can reveal framework information.",
         recommendation: "Set poweredByHeader: false."
       }
@@ -277,3 +325,19 @@ describe("formatSummary", () => {
     expect(sarif.runs[0].results[1].level).toBe("note");
   });
 });
+
+function createContextFinding() {
+  return {
+    id: "finding-1",
+    ruleId: "validation/api-route-without-validation",
+    title: "API route may be missing input validation",
+    severity: "MEDIUM" as const,
+    confidence: "MEDIUM" as const,
+    category: "validation",
+    filePath: "app/api/users/route.ts",
+    context: "api-code" as const,
+    contextReason: "matched Next.js API route path",
+    description: "API routes that consume user input should validate the input.",
+    recommendation: "Add input validation."
+  };
+}

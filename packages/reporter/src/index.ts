@@ -47,7 +47,7 @@ export function formatTerminal(result: ScanResult): string {
     for (const finding of findings) {
       const location = `${finding.filePath}${finding.line ? `:${finding.line}` : ""}`;
       lines.push(`- ${location}`);
-      lines.push(`  ${finding.title} [${finding.ruleId}, confidence: ${finding.confidence}]`);
+      lines.push(`  ${finding.title} [${finding.ruleId}, confidence: ${finding.confidence}, context: ${formatContext(finding)}]`);
       if (finding.evidence) {
         lines.push(`  Evidence: ${finding.evidence}`);
       }
@@ -92,6 +92,7 @@ export function formatMarkdown(result: ScanResult): string {
       lines.push(`- Location: \`${location}\``);
       lines.push(`- Rule: \`${finding.ruleId}\``);
       lines.push(`- Confidence: \`${finding.confidence}\``);
+      lines.push(`- Context: \`${formatContext(finding)}\``);
       if (finding.evidence) {
         lines.push(`- Evidence: \`${finding.evidence.replaceAll("`", "'")}\``);
       }
@@ -123,14 +124,14 @@ export function formatGithub(result: ScanResult): string {
   }
 
   lines.push("", "### Findings", "");
-  lines.push("| Severity | Rule | Title | Location | Confidence |");
-  lines.push("| --- | --- | --- | --- | --- |");
+  lines.push("| Severity | Rule | Title | Location | Confidence | Context |");
+  lines.push("| --- | --- | --- | --- | --- | --- |");
 
   for (const severity of SEVERITY_ORDER) {
     const findings = result.findings.filter((finding) => finding.severity === severity);
     for (const finding of findings) {
       lines.push(
-        `| ${finding.severity} | \`${escapeBackticks(finding.ruleId)}\` | ${escapeTableCell(finding.title)} | \`${escapeBackticks(formatLocation(finding))}\` | ${finding.confidence} |`
+        `| ${finding.severity} | \`${escapeBackticks(finding.ruleId)}\` | ${escapeTableCell(finding.title)} | \`${escapeBackticks(formatLocation(finding))}\` | ${finding.confidence} | ${escapeTableCell(formatContext(finding))} |`
       );
     }
   }
@@ -197,6 +198,8 @@ export function formatSarif(result: ScanResult): string {
           properties: {
             category: finding.category,
             confidence: finding.confidence,
+            context: finding.context ?? "unknown",
+            contextReason: finding.contextReason ?? "no context metadata available",
             nextSecureCheckFindingId: finding.id,
             evidenceRedacted: isSecretFinding(finding)
           }
@@ -327,6 +330,10 @@ function formatSarifUri(filePath: string): string {
 
 function formatLocation(finding: ScanResult["findings"][number]): string {
   return `${finding.filePath}${finding.line ? `:${finding.line}` : ""}`;
+}
+
+function formatContext(finding: ScanResult["findings"][number]): string {
+  return finding.context ?? "unknown";
 }
 
 function escapeBackticks(value: string): string {
