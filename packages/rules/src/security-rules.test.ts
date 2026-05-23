@@ -922,6 +922,40 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(false);
   });
 
+  it("detects missing poweredByHeader in app-level monorepo Next.js configs", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "apps/web/next.config.js": "module.exports = { reactStrictMode: true };",
+      "apps/web/app/page.tsx": "export default function Page() { return <main />; }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(true);
+  });
+
+  it("does not flag example, template, or fixture Next.js configs as production app configs", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "examples/demo/next.config.js": "module.exports = { reactStrictMode: true };",
+      "examples/demo/app/page.tsx": "export default function Page() { return <main />; }",
+      "templates/default/next.config.js": "module.exports = { reactStrictMode: true };",
+      "templates/default/app/page.tsx": "export default function Page() { return <main />; }",
+      "packages/ui/fixtures/next-app/next.config.js": "module.exports = { reactStrictMode: true };",
+      "packages/ui/fixtures/next-app/app/page.tsx": "export default function Page() { return <main />; }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(false);
+  });
+
+  it("does not flag package-level Next.js configs without app structure", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "packages/ui/next.config.js": "module.exports = { reactStrictMode: true };",
+      "packages/ui/src/button.tsx": "export function Button() { return <button />; }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(false);
+  });
+
   it("does not flag non-Next.js projects for powered by header", async () => {
     const result = await scanFixture({
       "package.json": '{"name":"demo","dependencies":{"express":"latest"}}',

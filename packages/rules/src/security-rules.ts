@@ -556,7 +556,9 @@ export const nextPoweredByHeaderRule: Rule = {
       return [];
     }
 
-    const nextConfigFiles = configFiles(context).filter((file) => /next\.config\.(js|mjs|cjs|ts)$/.test(file.path));
+    const nextConfigFiles = configFiles(context)
+      .filter((file) => /next\.config\.(js|mjs|cjs|ts)$/.test(file.path))
+      .filter((file) => shouldCheckPoweredByHeaderConfig(file.path, context.files));
     
     if (nextConfigFiles.length === 0) {
       return [];
@@ -602,6 +604,59 @@ export const builtInSecurityRules: Rule[] = [
   productionBrowserSourceMapsRule,
   nextPoweredByHeaderRule
 ];
+
+function shouldCheckPoweredByHeaderConfig(configPath: string, files: Array<{ path: string }>): boolean {
+  const normalizedPath = normalizeRulePath(configPath);
+  if (isLowSignalNextConfigPath(normalizedPath)) {
+    return false;
+  }
+
+  const configRoot = normalizedPath.replace(/(^|\/)next\.config\.(js|mjs|cjs|ts)$/, "").replace(/\/$/, "");
+  if (configRoot === normalizedPath) {
+    return false;
+  }
+
+  if (configRoot === "") {
+    return true;
+  }
+
+  return hasNextAppIndicator(configRoot, files);
+}
+
+function isLowSignalNextConfigPath(filePath: string): boolean {
+  return (
+    filePath.startsWith("examples/") ||
+    filePath.includes("/examples/") ||
+    filePath.startsWith("templates/") ||
+    filePath.includes("/templates/") ||
+    filePath.startsWith("fixtures/") ||
+    filePath.includes("/fixtures/") ||
+    filePath.startsWith("docs/") ||
+    filePath.includes("/docs/") ||
+    filePath.includes("/__tests__/") ||
+    filePath.includes("/test/") ||
+    filePath.includes("/tests/")
+  );
+}
+
+function hasNextAppIndicator(configRoot: string, files: Array<{ path: string }>): boolean {
+  const appIndicators = ["app/", "src/app/", "pages/", "src/pages/"];
+  const normalizedRoot = configRoot === "" ? "" : `${configRoot}/`;
+
+  return files.some((file) => {
+    const filePath = normalizeRulePath(file.path);
+    if (!filePath.startsWith(normalizedRoot) || filePath === `${normalizedRoot}next.config.js`) {
+      return false;
+    }
+
+    const relativePath = filePath.slice(normalizedRoot.length);
+    return appIndicators.some((indicator) => relativePath.startsWith(indicator));
+  });
+}
+
+function normalizeRulePath(filePath: string): string {
+  return filePath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
 
 function isInsideQuotedLiteral(line: string, column: number): boolean {
   const beforeMatch = line.slice(0, Math.max(0, column - 1));
