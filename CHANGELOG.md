@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- Clarified recommended `npx --yes next-secure-check@latest` usage for local scans.
+- Added reproducible `next-secure-check@0.2.0` examples for CI workflows.
+- Documented how to diagnose and remove stale global installs that can shadow v0.2 CLI options.
+- Added copy-paste GitHub Actions examples for Step Summary and SARIF / GitHub Code Scanning.
+
 ## [0.2.0] - 2026-05-24
 
 ### Added

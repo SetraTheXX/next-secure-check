@@ -6,17 +6,38 @@ Run a quick static security sanity check before deploying a Next.js app.
 
 ## Usage
 
-Install globally:
+Recommended one-off usage:
+
+```bash
+npx --yes next-secure-check@latest scan . --preset app
+```
+
+For reproducible CI runs, pin the version:
+
+```bash
+npx --yes next-secure-check@0.2.0 scan . --preset app
+```
+
+Or run without installing:
+
+```bash
+npx --yes next-secure-check@latest scan .
+```
+
+Global install is also supported:
 
 ```bash
 npm install -g next-secure-check
 next-secure-check scan .
 ```
 
-Or run without installing:
+If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.2 options such as `--preset`. Check and remove the global install when needed:
 
 ```bash
-npx next-secure-check scan .
+next-secure-check --version
+npm list -g next-secure-check
+npm uninstall -g next-secure-check
+npm cache verify
 ```
 
 ## Presets
@@ -24,9 +45,9 @@ npx next-secure-check scan .
 Use presets to choose the right signal/noise tradeoff:
 
 ```bash
-npx next-secure-check scan . --preset app
-npx next-secure-check scan . --preset strict
-npx next-secure-check scan . --preset ci
+npx --yes next-secure-check@latest scan . --preset app
+npx --yes next-secure-check@latest scan . --preset strict
+npx --yes next-secure-check@latest scan . --preset ci
 ```
 
 - `app`: production app-code focused scan
@@ -35,23 +56,91 @@ npx next-secure-check scan . --preset ci
 
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
+`--preset` was added in v0.2.0. Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.2.0` in CI.
+
 ## Output Formats
 
 ```bash
-npx next-secure-check scan .
-npx next-secure-check scan . --format json
-npx next-secure-check scan . --format markdown --output report.md
-npx next-secure-check scan . --format github
-npx next-secure-check scan . --format sarif --output report.sarif
+npx --yes next-secure-check@latest scan .
+npx --yes next-secure-check@latest scan . --format json
+npx --yes next-secure-check@latest scan . --format markdown --output report.md
+npx --yes next-secure-check@latest scan . --format github
+npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
 ```
 
 `github` output is designed for GitHub Actions Step Summary usage. SARIF output can be uploaded to GitHub Code Scanning.
 
+## GitHub Actions
+
+Local terminal scans are manual. GitHub Actions scans are automatic after you add a workflow file to your repository; then GitHub runs the scan on the configured push or pull request events. `next-secure-check` does not scan repositories on its own.
+
+Basic Step Summary workflow:
+
+```yaml
+name: next-secure-check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run next-secure-check
+        shell: bash
+        run: |
+          set -o pipefail
+          npx --yes next-secure-check@0.2.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+```
+
+SARIF / GitHub Code Scanning workflow:
+
+```yaml
+name: next-secure-check SARIF
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run next-secure-check SARIF
+        run: npx --yes next-secure-check@0.2.0 scan . --preset app --format sarif --output next-secure-check.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: next-secure-check.sarif
+```
+
 ## Failure Gates
 
 ```bash
-npx next-secure-check scan . --fail-on high
-npx next-secure-check scan . --fail-on critical
+npx --yes next-secure-check@latest scan . --fail-on high
+npx --yes next-secure-check@latest scan . --fail-on critical
 ```
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.

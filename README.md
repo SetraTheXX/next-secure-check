@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: v0.2.0 release preparation. MVP, hardening, context-aware scanning, presets, and AST-assisted rule refinements are complete.
+> Current status: v0.2.0 is published. MVP, hardening, context-aware scanning, presets, and AST-assisted rule refinements are complete.
 
 Demo video planned.
 
@@ -30,10 +30,10 @@ Completed:
 - Phase 4.5+ web demo hardening, including repo size checks, server-side redaction, scan abuse guard, hardened security headers, orphan temp cleanup, optional GitHub token support, and hardened client IP parsing
 - Pre-publish rule coverage polish for committed `.env.*` variants and partial security header detection
 
-Release focus:
+Current release focus:
 
 ```txt
-v0.2.0: publish the context-aware CLI update, collect real project feedback, and keep false-positive handling honest.
+v0.2.x: collect real project feedback, improve usage docs, and keep false-positive handling honest.
 ```
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
@@ -89,6 +89,18 @@ The scanner currently checks for 20 common security patterns. You can read more 
 
 ## CLI Usage
 
+Recommended one-off usage:
+
+```bash
+npx --yes next-secure-check@latest scan . --preset app
+```
+
+For reproducible CI runs, pin the package version:
+
+```bash
+npx --yes next-secure-check@0.2.0 scan . --preset app
+```
+
 Install globally:
 
 ```bash
@@ -96,23 +108,34 @@ npm install -g next-secure-check
 next-secure-check scan .
 ```
 
+If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.2 options such as `--preset`. Check and remove the global install when needed:
+
+```bash
+next-secure-check --version
+npm list -g next-secure-check
+npm uninstall -g next-secure-check
+npm cache verify
+```
+
 Or run without a global install:
 
 ```bash
-npx next-secure-check scan .
-npx next-secure-check scan . --format json
-npx next-secure-check scan . --format markdown --output report.md
-npx next-secure-check scan . --format github
-npx next-secure-check scan . --format sarif --output report.sarif
-npx next-secure-check scan . --fail-on high
-npx next-secure-check scan . --fail-on critical
-npx next-secure-check scan . --category secrets,auth,xss
-npx next-secure-check scan . --exclude "**/*.test.ts,examples/**"
-npx next-secure-check scan . --preset app
-npx next-secure-check scan . --preset strict
-npx next-secure-check scan . --preset ci
+npx --yes next-secure-check@latest scan .
+npx --yes next-secure-check@latest scan . --format json
+npx --yes next-secure-check@latest scan . --format markdown --output report.md
+npx --yes next-secure-check@latest scan . --format github
+npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
+npx --yes next-secure-check@latest scan . --fail-on high
+npx --yes next-secure-check@latest scan . --fail-on critical
+npx --yes next-secure-check@latest scan . --category secrets,auth,xss
+npx --yes next-secure-check@latest scan . --exclude "**/*.test.ts,examples/**"
+npx --yes next-secure-check@latest scan . --preset app
+npx --yes next-secure-check@latest scan . --preset strict
+npx --yes next-secure-check@latest scan . --preset ci
 node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
+
+`--preset` was added in v0.2.0. Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.2.0` in CI.
 
 `--fail-on critical` is a risk-level gate. It exits with code `1` only when `scan.summary.riskLevel` is `critical`. `--fail-on high`, `medium`, `low`, and `info` continue to work as severity thresholds.
 
@@ -137,7 +160,7 @@ Presets adjust path coverage for common scan modes. They do not replace manual r
 For a production app-code-focused scan, you can start with:
 
 ```bash
-npx next-secure-check scan . --preset app
+npx --yes next-secure-check@latest scan . --preset app
 ```
 
 Use `--preset strict` when you want the more aggressive review mode. You can still add `--exclude` patterns when a repository has project-specific generated, demo, or fixture paths. Findings are not a security audit replacement; they are focused pre-release review signals for common mistakes.
@@ -177,7 +200,7 @@ For example, if the config file sets `"format": "markdown"` but the command uses
 You can also point to an explicit config file:
 
 ```bash
-npx next-secure-check scan . --config path/to/config.json
+npx --yes next-secure-check@latest scan . --config path/to/config.json
 ```
 
 The web demo does not read `.next-secure-check.json` files from scanned repositories. Hosted/public scans use the web demo's own server-side options instead.
@@ -187,7 +210,7 @@ The web demo does not read `.next-secure-check.json` files from scanned reposito
 SARIF 2.1.0 output is available for tools such as GitHub Code Scanning:
 
 ```bash
-npx next-secure-check scan . --format sarif --output report.sarif
+npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
 ```
 
 The SARIF reporter includes:
@@ -377,43 +400,74 @@ The in-memory scan guard is intended for the local/single-instance demo stage. P
 
 ## GitHub Actions
 
-After the package is published, copy this workflow into `.github/workflows/security-check.yml` in your project:
+Local terminal scans are manual: `next-secure-check` only runs when you execute the CLI. GitHub Actions scans are automatic after you add a workflow file to your repository; then GitHub runs the scan on the configured push or pull request events. The tool does not scan repositories on its own.
+
+For a basic Step Summary workflow, copy this into `.github/workflows/next-secure-check.yml`:
 
 ```yaml
-name: Security Check
+name: next-secure-check
 
 on:
   pull_request:
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  next-secure-check:
-    name: next-secure-check
+  security-check:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Run security check
+      - name: Run next-secure-check
         shell: bash
         run: |
-          set +e
-          npx --yes next-secure-check@latest scan . --format github --fail-on high | tee next-secure-check-report.md
-          status=${PIPESTATUS[0]}
-          cat next-secure-check-report.md >> "$GITHUB_STEP_SUMMARY"
-          exit "$status"
+          set -o pipefail
+          npx --yes next-secure-check@0.2.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 This fails the pull request when findings at `HIGH` or above are found. Change `--fail-on` to `medium`, `low`, or `info` if your team wants a stricter severity gate. Use `--fail-on critical` when you only want to fail on a `critical` scan summary risk level.
+
+For GitHub Code Scanning, generate SARIF and upload it:
+
+```yaml
+name: next-secure-check SARIF
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run next-secure-check SARIF
+        run: npx --yes next-secure-check@0.2.0 scan . --preset app --format sarif --output next-secure-check.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: next-secure-check.sarif
+```
 
 Findings are deterministic pattern matches, not proof of exploitation. Review the `confidence`, `evidence`, and `recommendation` fields before treating a finding as a confirmed vulnerability.
 
