@@ -124,6 +124,22 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
   });
 
+  it("does not flag clearly sanitized dangerouslySetInnerHTML sources", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": [
+        "export default function Page({ html, markdown }) {",
+        "  return <>",
+        "    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizeMarkdown(markdown) }} />",
+        "  </>;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
   it("raises user-controlled-looking dangerouslySetInnerHTML sources to medium severity", async () => {
     const result = await scanFixture({
       "app/page.tsx": [

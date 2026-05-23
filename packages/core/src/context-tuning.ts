@@ -177,6 +177,13 @@ function dangerouslySetHtmlAdjustment(finding: Finding): TuningAdjustment | unde
         };
       }
 
+      if (isUiOrComponentPath(finding.filePath) && !hasExplicitUserControlledHtmlSignal(finding.evidence)) {
+        return {
+          confidence: "LOW",
+          reason: "lowered dangerouslySetInnerHTML confidence in app component/UI context"
+        };
+      }
+
       return undefined;
     default:
       return undefined;
@@ -250,6 +257,10 @@ function isUiOrComponentPath(filePath: string): boolean {
 function isDemoStoryOrFixturePath(filePath: string): boolean {
   const normalizedPath = normalizePath(filePath);
   return /(^|\/)(demo|demos|storybook|stories|fixtures|examples)(\/|\.|$)/i.test(normalizedPath) || /\.stories\.(tsx|jsx|ts|js)$/.test(normalizedPath);
+}
+
+function hasExplicitUserControlledHtmlSignal(evidence: string | undefined): boolean {
+  return /\b(userInput|searchParams|params|body|request|req|query)\b/i.test(evidence ?? "");
 }
 
 function normalizePath(filePath: string): string {

@@ -167,7 +167,9 @@ describe("applyContextTuning", () => {
 
   it("lowers dangerouslySetInnerHTML confidence in app story/demo paths only", () => {
     const storyFinding = tune("xss/dangerously-set-inner-html", "app-code", "apps/web/app/components/button.stories.tsx");
-    const appFinding = tune("xss/dangerously-set-inner-html", "app-code", "app/profile/page.tsx");
+    const appFinding = tune("xss/dangerously-set-inner-html", "app-code", "app/profile/page.tsx", {
+      evidence: "return <main dangerouslySetInnerHTML={{ __html: searchParams.preview }} />;"
+    });
 
     expect(storyFinding).toMatchObject({
       severity: "HIGH",
@@ -178,6 +180,31 @@ describe("applyContextTuning", () => {
     expect(storyFinding.originalSeverity).toBeUndefined();
     expect(appFinding.originalSeverity).toBeUndefined();
     expect(appFinding.originalConfidence).toBeUndefined();
+  });
+
+  it("lowers dangerouslySetInnerHTML confidence in app component UI paths", () => {
+    expect(
+      tune("xss/dangerously-set-inner-html", "app-code", "apps/web/app/components/preview.tsx", {
+        evidence: "return <div dangerouslySetInnerHTML={{ __html: html }} />;"
+      })
+    ).toMatchObject({
+      severity: "HIGH",
+      confidence: "LOW",
+      originalConfidence: "HIGH",
+      contextAdjustmentReason: "lowered dangerouslySetInnerHTML confidence in app component/UI context"
+    });
+  });
+
+  it("keeps explicitly user-controlled dangerouslySetInnerHTML app findings unchanged", () => {
+    const finding = tune("xss/dangerously-set-inner-html", "app-code", "app/profile/page.tsx", {
+      evidence: "return <main dangerouslySetInnerHTML={{ __html: userInput }} />;"
+    });
+
+    expect(finding).toMatchObject({
+      severity: "HIGH",
+      confidence: "HIGH"
+    });
+    expect(finding.originalConfidence).toBeUndefined();
   });
 
   it("lowers powered-by header findings in docs/example/template context", () => {
@@ -209,7 +236,7 @@ describe("applyContextTuning", () => {
   });
 });
 
-function tune(ruleId: string, context: FindingContext, filePath = "file.ts"): Finding {
+function tune(ruleId: string, context: FindingContext, filePath = "file.ts", overrides: Partial<Finding> = {}): Finding {
   return applyContextTuning({
     id: "finding-1",
     ruleId,
@@ -221,6 +248,7 @@ function tune(ruleId: string, context: FindingContext, filePath = "file.ts"): Fi
     context,
     contextReason: "test context",
     description: "description",
-    recommendation: "recommendation"
+    recommendation: "recommendation",
+    ...overrides
   });
 }

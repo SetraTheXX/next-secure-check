@@ -214,7 +214,7 @@ function dangerouslySetInnerHtmlSeverity(initializer: ts.JsxAttribute["initializ
     .filter(ts.isPropertyAssignment)
     .find((property) => propertyNameText(property.name) === "__html")?.initializer;
 
-  if (!htmlExpression || isStaticHtmlExpression(htmlExpression)) {
+  if (!htmlExpression || isStaticHtmlExpression(htmlExpression) || isSanitizedHtmlExpression(htmlExpression)) {
     return undefined;
   }
 
@@ -231,6 +231,27 @@ function propertyNameText(name: ts.PropertyName): string | undefined {
 
 function isStaticHtmlExpression(expression: ts.Expression): boolean {
   return ts.isStringLiteralLike(expression) || ts.isNoSubstitutionTemplateLiteral(expression);
+}
+
+function isSanitizedHtmlExpression(expression: ts.Expression): boolean {
+  if (!ts.isCallExpression(expression)) {
+    return false;
+  }
+
+  const sanitizerName = callExpressionName(expression.expression);
+  return sanitizerName !== undefined && /^(?:sanitize|sanitizeHtml|sanitizeMarkdown)$/i.test(sanitizerName);
+}
+
+function callExpressionName(expression: ts.Expression): string | undefined {
+  if (ts.isIdentifier(expression)) {
+    return expression.text;
+  }
+
+  if (ts.isPropertyAccessExpression(expression)) {
+    return expression.name.text;
+  }
+
+  return undefined;
 }
 
 function isRequireChildProcessCall(node: ts.Node): boolean {
