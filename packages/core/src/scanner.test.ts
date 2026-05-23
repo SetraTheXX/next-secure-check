@@ -343,6 +343,109 @@ describe("scanProject", () => {
     );
   });
 
+  it("regresses targeted app component tuning while preserving API runtime risks", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "apps/v4/app/(app)/components/password-field.tsx", "export function PasswordField() { return null; }");
+    await writeProjectFile(root, "apps/v4/app/(app)/components/file-filter.tsx", "export function FileFilter() { return null; }");
+    await writeProjectFile(root, "apps/v4/app/(app)/components/data-table.tsx", "export function DataTable() { return null; }");
+    await writeProjectFile(root, "app/api/upload/route.ts", "await request.formData();");
+    await writeProjectFile(root, "app/api/register/route.ts", "const password = body.password;");
+    await writeProjectFile(root, "app/api/users/route.ts", "const sql = `SELECT * FROM users WHERE id = ${id}`;");
+
+    const result = await scanProject(root, {
+      rules: [
+        createMatchingFindingRule("apps/v4/app/(app)/components/password-field.tsx", "auth/password-without-hashing-library", "MEDIUM", "MEDIUM"),
+        createMatchingFindingRule("apps/v4/app/(app)/components/file-filter.tsx", "upload/missing-file-size-limit", "MEDIUM", "MEDIUM"),
+        createMatchingFindingRule("apps/v4/app/(app)/components/data-table.tsx", "injection/raw-sql-concat", "HIGH", "MEDIUM"),
+        createMatchingFindingRule("app/api/upload/route.ts", "upload/missing-file-size-limit", "MEDIUM", "MEDIUM"),
+        createMatchingFindingRule("app/api/register/route.ts", "auth/password-without-hashing-library", "MEDIUM", "MEDIUM"),
+        createMatchingFindingRule("app/api/users/route.ts", "injection/raw-sql-concat", "HIGH", "MEDIUM")
+      ]
+    });
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filePath: "apps/v4/app/(app)/components/password-field.tsx",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalConfidence: "MEDIUM",
+          context: "app-code"
+        }),
+        expect.objectContaining({
+          filePath: "apps/v4/app/(app)/components/file-filter.tsx",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalConfidence: "MEDIUM",
+          context: "app-code"
+        }),
+        expect.objectContaining({
+          filePath: "apps/v4/app/(app)/components/data-table.tsx",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM",
+          context: "app-code"
+        }),
+        expect.objectContaining({
+          filePath: "app/api/upload/route.ts",
+          severity: "MEDIUM",
+          confidence: "MEDIUM",
+          context: "api-code"
+        }),
+        expect.objectContaining({
+          filePath: "app/api/register/route.ts",
+          severity: "MEDIUM",
+          confidence: "MEDIUM",
+          context: "api-code"
+        }),
+        expect.objectContaining({
+          filePath: "app/api/users/route.ts",
+          severity: "HIGH",
+          confidence: "MEDIUM",
+          context: "api-code"
+        })
+      ])
+    );
+  });
+
+  it("uses tuned severity when scoring targeted component noise", async () => {
+    const root = await tempProject();
+    await writeProjectFile(root, "apps/v4/app/(app)/components/data-table.tsx", "export function DataTable() { return null; }");
+
+    const standard = await scanProject(root, {
+      rules: [createMatchingFindingRule("apps/v4/app/(app)/components/data-table.tsx", "injection/raw-sql-concat", "HIGH", "MEDIUM")]
+    });
+    const strict = await scanProject(root, {
+      contextTuning: "off",
+      rules: [createMatchingFindingRule("apps/v4/app/(app)/components/data-table.tsx", "injection/raw-sql-concat", "HIGH", "MEDIUM")]
+    });
+
+    expect(standard.findings[0]).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "LOW",
+      originalSeverity: "HIGH",
+      context: "app-code"
+    });
+    expect(standard.summary).toMatchObject({
+      high: 0,
+      medium: 1,
+      score: 97,
+      riskLevel: "excellent"
+    });
+    expect(strict.findings[0]).toMatchObject({
+      severity: "HIGH",
+      confidence: "MEDIUM",
+      context: "app-code"
+    });
+    expect(strict.findings[0]?.originalSeverity).toBeUndefined();
+    expect(strict.summary).toMatchObject({
+      high: 1,
+      score: 90,
+      riskLevel: "excellent"
+    });
+  });
+
   it("regresses app preset path exclusions at scanner level", async () => {
     const root = await tempProject();
     await writeProjectFile(root, ".github/changeset-version.js", "exec('pnpm changeset version');");
