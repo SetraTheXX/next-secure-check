@@ -13,6 +13,7 @@ export type DangerouslySetInnerHtmlMatch = AstMatch & {
 };
 
 const COMMAND_EXECUTION_NAMES = new Set(["exec", "execSync", "spawn", "spawnSync"]);
+const ROUTE_HANDLER_NAMES = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
 const SQL_QUERY_METHOD_NAMES = new Set(["query", "execute"]);
 const SQL_RAW_TAG_NAMES = new Set(["$queryRaw", "$executeRaw"]);
 const SQL_KEYWORD_PATTERN = /\b(SELECT|INSERT|UPDATE|DELETE)\b/i;
@@ -95,6 +96,20 @@ export function findPasswordHandlingMatches(file: SourceFile): AstMatch[] {
 
   visit(sourceFile, (node) => {
     if (isPasswordHandlingNode(node)) {
+      matches.push(matchFromNode(file, sourceFile, node));
+    }
+  });
+
+  return dedupeMatches(matches);
+}
+
+export function findRouteHandlerExports(file: SourceFile): AstMatch[] {
+  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  const matches: AstMatch[] = [];
+
+  visit(sourceFile, (node) => {
+    const name = exportedRouteHandlerName(node);
+    if (name && (name === "DEFAULT" || ROUTE_HANDLER_NAMES.has(name))) {
       matches.push(matchFromNode(file, sourceFile, node));
     }
   });
@@ -385,6 +400,35 @@ function isCredentialLikeIdentifier(expression: ts.Expression): boolean {
 
 function expressionNameText(expression: ts.Expression): string | undefined {
   return ts.isIdentifier(expression) ? expression.text : undefined;
+}
+
+function exportedRouteHandlerName(node: ts.Node): string | undefined {
+  if (ts.isFunctionDeclaration(node) && hasDefaultExportModifier(node)) {
+    return "DEFAULT";
+  }
+
+  if (ts.isFunctionDeclaration(node) && hasExportModifier(node) && node.name) {
+    return node.name.text;
+  }
+
+  if (!ts.isVariableStatement(node) || !hasExportModifier(node)) {
+    return undefined;
+  }
+
+  const [declaration] = node.declarationList.declarations;
+  return declaration && ts.isIdentifier(declaration.name) ? declaration.name.text : undefined;
+}
+
+function hasExportModifier(node: ts.Node): boolean {
+  return ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
+}
+
+function hasDefaultExportModifier(node: ts.Node): boolean {
+  const modifiers = ts.canHaveModifiers(node) ? (ts.getModifiers(node) ?? []) : [];
+  return (
+    modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) &&
+    modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
+  );
 }
 
 function isRequireChildProcessCall(node: ts.Node): boolean {

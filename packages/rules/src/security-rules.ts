@@ -3,7 +3,8 @@ import {
   findCommandExecutionMatches,
   findDangerouslySetInnerHtmlMatches,
   findPasswordHandlingMatches,
-  findRawSqlConcatMatches
+  findRawSqlConcatMatches,
+  findRouteHandlerExports
 } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
 
@@ -487,20 +488,29 @@ export const adminRouteWithoutAuthRule: Rule = {
   category: "auth",
   confidence: "MEDIUM",
   scan(context) {
-    const pathSignals = /\b(admin|dashboard|manage)\b/i;
-    const authSignals = /\b(auth\(|getServerSession|currentUser|clerk|requireAuth|middleware|session|jwt\.verify|verifyToken|isAdmin|role)\b/i;
+    return codeFiles(context).flatMap((file) => {
+      if (!isAdminApiRoutePath(file.path) || hasAdminAuthSignal(file.content)) {
+        return [];
+      }
 
-    return codeFiles(context)
-      .filter((file) => pathSignals.test(file.path))
-      .filter((file) => !authSignals.test(file.content))
-      .map((file) =>
+      const routeHandlers = findRouteHandlerExports(file);
+      const [match] = routeHandlers;
+      if (!match) {
+        return [];
+      }
+
+      return [
         createFinding({
           rule: adminRouteWithoutAuthRule,
           file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
           description: "Admin routes should include authentication and authorization checks.",
           recommendation: "Protect admin routes with authentication and role/permission checks before returning sensitive data."
         })
-      );
+      ];
+    });
   }
 };
 
@@ -686,6 +696,24 @@ function isLowSignalSecretSample(value: string): boolean {
   }
 
   return false;
+}
+
+function isAdminApiRoutePath(filePath: string): boolean {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  return (
+    /^app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^src\/app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^pages\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/|$).*\.([tj]s)$/i.test(normalizedPath) ||
+    /^apps\/[^/]+\/app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^apps\/[^/]+\/src\/app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^apps\/[^/]+\/pages\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/|$).*\.([tj]s)$/i.test(normalizedPath)
+  );
+}
+
+function hasAdminAuthSignal(content: string): boolean {
+  return /\b(auth\(|getServerSession|currentUser|clerk|getUser|requireAuth|middleware|withAuth|session|jwt\.verify|verifyToken|isAdmin|role|permission)\b/i.test(
+    content
+  );
 }
 
 function countCharacterClasses(value: string): number {

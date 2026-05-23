@@ -806,9 +806,52 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(true);
   });
 
+  it("detects exported const admin route handlers without auth protection", async () => {
+    const result = await scanFixture({
+      "app/api/admin/route.ts": "export const POST = async () => Response.json({ ok: true });"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(true);
+  });
+
+  it("detects pages API admin routes without auth protection", async () => {
+    const result = await scanFixture({
+      "pages/api/admin/users.ts": "export default function handler(req, res) { res.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(true);
+  });
+
   it("does not flag admin routes with auth protection", async () => {
     const result = await scanFixture({
       "app/api/admin/users/route.ts": "import { getServerSession } from 'next-auth'; export async function GET() { const session = await getServerSession(); return Response.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("does not flag admin UI component paths as admin routes", async () => {
+    const result = await scanFixture({
+      "app/(app)/admin/components/sidebar.tsx": "export function AdminSidebar() { return <aside>Admin</aside>; }",
+      "components/admin-card.tsx": "export function AdminCard() { return <section>Admin dashboard</section>; }",
+      "app/dashboard/page.tsx": "export default function Dashboard() { return <main>Dashboard</main>; }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("does not flag admin API files without route handler exports", async () => {
+    const result = await scanFixture({
+      "app/api/admin/helpers.ts": "export function getAdminLabel() { return 'admin'; }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("does not flag admin route examples or templates as production admin routes", async () => {
+    const result = await scanFixture({
+      "examples/demo/app/api/admin/route.ts": "export async function GET() { return Response.json({ ok: true }); }",
+      "templates/default/app/api/admin/route.ts": "export async function GET() { return Response.json({ ok: true }); }"
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
