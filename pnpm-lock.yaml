@@ -94,6 +94,9 @@ importers:
       '@next-secure-check/core':
         specifier: workspace:*
         version: link:../core
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
 
 packages:
 

@@ -1,4 +1,5 @@
 import type { Rule } from "@next-secure-check/core";
+import { findCommandExecutionMatches } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
 
 export const envFileCommittedRule: Rule = {
@@ -382,17 +383,8 @@ export const commandExecRule: Rule = {
   category: "injection",
   confidence: "MEDIUM",
   scan(context) {
-    const commandCallPattern = /\b(exec|execSync|spawn|spawnSync)\s*\(/;
-    const childProcessImportPattern =
-      /\bfrom\s+["'](?:node:)?child_process["']|require\(\s*["'](?:node:)?child_process["']\s*\)/;
-
     return codeFiles(context).flatMap((file) =>
-      [
-        ...findMatches(file, commandCallPattern)
-          .filter((match) => !isMethodCall(match.sourceLine, match.column))
-          .filter((match) => !isInsideQuotedLiteral(match.sourceLine, match.column)),
-        ...findMatches(file, childProcessImportPattern)
-      ].map((match) =>
+      findCommandExecutionMatches(file).map((match) =>
         createFinding({
           rule: commandExecRule,
           file,

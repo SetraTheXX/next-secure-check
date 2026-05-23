@@ -363,6 +363,45 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(true);
   });
 
+  it("detects imported exec calls", async () => {
+    const result = await scanFixture({ "index.ts": "import { exec } from 'node:child_process';\nexec('ls');" });
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+
+    expect(commandFindings).toHaveLength(2);
+    expect(commandFindings.map((finding) => finding.evidence)).toEqual([
+      "import { exec } from 'node:child_process';",
+      "exec('ls');"
+    ]);
+  });
+
+  it("detects require destructuring command execution", async () => {
+    const result = await scanFixture({ "index.ts": "const { exec: run } = require('child_process');\nrun('ls');" });
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+
+    expect(commandFindings).toHaveLength(2);
+    expect(commandFindings.map((finding) => finding.evidence)).toEqual([
+      "const { exec: run } = require('child_process');",
+      "run('ls');"
+    ]);
+  });
+
+  it("detects namespace and alias command execution", async () => {
+    const result = await scanFixture({
+      "index.ts": [
+        "import * as cp from 'node:child_process';",
+        "const child_process = require('child_process');",
+        "cp.exec('ls');",
+        "child_process.spawn('git');"
+      ].join("\n")
+    });
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+
+    expect(commandFindings.map((finding) => finding.evidence)).toEqual([
+      "cp.exec('ls');",
+      "child_process.spawn('git');"
+    ]);
+  });
+
   it("does not flag RegExp exec API usage as shell command execution", async () => {
     const result = await scanFixture({
       "index.ts": "while ((match = matcher.exec(lineContent)) !== null) { matches.push(match); }"
@@ -387,30 +426,75 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(false);
   });
 
-  it("detects bare command execution after a safe exec method call on the same line", async () => {
+  it("does not flag unrelated local exec calls", async () => {
     const result = await scanFixture({
-      "index.ts": 'regex.exec(input); exec("ls");'
+      "index.ts": 'function exec(command) { return command; }\nexec("ls");'
     });
 
-    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
-    expect(commandFindings).toHaveLength(1);
-    expect(commandFindings[0]?.evidence).toBe('regex.exec(input); exec("ls");');
+    expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(false);
   });
 
-  it("detects bare spawn after a safe exec method call on the same line", async () => {
+  it("detects imported command execution after a safe exec method call on the same line", async () => {
     const result = await scanFixture({
-      "index.ts": 'object.exec(); spawn("ls");'
+      "index.ts": 'import { exec } from "child_process";\nregex.exec(input); exec("ls");'
     });
 
     const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
-    expect(commandFindings).toHaveLength(1);
-    expect(commandFindings[0]?.evidence).toBe('object.exec(); spawn("ls");');
+    expect(commandFindings).toHaveLength(2);
+    expect(commandFindings[1]?.evidence).toBe('regex.exec(input); exec("ls");');
+  });
+
+  it("detects imported spawn after a safe exec method call on the same line", async () => {
+    const result = await scanFixture({
+      "index.ts": 'const { spawn } = require("child_process");\nobject.exec(); spawn("ls");'
+    });
+
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+    expect(commandFindings).toHaveLength(2);
+    expect(commandFindings[1]?.evidence).toBe('object.exec(); spawn("ls");');
   });
 
   it("detects child_process imports", async () => {
     const result = await scanFixture({ "index.ts": "import { exec } from 'child_process';" });
 
     expect(result.findings.some((finding) => finding.ruleId === "injection/command-exec")).toBe(true);
+  });
+
+  it("keeps command execution findings high in API code", async () => {
+    const result = await scanFixture({ "app/api/debug/route.ts": "import { exec } from 'child_process';\nexec('id');" });
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+
+    expect(commandFindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ context: "api-code", severity: "HIGH", confidence: "MEDIUM" })
+      ])
+    );
+  });
+
+  it("keeps release and CLI command execution context tuning with AST findings", async () => {
+    const result = await scanFixture({
+      ".github/changeset-version.js": "const { exec } = require('child_process');\nexec('pnpm changeset version');",
+      "cli/src/helpers/git.ts": "import * as cp from 'node:child_process';\ncp.spawn('git');"
+    });
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+
+    expect(commandFindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          context: "release-tooling",
+          severity: "LOW",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM"
+        }),
+        expect.objectContaining({
+          context: "cli-tooling",
+          severity: "MEDIUM",
+          confidence: "MEDIUM",
+          originalSeverity: "HIGH"
+        })
+      ])
+    );
   });
 
   it("detects missing file type validation in upload endpoints", async () => {
