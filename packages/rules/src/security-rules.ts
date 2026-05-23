@@ -1,5 +1,5 @@
 import type { Rule } from "@next-secure-check/core";
-import { findCommandExecutionMatches } from "./ast-utils.js";
+import { findCommandExecutionMatches, findRawSqlConcatMatches } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
 
 export const envFileCommittedRule: Rule = {
@@ -271,22 +271,18 @@ export const rawSqlConcatRule: Rule = {
   category: "injection",
   confidence: "MEDIUM",
   scan(context) {
-    const pattern = /`[^`]*(SELECT|INSERT|UPDATE|DELETE)[^`]*\$\{[^}]+}[^`]*`|["'][^"']*(SELECT|INSERT|UPDATE|DELETE)[^"']*["']\s*\+/i;
-
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, pattern)
-        .filter((match) => !isLowRiskSqlStringContext(match.sourceLine, match.column))
-        .map((match) =>
-          createFinding({
-            rule: rawSqlConcatRule,
-            file,
-            line: match.line,
-            column: match.column,
-            evidence: match.evidence,
-            description: "SQL built with string interpolation or concatenation can lead to SQL injection.",
-            recommendation: "Use parameterized queries, prepared statements, or a safe ORM query builder."
-          })
-        )
+      findRawSqlConcatMatches(file).map((match) =>
+        createFinding({
+          rule: rawSqlConcatRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "SQL built with string interpolation or concatenation can lead to SQL injection.",
+          recommendation: "Use parameterized queries, prepared statements, or a safe ORM query builder."
+        })
+      )
     );
   }
 };
@@ -652,13 +648,6 @@ function isStaticHtmlLiteral(value: string): boolean {
   }
 
   return /^`[\s\S]*`$/.test(trimmed) && !trimmed.includes("${");
-}
-
-function isLowRiskSqlStringContext(line: string, column: number): boolean {
-  const beforeMatch = line.slice(0, Math.max(0, column - 1));
-  return /(?:^|[^\w$.])(?:console\.(?:log|debug|info|warn|error)|logger\.(?:debug|info)|throw\s+new\s+Error)\s*\(\s*$/.test(
-    beforeMatch
-  );
 }
 
 function isCommittedEnvFileName(fileName: string): boolean {

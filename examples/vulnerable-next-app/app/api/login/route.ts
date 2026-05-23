@@ -1,9 +1,14 @@
 const JWT_SECRET = "secret";
 const stripeKey = "sk_live_demo123456789";
+const db = {
+  query(sql: string) {
+    return sql;
+  }
+};
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const query = `SELECT * FROM users WHERE email = '${body.email}'`;
+  const query = db.query(`SELECT * FROM users WHERE email = '${body.email}'`);
   const password = body.password;
   const computed = eval("1 + 1");
 

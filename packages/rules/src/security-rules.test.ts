@@ -9,7 +9,7 @@ async function tempProject(): Promise<string> {
   return mkdtemp(path.join(tmpdir(), "nsc-rules-"));
 }
 
-async function scanFixture(files: Record<string, string>) {
+async function scanFixture(files: Record<string, string>, options: { contextTuning?: "standard" | "off" } = {}) {
   const root = await tempProject();
   await Promise.all(
     Object.entries(files).map(async ([filePath, content]) => {
@@ -19,7 +19,7 @@ async function scanFixture(files: Record<string, string>) {
     })
   );
 
-  return scanProject(root, { rules: getBuiltInRules() });
+  return scanProject(root, { contextTuning: options.contextTuning, rules: getBuiltInRules() });
 }
 
 describe("built-in security rules", () => {
@@ -210,10 +210,10 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(false);
   });
 
-  it("detects raw SQL interpolation", async () => {
+  it("does not flag plain raw SQL template assignments without a query sink", async () => {
     const result = await scanFixture({ "app/api/users/route.ts": "const sql = `SELECT * FROM users WHERE id = ${id}`;" });
 
-    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(true);
+    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(false);
   });
 
   it("detects raw SQL interpolation passed to query APIs", async () => {
@@ -226,6 +226,21 @@ describe("built-in security rules", () => {
 
     const findings = result.findings.filter((finding) => finding.ruleId === "injection/raw-sql-concat");
     expect(findings).toHaveLength(2);
+  });
+
+  it("detects raw SQL interpolation passed to common query sink names", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "db.query(`SELECT * FROM users WHERE id = ${id}`);",
+        "connection.query(`SELECT * FROM users WHERE email = ${email}`);",
+        "connection.execute(`UPDATE users SET name = ${name} WHERE id = ${id}`);",
+        "pool.query(`DELETE FROM sessions WHERE user_id = ${userId}`);",
+        "client.query(`INSERT INTO audit_logs (message) VALUES (${message})`);"
+      ].join("\n")
+    });
+
+    const findings = result.findings.filter((finding) => finding.ruleId === "injection/raw-sql-concat");
+    expect(findings).toHaveLength(5);
   });
 
   it("does not flag raw SQL text in low-risk logging and error contexts", async () => {
@@ -251,10 +266,93 @@ describe("built-in security rules", () => {
 
   it("keeps flagging Prisma raw SQL tagged templates for review", async () => {
     const result = await scanFixture({
-      "app/api/users/route.ts": "await prisma.$queryRaw`SELECT * FROM users WHERE id = ${id}`;"
+      "app/api/users/route.ts": [
+        "await prisma.$queryRaw`SELECT * FROM users WHERE id = ${id}`;",
+        "await prisma.$executeRaw`DELETE FROM users WHERE id = ${id}`;",
+        "await db.$queryRaw`SELECT * FROM users WHERE email = ${email}`;",
+        "await db.$executeRaw`UPDATE users SET name = ${name} WHERE id = ${id}`;"
+      ].join("\n")
     });
 
-    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(true);
+    const findings = result.findings.filter((finding) => finding.ruleId === "injection/raw-sql-concat");
+    expect(findings).toHaveLength(4);
+  });
+
+  it("does not flag static or parameterized query calls", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        'db.query("SELECT * FROM users");',
+        'db.query("SELECT * FROM users WHERE id = ?", [id]);',
+        'db.query("SELECT * FROM users WHERE id = $1", [id]);'
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(false);
+  });
+
+  it("preserves raw SQL API risk and context tuning for non-production contexts", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": "db.query(`SELECT * FROM users WHERE id = ${id}`);",
+      "examples/demo/app/api/users/route.ts": "db.query(`SELECT * FROM users WHERE id = ${id}`);",
+      "templates/default/app/api/users/route.ts": "db.query(`SELECT * FROM users WHERE id = ${id}`);",
+      "apps/web/app/components/data-table.tsx": "db.query(`SELECT * FROM users WHERE id = ${id}`);"
+    });
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filePath: "app/api/users/route.ts",
+          ruleId: "injection/raw-sql-concat",
+          severity: "HIGH",
+          confidence: "MEDIUM",
+          context: "api-code"
+        }),
+        expect.objectContaining({
+          filePath: "examples/demo/app/api/users/route.ts",
+          ruleId: "injection/raw-sql-concat",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM",
+          context: "example-code"
+        }),
+        expect.objectContaining({
+          filePath: "templates/default/app/api/users/route.ts",
+          ruleId: "injection/raw-sql-concat",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM",
+          context: "template-code"
+        }),
+        expect.objectContaining({
+          filePath: "apps/web/app/components/data-table.tsx",
+          ruleId: "injection/raw-sql-concat",
+          severity: "MEDIUM",
+          confidence: "LOW",
+          originalSeverity: "HIGH",
+          originalConfidence: "MEDIUM",
+          context: "app-code"
+        })
+      ])
+    );
+  });
+
+  it("keeps raw SQL context tuning off when requested", async () => {
+    const result = await scanFixture(
+      {
+        "templates/default/app/api/users/route.ts": "db.query(`SELECT * FROM users WHERE id = ${id}`);"
+      },
+      { contextTuning: "off" }
+    );
+    const finding = result.findings.find((item) => item.ruleId === "injection/raw-sql-concat");
+
+    expect(finding).toMatchObject({
+      severity: "HIGH",
+      confidence: "MEDIUM",
+      context: "template-code"
+    });
+    expect(finding?.originalSeverity).toBeUndefined();
   });
 
   it("detects missing security headers in Next.js apps", async () => {
