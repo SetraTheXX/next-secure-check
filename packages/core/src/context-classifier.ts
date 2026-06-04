@@ -104,13 +104,15 @@ function matchesAppCode(filePath: string): boolean {
   return (
     filePath.startsWith("app/") ||
     filePath.startsWith("pages/") ||
+    filePath.startsWith("components/") ||
     filePath.startsWith("src/app/") ||
     filePath.startsWith("src/pages/") ||
     /^apps\/[^/]+\/app\//.test(filePath) ||
     /^apps\/[^/]+\/src\/app\//.test(filePath) ||
     /^apps\/[^/]+\/pages\//.test(filePath) ||
     /^packages\/[^/]+\/app\//.test(filePath) ||
-    /^packages\/[^/]+\/src\/app\//.test(filePath)
+    /^packages\/[^/]+\/src\/app\//.test(filePath) ||
+    /^packages\/[^/]+\/src\/.+\.(tsx|jsx)$/.test(filePath)
   );
 }
 
@@ -125,8 +127,16 @@ function matchesTestCode(filePath: string, basename: string): boolean {
 function matchesExampleCode(filePath: string): boolean {
   return (
     filePath.startsWith("examples/") ||
+    filePath.startsWith("demo/") ||
+    filePath.startsWith("demos/") ||
+    filePath.startsWith("playground/") ||
+    filePath.startsWith("stories/") ||
+    filePath.startsWith("storybook/") ||
+    /\.stories\.(ts|tsx|js|jsx)$/.test(filePath) ||
     /^apps\/[^/]+\/examples\//.test(filePath) ||
-    /^apps\/[^/]+\/app\/examples\//.test(filePath)
+    /^apps\/[^/]+\/app\/examples\//.test(filePath) ||
+    /^apps\/[^/]+\/(demo|demos|playground|stories|storybook)\//.test(filePath) ||
+    /^apps\/[^/]+\/app\/(demo|demos|playground|stories|storybook)\//.test(filePath)
   );
 }
 
@@ -155,5 +165,16 @@ function matchesGeneratedCode(filePath: string): boolean {
 }
 
 function matchesTemplateCode(filePath: string): boolean {
-  return filePath.startsWith("templates/") || filePath.startsWith("fixtures/");
+  return (
+    filePath.startsWith("templates/") ||
+    filePath.startsWith("fixtures/") ||
+    filePath.startsWith("__fixtures__/") ||
+    filePath.startsWith("test/fixtures/") ||
+    filePath.startsWith("tests/fixtures/") ||
+    /^registry\//.test(filePath) ||
+    /^apps\/[^/]+\/registry\//.test(filePath) ||
+    /^packages\/[^/]+\/registry\//.test(filePath) ||
+    /^packages\/[^/]+\/(?:test|tests)\/fixtures\//.test(filePath) ||
+    /^packages\/[^/]+\/__fixtures__\//.test(filePath)
+  );
 }

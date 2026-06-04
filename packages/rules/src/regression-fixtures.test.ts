@@ -56,8 +56,9 @@ describe("v0.3 regression fixtures", () => {
         }),
         expect.objectContaining({
           filePath: "apps/v4/registry/new-york/ui/preview.tsx",
-          context: "unknown",
-          confidence: "HIGH"
+          context: "template-code",
+          confidence: "LOW",
+          originalConfidence: "HIGH"
         })
       ])
     );
@@ -151,8 +152,9 @@ describe("v0.3 regression fixtures", () => {
         }),
         expect.objectContaining({
           filePath: "apps/v4/registry/new-york/ui/preview.tsx",
-          context: "unknown",
-          confidence: "HIGH"
+          context: "template-code",
+          confidence: "LOW",
+          originalConfidence: "HIGH"
         })
       ])
     );
