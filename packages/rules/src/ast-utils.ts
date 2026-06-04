@@ -17,6 +17,7 @@ const ROUTE_HANDLER_NAMES = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
 const SQL_QUERY_METHOD_NAMES = new Set(["query", "execute"]);
 const SQL_RAW_TAG_NAMES = new Set(["$queryRaw", "$executeRaw"]);
 const SQL_KEYWORD_PATTERN = /\b(SELECT|INSERT|UPDATE|DELETE)\b/i;
+const SANITIZER_MODULE_PATTERN = /^(?:dompurify|sanitize-html)$/i;
 
 export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
   const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
@@ -65,6 +66,8 @@ export function findRawSqlConcatMatches(file: SourceFile): AstMatch[] {
 
 export function findDangerouslySetInnerHtmlMatches(file: SourceFile): DangerouslySetInnerHtmlMatch[] {
   const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  const sanitizerIdentifiers = collectSanitizerIdentifiers(sourceFile);
+  const safeHtmlIdentifiers = collectSafeHtmlIdentifiers(sourceFile, sanitizerIdentifiers);
   const matches: DangerouslySetInnerHtmlMatch[] = [];
 
   visit(sourceFile, (node) => {
@@ -72,7 +75,7 @@ export function findDangerouslySetInnerHtmlMatches(file: SourceFile): Dangerousl
       return;
     }
 
-    const severity = dangerouslySetInnerHtmlSeverity(node.initializer);
+    const severity = dangerouslySetInnerHtmlSeverity(node.initializer, sanitizerIdentifiers, safeHtmlIdentifiers);
     if (!severity) {
       return;
     }
@@ -251,7 +254,11 @@ function isInterpolatedSqlTemplate(node: ts.Node | undefined): boolean {
   return node !== undefined && ts.isTemplateExpression(node) && SQL_KEYWORD_PATTERN.test(node.getText());
 }
 
-function dangerouslySetInnerHtmlSeverity(initializer: ts.JsxAttribute["initializer"]): "LOW" | "MEDIUM" | undefined {
+function dangerouslySetInnerHtmlSeverity(
+  initializer: ts.JsxAttribute["initializer"],
+  sanitizerIdentifiers: Set<string>,
+  safeHtmlIdentifiers: Set<string>
+): "LOW" | "MEDIUM" | undefined {
   if (!initializer || ts.isStringLiteral(initializer)) {
     return undefined;
   }
@@ -269,11 +276,67 @@ function dangerouslySetInnerHtmlSeverity(initializer: ts.JsxAttribute["initializ
     .filter(ts.isPropertyAssignment)
     .find((property) => propertyNameText(property.name) === "__html")?.initializer;
 
-  if (!htmlExpression || isStaticHtmlExpression(htmlExpression) || isSanitizedHtmlExpression(htmlExpression)) {
+  if (!htmlExpression || isStaticHtmlExpression(htmlExpression, safeHtmlIdentifiers) || isSanitizedHtmlExpression(htmlExpression, sanitizerIdentifiers)) {
     return undefined;
   }
 
   return "MEDIUM";
+}
+
+function collectSanitizerIdentifiers(sourceFile: ts.SourceFile): Set<string> {
+  const sanitizerIdentifiers = new Set<string>();
+
+  visit(sourceFile, (node) => {
+    if (!ts.isImportDeclaration(node) || !ts.isStringLiteralLike(node.moduleSpecifier)) {
+      return;
+    }
+
+    const moduleName = node.moduleSpecifier.text;
+    const importClause = node.importClause;
+    if (!importClause) {
+      return;
+    }
+
+    if (importClause.name && SANITIZER_MODULE_PATTERN.test(moduleName)) {
+      sanitizerIdentifiers.add(importClause.name.text);
+    }
+
+    const namedBindings = importClause.namedBindings;
+    if (!namedBindings || !ts.isNamedImports(namedBindings)) {
+      return;
+    }
+
+    for (const importSpecifier of namedBindings.elements) {
+      const importedName = importSpecifier.propertyName?.text ?? importSpecifier.name.text;
+      if (isSanitizerFunctionName(importedName)) {
+        sanitizerIdentifiers.add(importSpecifier.name.text);
+      }
+    }
+  });
+
+  return sanitizerIdentifiers;
+}
+
+function collectSafeHtmlIdentifiers(sourceFile: ts.SourceFile, sanitizerIdentifiers: Set<string>): Set<string> {
+  const safeHtmlIdentifiers = new Set<string>();
+
+  visit(sourceFile, (node) => {
+    if (!ts.isVariableStatement(node) || (node.declarationList.flags & ts.NodeFlags.Const) === 0) {
+      return;
+    }
+
+    for (const declaration of node.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || !declaration.initializer) {
+        continue;
+      }
+
+      if (isStaticHtmlExpression(declaration.initializer, safeHtmlIdentifiers) || isSanitizedHtmlExpression(declaration.initializer, sanitizerIdentifiers)) {
+        safeHtmlIdentifiers.add(declaration.name.text);
+      }
+    }
+  });
+
+  return safeHtmlIdentifiers;
 }
 
 function propertyNameText(name: ts.PropertyName): string | undefined {
@@ -284,29 +347,28 @@ function propertyNameText(name: ts.PropertyName): string | undefined {
   return undefined;
 }
 
-function isStaticHtmlExpression(expression: ts.Expression): boolean {
-  return ts.isStringLiteralLike(expression) || ts.isNoSubstitutionTemplateLiteral(expression);
+function isStaticHtmlExpression(expression: ts.Expression, safeHtmlIdentifiers: Set<string>): boolean {
+  return ts.isStringLiteralLike(expression) || ts.isNoSubstitutionTemplateLiteral(expression) || (ts.isIdentifier(expression) && safeHtmlIdentifiers.has(expression.text));
 }
 
-function isSanitizedHtmlExpression(expression: ts.Expression): boolean {
+function isSanitizedHtmlExpression(expression: ts.Expression, sanitizerIdentifiers: Set<string>): boolean {
   if (!ts.isCallExpression(expression)) {
     return false;
   }
 
-  const sanitizerName = callExpressionName(expression.expression);
-  return sanitizerName !== undefined && /^(?:sanitize|sanitizeHtml|sanitizeMarkdown)$/i.test(sanitizerName);
+  if (ts.isIdentifier(expression.expression)) {
+    return sanitizerIdentifiers.has(expression.expression.text) || isSanitizerFunctionName(expression.expression.text);
+  }
+
+  if (ts.isPropertyAccessExpression(expression.expression)) {
+    return isSanitizerFunctionName(expression.expression.name.text);
+  }
+
+  return false;
 }
 
-function callExpressionName(expression: ts.Expression): string | undefined {
-  if (ts.isIdentifier(expression)) {
-    return expression.text;
-  }
-
-  if (ts.isPropertyAccessExpression(expression)) {
-    return expression.name.text;
-  }
-
-  return undefined;
+function isSanitizerFunctionName(name: string): boolean {
+  return /^(?:sanitize|sanitizeHtml|sanitizeMarkdown|sanitizeContent|toSafeHtml)$/i.test(name);
 }
 
 function hasPasswordHashingCall(sourceFile: ts.SourceFile): boolean {

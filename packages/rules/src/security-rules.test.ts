@@ -132,6 +132,44 @@ describe("built-in security rules", () => {
         "    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />",
         "    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdown) }} />",
         "    <div dangerouslySetInnerHTML={{ __html: sanitizeMarkdown(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizeContent(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: toSafeHtml(markdown) }} />",
+        "  </>;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
+  it("does not flag imported sanitizer aliases used for dangerouslySetInnerHTML", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": [
+        'import sanitizeHtml from "sanitize-html";',
+        'import purifier from "dompurify";',
+        'import { sanitize as sanitizeMarkdownContent } from "./sanitize";',
+        "export default function Page({ html, markdown }) {",
+        "  return <>",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: purifier.sanitize(html) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizeMarkdownContent(markdown) }} />",
+        "  </>;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
+  it("does not flag same-file static or sanitized HTML constants", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": [
+        'const safeHtml = "<strong>Hello</strong>";',
+        "const sanitizedHtml = DOMPurify.sanitize(markdown);",
+        "export default function Page() {",
+        "  return <>",
+        "    <div dangerouslySetInnerHTML={{ __html: safeHtml }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />",
         "  </>;",
         "}"
       ].join("\n")
@@ -151,6 +189,29 @@ describe("built-in security rules", () => {
     const finding = result.findings.find((item) => item.ruleId === "xss/dangerously-set-inner-html");
 
     expect(finding).toMatchObject({
+      severity: "MEDIUM"
+    });
+  });
+
+  it.each([
+    ["userInput", "userInput"],
+    ["params", "params.preview"],
+    ["query", "query.preview"],
+    ["body", "body.html"],
+    ["request", "request.html"],
+    ["req", "req.body.html"],
+    ["formData", "formData.get('html')"],
+    ["comment.body", "comment.body"],
+    ["markdown", "markdown"],
+    ["html", "html"],
+    ["content", "content"],
+    ["cmsContent", "cmsContent"]
+  ])("keeps risky dangerouslySetInnerHTML source %s flagged", async (_label, sourceExpression) => {
+    const result = await scanFixture({
+      "app/page.tsx": `export default function Page() { return <main dangerouslySetInnerHTML={{ __html: ${sourceExpression} }} />; }`
+    });
+
+    expect(result.findings.find((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toMatchObject({
       severity: "MEDIUM"
     });
   });

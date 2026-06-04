@@ -241,4 +241,23 @@ describe("v0.3 regression fixtures", () => {
 
     expect(filesFor(result, "config/next-powered-by-header")).toEqual(["apps/web/next.config.js", "next.config.js"]);
   });
+
+  it("preserves fixture-level XSS expectations", async () => {
+    const vulnerable = await scanProject(path.resolve("examples/vulnerable-next-app"), {
+      contextTuning: "off",
+      rules: getBuiltInRules()
+    });
+    const secure = await scanProject(path.resolve("examples/secure-next-app"), {
+      rules: getBuiltInRules()
+    });
+
+    expect(findingsFor(vulnerable, "xss/dangerously-set-inner-html")).toEqual([
+      expect.objectContaining({
+        filePath: "app/profile/page.tsx",
+        context: "app-code",
+        severity: "MEDIUM"
+      })
+    ]);
+    expect(findingsFor(secure, "xss/dangerously-set-inner-html")).toEqual([]);
+  });
 });

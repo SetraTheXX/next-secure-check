@@ -1,4 +1,4 @@
-export default function ProfilePage() {
-  const profileHtml = "<h1>Demo profile</h1>";
+export default function ProfilePage({ searchParams }: { searchParams: { preview?: string } }) {
+  const profileHtml = searchParams.preview ?? "";
   return <main dangerouslySetInnerHTML={{ __html: profileHtml }} />;
 }
