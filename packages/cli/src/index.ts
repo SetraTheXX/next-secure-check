@@ -6,6 +6,7 @@ import { getBuiltInRules } from "@next-secure-check/rules";
 import { formatReport } from "@next-secure-check/reporter";
 import { resolveScanCommandSettings, type ScanCommandOptions } from "./config.js";
 import { shouldFail } from "./fail-on.js";
+import { formatInitResults, initProject } from "./init.js";
 import { formatRuleExplanation, formatRulesList, formatUnknownRuleMessage } from "./rules-info.js";
 
 const program = new Command();
@@ -56,6 +57,20 @@ program
       if (shouldFail(result, settings.failOn)) {
         process.exitCode = 1;
       }
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("init")
+  .description("Create a starter config and GitHub Actions workflow.")
+  .option("--force", "Overwrite existing init files")
+  .action(async (options: { force?: boolean }) => {
+    try {
+      const results = await initProject(process.cwd(), { force: options.force });
+      console.log(formatInitResults(results));
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;

@@ -1,8 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import type { Finding, RiskLevel, Severity } from "@next-secure-check/core";
 import { getBuiltInRules } from "@next-secure-check/rules";
+import { CONFIG_FILE_NAME } from "./config.js";
 import { shouldFail } from "./fail-on.js";
+import { initProject, NEXT_SECURE_CHECK_WORKFLOW_PATH } from "./init.js";
 import { formatRuleExplanation, formatRulesList, formatUnknownRuleMessage } from "./rules-info.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir(): Promise<string> {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "next-secure-check-cli-"));
+  tempDirs.push(tempDir);
+  return tempDir;
+}
+
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
 
 describe("shouldFail", () => {
   it("fails critical gates based on scan risk level", () => {
@@ -59,6 +76,39 @@ describe("rules CLI helpers", () => {
     expect(formatRuleExplanation(rules, "xss/not-a-rule")).toBeUndefined();
     expect(formatUnknownRuleMessage(rules, "xss/not-a-rule")).toContain("Unknown rule id: xss/not-a-rule");
     expect(formatUnknownRuleMessage(rules, "xss/not-a-rule")).toContain("next-secure-check rules");
+  });
+});
+
+describe("initProject", () => {
+  it("creates the default config and GitHub Actions workflow", async () => {
+    const targetPath = await createTempDir();
+
+    const result = await initProject(targetPath);
+
+    expect(result).toEqual([
+      { path: CONFIG_FILE_NAME, status: "created" },
+      { path: NEXT_SECURE_CHECK_WORKFLOW_PATH, status: "created" }
+    ]);
+    await expect(readFile(path.join(targetPath, CONFIG_FILE_NAME), "utf8")).resolves.toBe(
+      JSON.stringify({ preset: "app", format: "terminal", failOn: "high" }, null, 2) + "\n"
+    );
+    await expect(readFile(path.join(targetPath, NEXT_SECURE_CHECK_WORKFLOW_PATH), "utf8")).resolves.toContain(
+      "npx --yes next-secure-check@0.2.1 scan . --preset app --format github --fail-on high"
+    );
+  });
+
+  it("skips existing files by default", async () => {
+    const targetPath = await createTempDir();
+    const configPath = path.join(targetPath, CONFIG_FILE_NAME);
+    await writeFile(configPath, "existing config", "utf8");
+
+    const result = await initProject(targetPath);
+
+    expect(result).toEqual([
+      { path: CONFIG_FILE_NAME, status: "skipped" },
+      { path: NEXT_SECURE_CHECK_WORKFLOW_PATH, status: "created" }
+    ]);
+    await expect(readFile(configPath, "utf8")).resolves.toBe("existing config");
   });
 });
 
