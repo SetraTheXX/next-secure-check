@@ -15,7 +15,7 @@ npx --yes next-secure-check@latest scan . --preset app
 For reproducible CI runs, pin the version:
 
 ```bash
-npx --yes next-secure-check@0.2.0 scan . --preset app
+npx --yes next-secure-check@0.3.0 scan . --preset app
 ```
 
 Or run without installing:
@@ -56,7 +56,40 @@ npx --yes next-secure-check@latest scan . --preset ci
 
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
-`--preset` was added in v0.2.0. Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.2.0` in CI.
+Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.3.0` in CI.
+
+## CLI Helpers
+
+List built-in rules:
+
+```bash
+npx --yes next-secure-check@latest rules
+```
+
+Explain one rule:
+
+```bash
+npx --yes next-secure-check@latest explain xss/dangerously-set-inner-html
+```
+
+Create a starter config and GitHub Actions workflow:
+
+```bash
+npx --yes next-secure-check@latest init
+```
+
+`init` creates:
+
+```txt
+.next-secure-check.json
+.github/workflows/next-secure-check.yml
+```
+
+Existing files are skipped by default. Use `--force` only when you intentionally want to overwrite those files:
+
+```bash
+npx --yes next-secure-check@latest init --force
+```
 
 ## Output Formats
 
@@ -99,7 +132,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.2.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.3.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 SARIF / GitHub Code Scanning workflow:
@@ -128,7 +161,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.2.0 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.3.0 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -145,13 +178,17 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.
 
-## v0.2.0 Highlights
+## v0.3.0 Highlights
 
 - Context-aware scanning with finding context metadata
 - Preset system for app, strict, CI, audit, library, and monorepo scans
 - AST-assisted checks for command execution, raw SQL, dangerous HTML rendering, and password handling
-- Reduced noisy findings in large monorepos and tooling-heavy repositories
-- GitHub Actions and SARIF support
+- Regression fixture suite for real-world-style noise cases
+- Reduced unknown context classifications for registry, demo, playground, story, fixture, and package UI paths
+- XSS sanitizer/source refinement
+- Middleware auth/rate-limit signals and refined rate-limit detection
+- SARIF metadata polish for GitHub Code Scanning
+- CLI `rules`, `explain`, and `init` commands
 
 ## Honest Note
 

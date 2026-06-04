@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-24
+
+### Added
+- Benchmark/regression fixture suite for representative monorepo, registry, tooling, XSS, SQL, password, admin, upload, and config cases.
+- Middleware auth and rate-limit signals from `middleware.ts` and `src/middleware.ts`.
+- CLI `rules` command for listing built-in deterministic rules.
+- CLI `explain <rule-id>` command for terminal rule explanations.
+- CLI `init` command for generating a starter `.next-secure-check.json` and GitHub Actions workflow.
+
+### Changed
+- Reduced `unknown` context classifications for registry, story, demo, playground, fixture, and package UI paths.
+- Refined `xss/dangerously-set-inner-html` sanitizer and source signals.
+- Refined login/register rate-limit detection for route-level and middleware-level limiter signals.
+- Improved SARIF rule metadata with help URIs, tags, selected CWE mappings, security severity, and deterministic fingerprints.
+
+### Fixed/Improved
+- Preserved vulnerable fixture coverage while reducing false-positive/noise cases in synthetic real-world-style fixtures.
+- Kept app/default/ci preset behavior stable while improving context classification.
+- Kept SARIF secret/evidence redaction behavior intact.
+- Raised the validation baseline to 429 passing tests.
+
+### Notes
+- v0.3.0 keeps the same core CLI scan surface while improving analysis quality and CLI usability.
+- Findings remain deterministic review signals, not proof of exploitation.
+- Full type-aware analysis and a larger route graph remain future work.
+
 ## [0.2.1] - 2026-05-24
 
 ### Documentation

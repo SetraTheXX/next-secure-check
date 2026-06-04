@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: v0.2.0 is published. MVP, hardening, context-aware scanning, presets, and AST-assisted rule refinements are complete.
+> Current status: v0.3.0 release prep is complete. MVP, hardening, context-aware scanning, presets, AST-assisted rule refinements, SARIF polish, and CLI helper commands are complete.
 
 Demo video planned.
 
@@ -16,13 +16,20 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 374 passing tests across packages and the web demo
+- 429 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - Context metadata on findings
 - CLI preset system for app-focused, strict, CI, audit, library, and monorepo scans
 - Context-aware severity/confidence tuning to reduce noisy findings in large repositories
 - AST-assisted checks for command execution, raw SQL interpolation, dangerous HTML rendering, and password handling
 - Route-aware admin route detection and endpoint-aware upload validation
+- Middleware-aware auth/rate-limit signals for common Next.js middleware patterns
+- Regression fixture suite for representative monorepo, registry, tooling, XSS, SQL, password, admin, upload, and config noise cases
+- Reduced `unknown` context classifications for registry, story, demo, playground, fixture, and package UI paths
+- XSS sanitizer/source refinement for `dangerouslySetInnerHTML`
+- Rate-limit detection refinement for route-level and middleware-level signals
+- SARIF metadata polish with help URIs, CWE/security tags, security severity, context properties, and deterministic fingerprints
+- CLI `rules`, `explain`, and `init` helper commands
 - GitHub Actions proof with Step Summary output
 - Rule documentation in `docs/rules`
 - `apps/web` web demo for scanning public GitHub repositories
@@ -33,7 +40,7 @@ Completed:
 Current release focus:
 
 ```txt
-v0.2.x: collect real project feedback, improve usage docs, and keep false-positive handling honest.
+v0.3.x: improve real-project signal quality, document CLI workflows, and keep false-positive handling honest.
 ```
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
@@ -98,7 +105,7 @@ npx --yes next-secure-check@latest scan . --preset app
 For reproducible CI runs, pin the package version:
 
 ```bash
-npx --yes next-secure-check@0.2.0 scan . --preset app
+npx --yes next-secure-check@0.3.0 scan . --preset app
 ```
 
 Install globally:
@@ -132,10 +139,39 @@ npx --yes next-secure-check@latest scan . --exclude "**/*.test.ts,examples/**"
 npx --yes next-secure-check@latest scan . --preset app
 npx --yes next-secure-check@latest scan . --preset strict
 npx --yes next-secure-check@latest scan . --preset ci
+npx --yes next-secure-check@latest rules
+npx --yes next-secure-check@latest explain xss/dangerously-set-inner-html
+npx --yes next-secure-check@latest init
 node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
 
-`--preset` was added in v0.2.0. Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.2.0` in CI.
+Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.3.0` in CI.
+
+## CLI Helpers
+
+List the built-in deterministic rules:
+
+```bash
+npx --yes next-secure-check@latest rules
+```
+
+Explain a single rule without opening the README:
+
+```bash
+npx --yes next-secure-check@latest explain xss/dangerously-set-inner-html
+```
+
+Create a starter config and GitHub Actions workflow:
+
+```bash
+npx --yes next-secure-check@latest init
+```
+
+`init` creates `.next-secure-check.json` and `.github/workflows/next-secure-check.yml`. Existing files are skipped by default. Use `--force` only when you intentionally want to overwrite those files:
+
+```bash
+npx --yes next-secure-check@latest init --force
+```
 
 `--fail-on critical` is a risk-level gate. It exits with code `1` only when `scan.summary.riskLevel` is `critical`. `--fail-on high`, `medium`, `low`, and `info` continue to work as severity thresholds.
 
@@ -155,7 +191,7 @@ Presets adjust path coverage for common scan modes. They do not replace manual r
 
 ## App-Focused Scans for Large Repositories
 
-`next-secure-check` v0.2 is most useful as a quick review signal for application code. Large monorepos, template repositories, generator CLIs, release scripts, and demo/example-heavy repositories can still produce noise, but context metadata, presets, and AST-assisted rules make the default experience more practical.
+`next-secure-check` v0.3 is most useful as a quick review signal for application code. Large monorepos, template repositories, generator CLIs, release scripts, and demo/example-heavy repositories can still produce noise, but context metadata, presets, middleware signals, and AST-assisted rules make the default experience more practical.
 
 For a production app-code-focused scan, you can start with:
 
@@ -163,7 +199,7 @@ For a production app-code-focused scan, you can start with:
 npx --yes next-secure-check@latest scan . --preset app
 ```
 
-Use `--preset strict` when you want the more aggressive review mode. You can still add `--exclude` patterns when a repository has project-specific generated, demo, or fixture paths. Findings are not a security audit replacement; they are focused pre-release review signals for common mistakes.
+Use `--preset strict` when you want the more aggressive review mode. You can still add `--exclude` patterns when a repository has project-specific generated, demo, or fixture paths. Findings are focused pre-release review signals for common mistakes.
 
 ## CLI Config
 
@@ -216,10 +252,11 @@ npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
 The SARIF reporter includes:
 
 - tool metadata with `informationUri`
-- unique rule metadata
+- unique rule metadata with help URIs, tags, and selected CWE mappings
 - result locations with file, line, and column when available
 - `security-severity` and precision metadata
 - deterministic `partialFingerprints` for more stable result tracking
+- context and context reason properties for review triage
 - concise result messages built from the finding title, description, and recommendation
 
 Raw secret evidence is not included in SARIF output.
@@ -258,9 +295,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 231 tests
+packages: 286 tests
 apps/web: 143 tests
-total: 374 tests
+total: 429 tests
 ```
 
 After building, the CLI can be run locally:
@@ -430,7 +467,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.2.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.3.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 This fails the pull request when findings at `HIGH` or above are found. Change `--fail-on` to `medium`, `low`, or `info` if your team wants a stricter severity gate. Use `--fail-on critical` when you only want to fail on a `critical` scan summary risk level.
@@ -461,7 +498,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.2.0 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.3.0 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -479,14 +516,13 @@ Manual validation notes:
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)
 
-## v0.3 Roadmap
+## Future Roadmap
 
 Planned follow-up work:
 
-- Full type-aware analysis for rules that need deeper data-flow context.
-- Deeper XSS sanitizer and source analysis.
-- Route graph and middleware-aware auth detection.
-- Better `unknown` context classification.
+- Optional type-aware analysis for rules that need deeper data-flow context.
+- Deeper source analysis where syntax-level checks are not enough.
+- More precise route graph and middleware matching.
 - Custom rule configuration and rule enable/disable controls.
 - Nonce/hash-based CSP hardening for the web demo.
 - Public hosted demo hardening.
