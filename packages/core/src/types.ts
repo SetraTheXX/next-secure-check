@@ -78,11 +78,19 @@ export type ScanContext = {
   rootPath: string;
   files: SourceFile[];
   project: ProjectInfo;
+  middleware?: MiddlewareSignal[];
   packageJson?: {
     name?: string;
     dependencies: Record<string, string>;
     devDependencies: Record<string, string>;
   };
+};
+
+export type MiddlewareSignal = {
+  filePath: string;
+  hasAuthSignal: boolean;
+  hasRateLimitSignal: boolean;
+  matchers: string[];
 };
 
 export type Rule = {

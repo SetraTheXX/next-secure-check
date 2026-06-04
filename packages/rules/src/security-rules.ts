@@ -1,4 +1,4 @@
-import type { Rule } from "@next-secure-check/core";
+import type { MiddlewareSignal, Rule } from "@next-secure-check/core";
 import {
   findCommandExecutionMatches,
   findDangerouslySetInnerHtmlMatches,
@@ -208,7 +208,8 @@ export const loginWithoutRateLimitRule: Rule = {
 
     return codeFiles(context)
       .filter((file) => /(login|signin|sign-in|auth)/i.test(file.path))
-      .filter((file) => !rateLimitPattern.test(file.content) && !projectContains(context, rateLimitPattern))
+      .filter((file) => !rateLimitPattern.test(file.content))
+      .filter((file) => !isRouteProtectedByMiddleware(context.middleware, file.path, "rate-limit"))
       .map((file) =>
         createFinding({
           rule: loginWithoutRateLimitRule,
@@ -231,7 +232,8 @@ export const registerWithoutRateLimitRule: Rule = {
 
     return codeFiles(context)
       .filter((file) => /(register|signup|sign-up|create-account)/i.test(file.path))
-      .filter((file) => !rateLimitPattern.test(file.content) && !projectContains(context, rateLimitPattern))
+      .filter((file) => !rateLimitPattern.test(file.content))
+      .filter((file) => !isRouteProtectedByMiddleware(context.middleware, file.path, "rate-limit"))
       .map((file) =>
         createFinding({
           rule: registerWithoutRateLimitRule,
@@ -494,6 +496,10 @@ export const adminRouteWithoutAuthRule: Rule = {
   scan(context) {
     return codeFiles(context).flatMap((file) => {
       if (!isAdminApiRoutePath(file.path) || hasAdminAuthSignal(file.content)) {
+        return [];
+      }
+
+      if (isRouteProtectedByMiddleware(context.middleware, file.path, "auth")) {
         return [];
       }
 
@@ -767,6 +773,51 @@ function isAdminApiRoutePath(filePath: string): boolean {
     /^apps\/[^/]+\/src\/app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
     /^apps\/[^/]+\/pages\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/|$).*\.([tj]s)$/i.test(normalizedPath)
   );
+}
+
+function isRouteProtectedByMiddleware(
+  middlewareSignals: MiddlewareSignal[] | undefined,
+  filePath: string,
+  signalType: "auth" | "rate-limit"
+): boolean {
+  const routePath = routePathFromFilePath(filePath);
+  if (!routePath) {
+    return false;
+  }
+
+  return (middlewareSignals ?? []).some((signal) => {
+    const hasSignal = signalType === "auth" ? signal.hasAuthSignal : signal.hasRateLimitSignal;
+    return hasSignal && signal.matchers.some((matcher) => middlewareMatcherCoversRoute(matcher, routePath));
+  });
+}
+
+function routePathFromFilePath(filePath: string): string | undefined {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  const appRouteMatch = /^(?:apps\/[^/]+\/)?(?:src\/)?app\/api\/(.+)\/route\.[tj]s$/i.exec(normalizedPath);
+  if (appRouteMatch?.[1]) {
+    return `/api/${appRouteMatch[1]}`;
+  }
+
+  const pagesRouteMatch = /^(?:apps\/[^/]+\/)?pages\/api\/(.+)\.[tj]s$/i.exec(normalizedPath);
+  if (pagesRouteMatch?.[1]) {
+    return `/api/${pagesRouteMatch[1]}`;
+  }
+
+  return undefined;
+}
+
+function middlewareMatcherCoversRoute(matcher: string, routePath: string): boolean {
+  const normalizedMatcher = normalizeMiddlewareMatcher(matcher);
+  if (!normalizedMatcher.startsWith("/")) {
+    return false;
+  }
+
+  const prefix = normalizedMatcher.replace(/\/:path\*$/, "");
+  return routePath === prefix || routePath.startsWith(`${prefix}/`);
+}
+
+function normalizeMiddlewareMatcher(matcher: string): string {
+  return matcher.trim().replace(/\/+$/, "") || "/";
 }
 
 function hasAdminAuthSignal(content: string): boolean {

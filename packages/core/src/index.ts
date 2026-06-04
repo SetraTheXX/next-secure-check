@@ -2,6 +2,7 @@ export type {
   Confidence,
   Finding,
   FindingContext,
+  MiddlewareSignal,
   ProjectInfo,
   RiskLevel,
   Rule,

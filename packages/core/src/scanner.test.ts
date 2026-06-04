@@ -3,7 +3,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { resolveProjectPath, scanProject } from "./scanner.js";
-import type { Rule } from "./types.js";
+import type { MiddlewareSignal, Rule } from "./types.js";
 
 async function tempProject(): Promise<string> {
   return mkdtemp(path.join(tmpdir(), "nsc-scanner-"));
@@ -67,6 +67,45 @@ describe("scanProject", () => {
     const result = await scanProject(root, { rules: [rule], categories: ["secrets"] });
 
     expect(result.findings).toEqual([]);
+  });
+
+  it("extracts middleware auth, rate-limit, and matcher signals for rules", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "middleware.ts",
+      [
+        "export function middleware() {",
+        "  const session = auth();",
+        "  const allowed = rateLimit();",
+        "  if (!allowed) return Response.json({}, { status: 429 });",
+        "  return Response.json({ ok: Boolean(session) });",
+        "}",
+        "export const config = { matcher: ['/api/admin/:path*', '/api/login/:path*'] };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/middleware",
+      title: "Middleware",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals).toEqual([
+      {
+        filePath: "middleware.ts",
+        hasAuthSignal: true,
+        hasRateLimitSignal: true,
+        matchers: ["/api/admin/:path*", "/api/login/:path*"]
+      }
+    ]);
   });
 
   it("passes all files to rules when excludePaths is not set", async () => {

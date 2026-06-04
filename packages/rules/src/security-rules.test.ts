@@ -333,6 +333,21 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(false);
   });
 
+  it("does not flag login endpoints covered by rate-limited middleware matcher", async () => {
+    const result = await scanFixture({
+      "middleware.ts": [
+        "export function middleware() {",
+        "  const allowed = rateLimit();",
+        "  if (!allowed) return Response.json({ error: 'too many requests' }, { status: 429 });",
+        "}",
+        "export const config = { matcher: ['/api/login/:path*'] };"
+      ].join("\n"),
+      "app/api/login/route.ts": "export async function POST() { return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(false);
+  });
+
   it("detects password handling without hashing libraries", async () => {
     const result = await scanFixture({ "app/api/register/route.ts": "const password = body.password;" });
 
@@ -635,6 +650,36 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "auth/register-without-rate-limit")).toBe(false);
   });
 
+  it("does not flag register endpoints covered by rate-limited middleware matcher", async () => {
+    const result = await scanFixture({
+      "src/middleware.ts": [
+        "export function middleware() {",
+        "  const limiter = redis;",
+        "  return Response.json({ ok: true });",
+        "}",
+        "export const config = { matcher: '/api/register/:path*' };"
+      ].join("\n"),
+      "app/api/register/route.ts": "export async function POST() { return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/register-without-rate-limit")).toBe(false);
+  });
+
+  it("keeps login rate-limit findings when middleware rate-limit matcher does not cover the route", async () => {
+    const result = await scanFixture({
+      "middleware.ts": [
+        "export function middleware() {",
+        "  const allowed = rateLimit();",
+        "  return Response.json({ ok: allowed });",
+        "}",
+        "export const config = { matcher: ['/api/admin/:path*'] };"
+      ].join("\n"),
+      "app/api/login/route.ts": "export async function POST() { return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(true);
+  });
+
   it("detects new Function() usage", async () => {
     const result = await scanFixture({ "index.ts": "const f = new Function('return 1');" });
 
@@ -920,6 +965,51 @@ describe("built-in security rules", () => {
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("does not flag admin routes covered by auth middleware matcher", async () => {
+    const result = await scanFixture({
+      "middleware.ts": [
+        "export function middleware() {",
+        "  const session = auth();",
+        "  if (!session || !session.role) return Response.json({ ok: false }, { status: 401 });",
+        "}",
+        "export const config = { matcher: ['/api/admin/:path*'] };"
+      ].join("\n"),
+      "app/api/admin/route.ts": "export async function GET() { return Response.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("does not flag admin routes covered by broad API auth middleware matcher", async () => {
+    const result = await scanFixture({
+      "middleware.ts": [
+        "export function middleware() {",
+        "  const user = currentUser();",
+        "  if (!user?.permission) return Response.json({ ok: false }, { status: 401 });",
+        "}",
+        "export const config = { matcher: '/api/:path*' };"
+      ].join("\n"),
+      "app/api/admin/route.ts": "export async function GET() { return Response.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("keeps admin route findings when auth middleware matcher does not cover the route", async () => {
+    const result = await scanFixture({
+      "middleware.ts": [
+        "export function middleware() {",
+        "  const session = auth();",
+        "  return Response.json({ ok: Boolean(session) });",
+        "}",
+        "export const config = { matcher: ['/api/public/:path*'] };"
+      ].join("\n"),
+      "app/api/admin/route.ts": "export async function GET() { return Response.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(true);
   });
 
   it("does not flag admin UI component paths as admin routes", async () => {

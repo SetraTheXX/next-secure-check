@@ -5,7 +5,7 @@ import { applyContextTuning } from "./context-tuning.js";
 import { collectFiles } from "./file-collector.js";
 import { detectProject } from "./project-detector.js";
 import { summarizeFindings } from "./score.js";
-import type { Finding, Rule, ScanContext, ScanOptions, ScanResult } from "./types.js";
+import type { Finding, MiddlewareSignal, Rule, ScanContext, ScanOptions, ScanResult, SourceFile } from "./types.js";
 
 export async function scanProject(targetPath: string, options: ScanOptions = {}): Promise<ScanResult> {
   const startedAt = Date.now();
@@ -21,6 +21,7 @@ export async function scanProject(targetPath: string, options: ScanOptions = {})
     rootPath,
     files,
     project: detection.project,
+    middleware: extractMiddlewareSignals(files),
     packageJson: detection.packageJson
   };
   const findings = sortFindings(
@@ -97,4 +98,35 @@ function sortFindings(findings: Finding[]): Finding[] {
 
     return (a.line ?? 0) - (b.line ?? 0) || a.ruleId.localeCompare(b.ruleId);
   });
+}
+
+function extractMiddlewareSignals(files: SourceFile[]): MiddlewareSignal[] {
+  return files.filter(isMiddlewareFile).map((file) => ({
+    filePath: file.path,
+    hasAuthSignal: hasMiddlewareAuthSignal(file.content),
+    hasRateLimitSignal: hasMiddlewareRateLimitSignal(file.content),
+    matchers: extractMiddlewareMatchers(file.content)
+  }));
+}
+
+function isMiddlewareFile(file: SourceFile): boolean {
+  return /^(?:src\/)?middleware\.[tj]s$/.test(file.path);
+}
+
+function hasMiddlewareAuthSignal(content: string): boolean {
+  return /\b(auth|withAuth|requireAuth|currentUser|getServerSession|clerk|verifyToken|session|isAdmin|role|permission)\b|jwt\.verify/i.test(content);
+}
+
+function hasMiddlewareRateLimitSignal(content: string): boolean {
+  return /\b(rateLimit|ratelimit|limiter|upstash|redis)\b|\b429\b|too many requests/i.test(content);
+}
+
+function extractMiddlewareMatchers(content: string): string[] {
+  const matcherProperty = /matcher\s*:\s*(\[[^\]]+\]|["'`][^"'`]+["'`])/s.exec(content);
+  if (!matcherProperty) {
+    return [];
+  }
+
+  const matcherValue = matcherProperty[1] ?? "";
+  return [...matcherValue.matchAll(/["'`]([^"'`]+)["'`]/g)].map((match) => match[1] ?? "").filter(Boolean);
 }
