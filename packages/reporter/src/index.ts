@@ -176,7 +176,8 @@ export function formatSarif(result: ScanResult): string {
             text: createSarifMessageText(finding)
           },
           partialFingerprints: {
-            "nextSecureCheck/v1": createFindingFingerprint(finding)
+            "nextSecureCheck/v1": createFindingFingerprint(finding),
+            "nextSecureCheck/ruleLocation/v1": createRuleLocationFingerprint(finding)
           },
           locations: [
             {
@@ -247,8 +248,9 @@ function uniqueRules(result: ScanResult): Array<Record<string, unknown>> {
       markdown: finding.recommendation,
       text: finding.recommendation
     },
+    helpUri: ruleHelpUri(finding.ruleId),
     properties: {
-      tags: ["security", finding.category],
+      tags: sarifRuleTags(finding),
       precision: sarifPrecision(finding.confidence),
       "security-severity": sarifSecuritySeverity(finding.severity)
     }
@@ -295,6 +297,36 @@ function isSecretFinding(finding: ScanResult["findings"][number]): boolean {
   return finding.category === "secrets" || finding.ruleId.startsWith("secrets/");
 }
 
+function sarifRuleTags(finding: ScanResult["findings"][number]): string[] {
+  return ["security", finding.category, ...cweTagsForRule(finding.ruleId)];
+}
+
+function cweTagsForRule(ruleId: string): string[] {
+  switch (ruleId) {
+    case "xss/dangerously-set-inner-html":
+      return ["CWE-79", "external/cwe/cwe-79"];
+    case "injection/command-exec":
+      return ["CWE-78", "external/cwe/cwe-78"];
+    case "injection/raw-sql-concat":
+      return ["CWE-89", "external/cwe/cwe-89"];
+    case "secrets/hardcoded-secret":
+    case "secrets/weak-jwt-secret":
+    case "secrets/next-public-secret":
+      return ["CWE-798", "external/cwe/cwe-798"];
+    case "headers/missing-security-headers":
+      return ["CWE-693", "external/cwe/cwe-693"];
+    case "upload/missing-file-size-limit":
+    case "upload/missing-file-type-validation":
+      return ["CWE-434", "external/cwe/cwe-434"];
+    default:
+      return [];
+  }
+}
+
+function ruleHelpUri(ruleId: string): string {
+  return `${INFORMATION_URI}#${ruleId.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase()}`;
+}
+
 function createFindingFingerprint(finding: ScanResult["findings"][number]): string {
   const fingerprintInput = [
     finding.ruleId,
@@ -303,6 +335,12 @@ function createFindingFingerprint(finding: ScanResult["findings"][number]): stri
     finding.column ?? "",
     finding.title
   ].join("\u0000");
+
+  return createHash("sha256").update(fingerprintInput).digest("hex");
+}
+
+function createRuleLocationFingerprint(finding: ScanResult["findings"][number]): string {
+  const fingerprintInput = [finding.ruleId, finding.filePath, finding.line ?? ""].join("\u0000");
 
   return createHash("sha256").update(fingerprintInput).digest("hex");
 }

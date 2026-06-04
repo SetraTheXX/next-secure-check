@@ -185,17 +185,19 @@ describe("formatSummary", () => {
         markdown: "Move secrets to environment variables and rotate exposed values."
       },
       defaultConfiguration: { level: "error" },
+      helpUri: "https://github.com/SetraTheXX/next-secure-check#secrets-hardcoded-secret",
       properties: {
-        tags: ["security", "secrets"],
+        tags: ["security", "secrets", "CWE-798", "external/cwe/cwe-798"],
         precision: "high",
         "security-severity": "8.0"
       }
     });
     expect(rules[1]).toMatchObject({
       id: "headers/missing-security-headers",
+      helpUri: "https://github.com/SetraTheXX/next-secure-check#headers-missing-security-headers",
       defaultConfiguration: { level: "warning" },
       properties: {
-        tags: ["security", "headers"],
+        tags: ["security", "headers", "CWE-693", "external/cwe/cwe-693"],
         precision: "low",
         "security-severity": "2.0"
       }
@@ -209,7 +211,8 @@ describe("formatSummary", () => {
         text: "Possible hardcoded secret detected A secret-like value appears in source code. Recommendation: Move secrets to environment variables and rotate exposed values."
       },
       partialFingerprints: {
-        "nextSecureCheck/v1": expect.any(String)
+        "nextSecureCheck/v1": expect.any(String),
+        "nextSecureCheck/ruleLocation/v1": expect.any(String)
       },
       locations: [
         {
@@ -230,6 +233,7 @@ describe("formatSummary", () => {
     });
     expect(results[1].ruleIndex).toBe(0);
     expect(results[1].partialFingerprints["nextSecureCheck/v1"]).toEqual(expect.any(String));
+    expect(results[1].partialFingerprints["nextSecureCheck/ruleLocation/v1"]).toEqual(expect.any(String));
     expect(results[1].partialFingerprints["nextSecureCheck/v1"]).not.toBe(
       results[0].partialFingerprints["nextSecureCheck/v1"]
     );
@@ -256,6 +260,49 @@ describe("formatSummary", () => {
     expect(results[0].message.text).toContain("A secret-like value appears in source code.");
     expect(results[0].message.text).toContain("Recommendation: Move secrets to environment variables");
     expect(results[0].message.text).not.toContain("sk_live_super_secret");
+  });
+
+  it("adds SARIF helpUri and CWE metadata for common security rule families", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [
+      createSarifFinding("xss/dangerously-set-inner-html", "xss", "MEDIUM", "MEDIUM"),
+      createSarifFinding("injection/command-exec", "injection", "HIGH", "MEDIUM"),
+      createSarifFinding("injection/raw-sql-concat", "injection", "HIGH", "MEDIUM"),
+      createSarifFinding("upload/missing-file-type-validation", "upload", "MEDIUM", "MEDIUM"),
+      createSarifFinding("auth/admin-route-without-auth", "auth", "HIGH", "MEDIUM")
+    ];
+
+    const sarif = JSON.parse(formatSarif(result));
+    const rules = sarif.runs[0].tool.driver.rules;
+
+    expect(rules.find((rule: { id: string }) => rule.id === "xss/dangerously-set-inner-html")).toMatchObject({
+      helpUri: "https://github.com/SetraTheXX/next-secure-check#xss-dangerously-set-inner-html",
+      properties: {
+        tags: ["security", "xss", "CWE-79", "external/cwe/cwe-79"]
+      }
+    });
+    expect(rules.find((rule: { id: string }) => rule.id === "injection/command-exec").properties.tags).toEqual([
+      "security",
+      "injection",
+      "CWE-78",
+      "external/cwe/cwe-78"
+    ]);
+    expect(rules.find((rule: { id: string }) => rule.id === "injection/raw-sql-concat").properties.tags).toEqual([
+      "security",
+      "injection",
+      "CWE-89",
+      "external/cwe/cwe-89"
+    ]);
+    expect(rules.find((rule: { id: string }) => rule.id === "upload/missing-file-type-validation").properties.tags).toEqual([
+      "security",
+      "upload",
+      "CWE-434",
+      "external/cwe/cwe-434"
+    ]);
+    expect(rules.find((rule: { id: string }) => rule.id === "auth/admin-route-without-auth").properties.tags).toEqual([
+      "security",
+      "auth"
+    ]);
   });
 
   it("generates stable SARIF partial fingerprints for the same finding", () => {
@@ -339,5 +386,26 @@ function createContextFinding() {
     contextReason: "matched Next.js API route path",
     description: "API routes that consume user input should validate the input.",
     recommendation: "Add input validation."
+  };
+}
+
+function createSarifFinding(
+  ruleId: string,
+  category: string,
+  severity: "HIGH" | "MEDIUM" | "LOW" | "INFO",
+  confidence: "HIGH" | "MEDIUM" | "LOW"
+) {
+  return {
+    id: `${ruleId}:finding`,
+    ruleId,
+    title: ruleId,
+    severity,
+    confidence,
+    category,
+    filePath: "app/api/example/route.ts",
+    context: "api-code" as const,
+    contextReason: "matched Next.js API route path",
+    description: "Test description.",
+    recommendation: "Test recommendation."
   };
 }
