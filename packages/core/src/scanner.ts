@@ -118,7 +118,9 @@ function hasMiddlewareAuthSignal(content: string): boolean {
 }
 
 function hasMiddlewareRateLimitSignal(content: string): boolean {
-  return /\b(rateLimit|ratelimit|limiter|upstash|redis)\b|\b429\b|too many requests/i.test(content);
+  return /\b(rateLimit|rate-limit|ratelimit|limiter|checkRateLimit|applyRateLimit|upstash|redis|slowDown|throttle)\b|\b429\b|too many requests/i.test(
+    content
+  );
 }
 
 function extractMiddlewareMatchers(content: string): string[] {

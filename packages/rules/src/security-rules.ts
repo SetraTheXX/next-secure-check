@@ -7,7 +7,10 @@ import {
   findRouteHandlerExports,
   findUploadRouteHandlerMatches
 } from "./ast-utils.js";
-import { codeFiles, configFiles, createFinding, findMatches, hasDependency, projectContains } from "./rule-utils.js";
+import { codeFiles, configFiles, createFinding, findMatches, hasDependency } from "./rule-utils.js";
+
+const RATE_LIMIT_SIGNAL_PATTERN =
+  /\b(rateLimit|rate-limit|ratelimit|limiter|checkRateLimit|applyRateLimit|upstash|redis|slowDown|throttle)\b|\b429\b|too many requests/i;
 
 export const envFileCommittedRule: Rule = {
   id: "secrets/env-file-committed",
@@ -204,11 +207,9 @@ export const loginWithoutRateLimitRule: Rule = {
   category: "auth",
   confidence: "MEDIUM",
   scan(context) {
-    const rateLimitPattern = /(rateLimit|rate-limit|ratelimit|limiter|upstash|slowDown|throttle)/i;
-
     return codeFiles(context)
       .filter((file) => /(login|signin|sign-in|auth)/i.test(file.path))
-      .filter((file) => !rateLimitPattern.test(file.content))
+      .filter((file) => !hasRateLimitSignal(file.content))
       .filter((file) => !isRouteProtectedByMiddleware(context.middleware, file.path, "rate-limit"))
       .map((file) =>
         createFinding({
@@ -228,11 +229,9 @@ export const registerWithoutRateLimitRule: Rule = {
   category: "auth",
   confidence: "MEDIUM",
   scan(context) {
-    const rateLimitPattern = /(rateLimit|rate-limit|ratelimit|limiter|upstash|slowDown|throttle)/i;
-
     return codeFiles(context)
       .filter((file) => /(register|signup|sign-up|create-account)/i.test(file.path))
-      .filter((file) => !rateLimitPattern.test(file.content))
+      .filter((file) => !hasRateLimitSignal(file.content))
       .filter((file) => !isRouteProtectedByMiddleware(context.middleware, file.path, "rate-limit"))
       .map((file) =>
         createFinding({
@@ -824,6 +823,10 @@ function hasAdminAuthSignal(content: string): boolean {
   return /\b(auth\(|getServerSession|currentUser|clerk|getUser|requireAuth|middleware|withAuth|session|jwt\.verify|verifyToken|isAdmin|role|permission)\b/i.test(
     content
   );
+}
+
+function hasRateLimitSignal(content: string): boolean {
+  return RATE_LIMIT_SIGNAL_PATTERN.test(content);
 }
 
 function hasFileTypeValidationSignal(content: string): boolean {

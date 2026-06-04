@@ -333,6 +333,34 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(false);
   });
 
+  it("does not flag login endpoints with route-level rate-limit helpers", async () => {
+    const result = await scanFixture({
+      "app/api/login/route.ts": [
+        "export async function POST() {",
+        "  const allowed = await checkRateLimit();",
+        "  if (!allowed) return Response.json({ error: 'too many requests' }, { status: 429 });",
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(false);
+  });
+
+  it("does not flag login endpoints with route-level Upstash or Redis limiter usage", async () => {
+    const result = await scanFixture({
+      "app/api/login/route.ts": [
+        "import { Ratelimit } from '@upstash/ratelimit';",
+        "export async function POST() {",
+        "  const limiter = redis;",
+        "  return Response.json({ ok: Boolean(limiter) });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(false);
+  });
+
   it("does not flag login endpoints covered by rate-limited middleware matcher", async () => {
     const result = await scanFixture({
       "middleware.ts": [
@@ -346,6 +374,30 @@ describe("built-in security rules", () => {
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(false);
+  });
+
+  it("does not flag auth login endpoints covered by broad auth middleware rate-limit matcher", async () => {
+    const result = await scanFixture({
+      "middleware.ts": [
+        "export function middleware() {",
+        "  const allowed = applyRateLimit();",
+        "  if (!allowed) return Response.json({ error: 'too many requests' }, { status: 429 });",
+        "}",
+        "export const config = { matcher: ['/api/auth/:path*'] };"
+      ].join("\n"),
+      "app/api/auth/login/route.ts": "export async function POST() { return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(false);
+  });
+
+  it("keeps login rate-limit findings when limiter appears only in an unrelated file", async () => {
+    const result = await scanFixture({
+      "lib/rate-limit.ts": "export function rateLimit() { return true; }",
+      "app/api/login/route.ts": "export async function POST() { return Response.json({ ok: true }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/login-without-rate-limit")).toBe(true);
   });
 
   it("detects password handling without hashing libraries", async () => {
@@ -646,6 +698,19 @@ describe("built-in security rules", () => {
 
   it("does not flag register endpoints with rate limiting", async () => {
     const result = await scanFixture({ "app/api/register/route.ts": "const rateLimit = true; export async function POST() {}" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/register-without-rate-limit")).toBe(false);
+  });
+
+  it("does not flag register endpoints with route-level 429 rate-limit response", async () => {
+    const result = await scanFixture({
+      "app/api/register/route.ts": [
+        "export async function POST() {",
+        "  if (blocked) return Response.json({ error: 'too many requests' }, { status: 429 });",
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/register-without-rate-limit")).toBe(false);
   });
