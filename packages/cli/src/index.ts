@@ -6,6 +6,7 @@ import { getBuiltInRules } from "@next-secure-check/rules";
 import { formatReport } from "@next-secure-check/reporter";
 import { resolveScanCommandSettings, type ScanCommandOptions } from "./config.js";
 import { shouldFail } from "./fail-on.js";
+import { formatRuleExplanation, formatRulesList, formatUnknownRuleMessage } from "./rules-info.js";
 
 const program = new Command();
 
@@ -59,6 +60,30 @@ program
       console.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
     }
+  });
+
+program
+  .command("rules")
+  .description("List built-in security rules.")
+  .action(() => {
+    console.log(formatRulesList(getBuiltInRules()));
+  });
+
+program
+  .command("explain")
+  .description("Explain a built-in security rule.")
+  .argument("<rule-id>", "Rule id, e.g. xss/dangerously-set-inner-html")
+  .action((ruleId: string) => {
+    const rules = getBuiltInRules();
+    const explanation = formatRuleExplanation(rules, ruleId);
+
+    if (!explanation) {
+      console.error(formatUnknownRuleMessage(rules, ruleId));
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(explanation);
   });
 
 program.parse();

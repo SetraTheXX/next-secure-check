@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Finding, RiskLevel, Severity } from "@next-secure-check/core";
+import { getBuiltInRules } from "@next-secure-check/rules";
 import { shouldFail } from "./fail-on.js";
+import { formatRuleExplanation, formatRulesList, formatUnknownRuleMessage } from "./rules-info.js";
 
 describe("shouldFail", () => {
   it("fails critical gates based on scan risk level", () => {
@@ -24,6 +26,39 @@ describe("shouldFail", () => {
 
   it("does not fail when failOn is not configured", () => {
     expect(shouldFail(createResult("critical", ["HIGH"]), undefined)).toBe(false);
+  });
+});
+
+describe("rules CLI helpers", () => {
+  it("formats the built-in rule list", () => {
+    const output = formatRulesList(getBuiltInRules());
+
+    expect(output).toContain("next-secure-check rules");
+    expect(output).toContain("Rule ID");
+    expect(output).toContain("xss/dangerously-set-inner-html");
+    expect(output).toContain("auth/login-without-rate-limit");
+    expect(output).toContain("Total rules:");
+  });
+
+  it("explains a known rule", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "xss/dangerously-set-inner-html");
+
+    expect(output).toContain("Rule: xss/dangerously-set-inner-html");
+    expect(output).toContain("Title: dangerouslySetInnerHTML usage detected");
+    expect(output).toContain("Category: xss");
+    expect(output).toContain("Severity:");
+    expect(output).toContain("Checks:");
+    expect(output).toContain("Why it matters:");
+    expect(output).toContain("False positive note:");
+    expect(output).toContain("Help: https://github.com/SetraTheXX/next-secure-check#xss-dangerously-set-inner-html");
+  });
+
+  it("returns undefined and formats a helpful message for unknown rule ids", () => {
+    const rules = getBuiltInRules();
+
+    expect(formatRuleExplanation(rules, "xss/not-a-rule")).toBeUndefined();
+    expect(formatUnknownRuleMessage(rules, "xss/not-a-rule")).toContain("Unknown rule id: xss/not-a-rule");
+    expect(formatUnknownRuleMessage(rules, "xss/not-a-rule")).toContain("next-secure-check rules");
   });
 });
 
