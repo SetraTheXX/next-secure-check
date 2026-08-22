@@ -26,6 +26,7 @@ Completed:
 - AST-assisted checks for command execution, raw SQL interpolation, dangerous HTML rendering, and password handling
 - Route-aware admin route detection and endpoint-aware upload validation
 - Syntax-aware auth intent and API validation signals with conservative unknown-wrapper handling
+- Shared `AnalysisFacts` parse cache for syntax analysis without changing finding behavior
 - Middleware-aware auth/rate-limit signals for common Next.js middleware patterns
 - Regression fixture suite for representative monorepo, registry, tooling, XSS, SQL, password, admin, upload, and config noise cases
 - Reduced `unknown` context classifications for registry, story, demo, playground, fixture, and package UI paths
@@ -298,9 +299,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 293 tests
+packages: 296 tests
 apps/web: 143 tests
-total: 436 tests
+total: 439 tests
 ```
 
 After building, the CLI can be run locally:
@@ -515,7 +516,7 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 
 Manual validation notes:
 
-- Current validation baseline: 293 package tests, 143 web tests, 436 total tests.
+- Current validation baseline: 296 package tests, 143 web tests, 439 total tests.
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)

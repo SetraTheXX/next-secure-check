@@ -42,18 +42,59 @@ const TYPEOF_COMPARISON_OPERATORS = new Set([
   ts.SyntaxKind.ExclamationEqualsEqualsToken
 ]);
 
-export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
+export type AnalysisFacts = {
+  sourceFile: ts.SourceFile;
+  commandIdentifiers: ReadonlySet<string>;
+  childProcessNamespaces: ReadonlySet<string>;
+  commandDeclarationNodes: readonly ts.Node[];
+  routeHandlerNodes: readonly ts.Node[];
+  sanitizerIdentifiers: ReadonlySet<string>;
+  safeHtmlIdentifiers: ReadonlySet<string>;
+  hasPasswordHashing: boolean;
+  hasAuthIntent: boolean;
+  hasValidationIntent: boolean;
+  hasUploadHandling: boolean;
+};
+
+export type AnalysisFactsCacheStats = {
+  cacheHits: number;
+  cacheMisses: number;
+};
+
+let analysisFactsCache = new WeakMap<SourceFile, AnalysisFacts>();
+let analysisFactsCacheHits = 0;
+let analysisFactsCacheMisses = 0;
+
+export function getAnalysisFacts(file: SourceFile): AnalysisFacts {
+  const cached = analysisFactsCache.get(file);
+  if (cached) {
+    analysisFactsCacheHits += 1;
+    return cached;
+  }
+
   const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
-  const commandIdentifiers = new Set<string>();
-  const childProcessNamespaces = new Set<string>();
-  const declarationNodes: ts.Node[] = [];
+  const facts = createAnalysisFacts(sourceFile);
+  analysisFactsCache.set(file, facts);
+  analysisFactsCacheMisses += 1;
+  return facts;
+}
 
-  visit(sourceFile, (node) => {
-    collectChildProcessImports(node, commandIdentifiers, childProcessNamespaces, declarationNodes);
-    collectChildProcessRequires(node, commandIdentifiers, childProcessNamespaces, declarationNodes);
-  });
+export function getAnalysisFactsCacheStats(): AnalysisFactsCacheStats {
+  return {
+    cacheHits: analysisFactsCacheHits,
+    cacheMisses: analysisFactsCacheMisses
+  };
+}
 
-  const matches = declarationNodes.map((node) => matchFromNode(file, sourceFile, node));
+export function resetAnalysisFactsCacheForTests(): void {
+  analysisFactsCache = new WeakMap<SourceFile, AnalysisFacts>();
+  analysisFactsCacheHits = 0;
+  analysisFactsCacheMisses = 0;
+}
+
+export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
+  const { sourceFile, commandIdentifiers, childProcessNamespaces, commandDeclarationNodes } = getAnalysisFacts(file);
+  const matches = commandDeclarationNodes.map((node) => matchFromNode(file, sourceFile, node));
 
   visit(sourceFile, (node) => {
     if (!ts.isCallExpression(node) || !isCommandExecutionCall(node.expression, commandIdentifiers, childProcessNamespaces)) {
@@ -67,7 +108,7 @@ export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
 }
 
 export function findRawSqlConcatMatches(file: SourceFile): AstMatch[] {
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  const { sourceFile } = getAnalysisFacts(file);
   const matches: AstMatch[] = [];
 
   visit(sourceFile, (node) => {
@@ -88,9 +129,7 @@ export function findRawSqlConcatMatches(file: SourceFile): AstMatch[] {
 }
 
 export function findDangerouslySetInnerHtmlMatches(file: SourceFile): DangerouslySetInnerHtmlMatch[] {
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
-  const sanitizerIdentifiers = collectSanitizerIdentifiers(sourceFile);
-  const safeHtmlIdentifiers = collectSafeHtmlIdentifiers(sourceFile, sanitizerIdentifiers);
+  const { sourceFile, sanitizerIdentifiers, safeHtmlIdentifiers } = getAnalysisFacts(file);
   const matches: DangerouslySetInnerHtmlMatch[] = [];
 
   visit(sourceFile, (node) => {
@@ -113,10 +152,10 @@ export function findDangerouslySetInnerHtmlMatches(file: SourceFile): Dangerousl
 }
 
 export function findPasswordHandlingMatches(file: SourceFile): AstMatch[] {
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  const { sourceFile, hasPasswordHashing } = getAnalysisFacts(file);
   const matches: AstMatch[] = [];
 
-  if (hasPasswordHashingCall(sourceFile)) {
+  if (hasPasswordHashing) {
     return matches;
   }
 
@@ -130,66 +169,16 @@ export function findPasswordHandlingMatches(file: SourceFile): AstMatch[] {
 }
 
 export function findRouteHandlerExports(file: SourceFile): AstMatch[] {
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
-  const matches: AstMatch[] = [];
-
-  visit(sourceFile, (node) => {
-    const name = exportedRouteHandlerName(node);
-    if (name && (name === "DEFAULT" || ROUTE_HANDLER_NAMES.has(name))) {
-      matches.push(matchFromNode(file, sourceFile, node));
-    }
-  });
-
-  return dedupeMatches(matches);
+  const { sourceFile, routeHandlerNodes } = getAnalysisFacts(file);
+  return dedupeMatches(routeHandlerNodes.map((node) => matchFromNode(file, sourceFile, node)));
 }
 
 export function hasAuthIntentSignal(file: SourceFile): boolean {
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
-  let found = false;
-
-  visit(sourceFile, (node) => {
-    if (found) {
-      return;
-    }
-
-    if (ts.isCallExpression(node) && isAuthIntentCall(node.expression)) {
-      found = true;
-      return;
-    }
-
-    if (ts.isPropertyAccessExpression(node) && isAuthGuardProperty(node)) {
-      found = true;
-    }
-  });
-
-  return found;
+  return getAnalysisFacts(file).hasAuthIntent;
 }
 
 export function hasValidationIntentSignal(file: SourceFile): boolean {
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
-  let found = false;
-
-  visit(sourceFile, (node) => {
-    if (found) {
-      return;
-    }
-
-    if (ts.isImportDeclaration(node) && isValidationLibraryImport(node)) {
-      found = true;
-      return;
-    }
-
-    if (ts.isCallExpression(node) && isValidationCall(node)) {
-      found = true;
-      return;
-    }
-
-    if (ts.isBinaryExpression(node) && isTypeofValidationCheck(node)) {
-      found = true;
-    }
-  });
-
-  return found;
+  return getAnalysisFacts(file).hasValidationIntent;
 }
 
 export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
@@ -197,14 +186,31 @@ export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
     return [];
   }
 
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
-  const routeHandlerMatches: AstMatch[] = [];
+  const { sourceFile, routeHandlerNodes, hasUploadHandling } = getAnalysisFacts(file);
+  const routeHandlerMatches = routeHandlerNodes
+    .filter((node) => {
+      const name = exportedRouteHandlerName(node);
+      return name === "DEFAULT" || name === "POST" || name === "PUT" || name === "PATCH";
+    })
+    .map((node) => matchFromNode(file, sourceFile, node));
+
+  return hasUploadHandling ? dedupeMatches(routeHandlerMatches) : [];
+}
+
+function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
+  const commandIdentifiers = new Set<string>();
+  const childProcessNamespaces = new Set<string>();
+  const commandDeclarationNodes: ts.Node[] = [];
+  const routeHandlerNodes: ts.Node[] = [];
   let hasUploadHandling = false;
 
   visit(sourceFile, (node) => {
-    const name = exportedRouteHandlerName(node);
-    if (name && (name === "DEFAULT" || name === "POST" || name === "PUT" || name === "PATCH")) {
-      routeHandlerMatches.push(matchFromNode(file, sourceFile, node));
+    collectChildProcessImports(node, commandIdentifiers, childProcessNamespaces, commandDeclarationNodes);
+    collectChildProcessRequires(node, commandIdentifiers, childProcessNamespaces, commandDeclarationNodes);
+
+    const routeName = exportedRouteHandlerName(node);
+    if (routeName && (routeName === "DEFAULT" || ROUTE_HANDLER_NAMES.has(routeName))) {
+      routeHandlerNodes.push(node);
     }
 
     if (!hasUploadHandling && isUploadHandlingNode(node)) {
@@ -212,7 +218,21 @@ export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
     }
   });
 
-  return hasUploadHandling ? dedupeMatches(routeHandlerMatches) : [];
+  const sanitizerIdentifiers = collectSanitizerIdentifiers(sourceFile);
+
+  return {
+    sourceFile,
+    commandIdentifiers,
+    childProcessNamespaces,
+    commandDeclarationNodes,
+    routeHandlerNodes,
+    sanitizerIdentifiers,
+    safeHtmlIdentifiers: collectSafeHtmlIdentifiers(sourceFile, sanitizerIdentifiers),
+    hasPasswordHashing: hasPasswordHashingCall(sourceFile),
+    hasAuthIntent: hasAuthIntentInSource(sourceFile),
+    hasValidationIntent: hasValidationIntentInSource(sourceFile),
+    hasUploadHandling
+  };
 }
 
 function collectChildProcessImports(
@@ -298,8 +318,8 @@ function collectChildProcessRequires(
 
 function isCommandExecutionCall(
   expression: ts.Expression,
-  commandIdentifiers: Set<string>,
-  childProcessNamespaces: Set<string>
+  commandIdentifiers: ReadonlySet<string>,
+  childProcessNamespaces: ReadonlySet<string>
 ): boolean {
   if (ts.isIdentifier(expression)) {
     return commandIdentifiers.has(expression.text);
@@ -350,6 +370,27 @@ function isAuthGuardProperty(node: ts.PropertyAccessExpression): boolean {
   );
 }
 
+function hasAuthIntentInSource(sourceFile: ts.SourceFile): boolean {
+  let found = false;
+
+  visit(sourceFile, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isAuthIntentCall(node.expression)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isPropertyAccessExpression(node) && isAuthGuardProperty(node)) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
 function isValidationLibraryImport(node: ts.ImportDeclaration): boolean {
   return ts.isStringLiteralLike(node.moduleSpecifier) && VALIDATION_MODULE_PATTERN.test(node.moduleSpecifier.text);
 }
@@ -375,6 +416,32 @@ function isValidationCall(node: ts.CallExpression): boolean {
   return expression.name.text !== "parse" || !isBuiltInParserTarget(expression.expression);
 }
 
+function hasValidationIntentInSource(sourceFile: ts.SourceFile): boolean {
+  let found = false;
+
+  visit(sourceFile, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isImportDeclaration(node) && isValidationLibraryImport(node)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isValidationCall(node)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isBinaryExpression(node) && isTypeofValidationCheck(node)) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
 function isArrayTarget(expression: ts.Expression): boolean {
   return ts.isIdentifier(expression) && expression.text === "Array";
 }
@@ -397,8 +464,8 @@ function isInterpolatedSqlTemplate(node: ts.Node | undefined): boolean {
 
 function dangerouslySetInnerHtmlSeverity(
   initializer: ts.JsxAttribute["initializer"],
-  sanitizerIdentifiers: Set<string>,
-  safeHtmlIdentifiers: Set<string>
+  sanitizerIdentifiers: ReadonlySet<string>,
+  safeHtmlIdentifiers: ReadonlySet<string>
 ): "LOW" | "MEDIUM" | undefined {
   if (!initializer || ts.isStringLiteral(initializer)) {
     return undefined;
@@ -488,11 +555,11 @@ function propertyNameText(name: ts.PropertyName): string | undefined {
   return undefined;
 }
 
-function isStaticHtmlExpression(expression: ts.Expression, safeHtmlIdentifiers: Set<string>): boolean {
+function isStaticHtmlExpression(expression: ts.Expression, safeHtmlIdentifiers: ReadonlySet<string>): boolean {
   return ts.isStringLiteralLike(expression) || ts.isNoSubstitutionTemplateLiteral(expression) || (ts.isIdentifier(expression) && safeHtmlIdentifiers.has(expression.text));
 }
 
-function isSanitizedHtmlExpression(expression: ts.Expression, sanitizerIdentifiers: Set<string>): boolean {
+function isSanitizedHtmlExpression(expression: ts.Expression, sanitizerIdentifiers: ReadonlySet<string>): boolean {
   if (!ts.isCallExpression(expression)) {
     return false;
   }

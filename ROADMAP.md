@@ -6,7 +6,7 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 | --- | --- |
 | Last reviewed | 2026-08-22 |
 | Current release | v0.3.0 published |
-| Current next task | v0.4 Phase 4 - AnalysisFacts and parse cache |
+| Current next task | v0.4 Phase 5 - bounded command source-to-sink pilot |
 
 ## Progress Legend
 
@@ -125,28 +125,31 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 293 package tests
+- 296 package tests
 - 143 web tests
-- 436 total tests
+- 439 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
+- Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 
 ## Phase 4 - AnalysisFacts and Parse Cache
 
-**Status:** `[ ] Planned`
+**Status:** `[x] Complete`
 
 **Goal:** Create a shared, single-parse foundation without changing findings by itself.
 
-- [ ] Add a parse cache keyed to the existing source-file lifecycle.
-- [ ] Define a small `AnalysisFacts` structure for sources, sinks, guards, imports, and route signals.
-- [ ] Keep the helper in the rules/core boundary that already owns syntax analysis.
-- [ ] Add a cache-hit and cache-miss test without relying on timing alone.
-- [ ] Confirm a baseline scan produces the same finding IDs, counts, severities, and reports.
+- [x] Add a parse cache keyed to the existing source-file lifecycle.
+- [x] Define a small `AnalysisFacts` structure for sources, sinks, guards, imports, and route signals.
+- [x] Keep the helper in the rules/core boundary that already owns syntax analysis.
+- [x] Add a cache-hit and cache-miss test without relying on timing alone.
+- [x] Confirm a baseline scan produces the same finding IDs, counts, severities, and reports.
 
 **Exit criteria:** Files are parsed at most once per scan path, tests prove the cache behavior, and the behavior-only diff is empty for existing fixtures.
 
 **Depends on:** Phase 1.
 
 **Unblocks:** Phase 5 and later SQL/XSS pilots.
+
+**Validation:** 296 package tests, 143 web tests, 439 total tests; self-scan remains 100/100 with `--preset app`, and the vulnerable fixture remains 26 findings at `critical` with `--preset strict`.
 
 ## Phase 5 - Bounded Command Source-to-Sink Pilot
 
