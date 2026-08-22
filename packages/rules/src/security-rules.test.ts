@@ -690,6 +690,29 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "secrets/next-public-secret")).toBe(true);
   });
 
+  it("describes NEXT_PUBLIC matches as review signals", async () => {
+    const result = await scanFixture({ ".env": "NEXT_PUBLIC_STRIPE_SECRET=sk_test_123" });
+    const finding = result.findings.find((item) => item.ruleId === "secrets/next-public-secret");
+
+    expect(finding).toBeDefined();
+    expect(finding?.title).toBe("NEXT_PUBLIC secret-like value requires review");
+    expect(finding?.severity).toBe("HIGH");
+    expect(finding?.confidence).toBe("MEDIUM");
+    expect(finding?.description).toContain("review signal");
+    expect(finding?.description).toContain("not proof");
+    expect(finding?.recommendation).toContain("Review the assigned value");
+  });
+
+  it("keeps intentionally public token names as reviewable false-positive candidates", async () => {
+    const result = await scanFixture({ ".env": "NEXT_PUBLIC_ANALYTICS_TOKEN=public-client-id" });
+    const finding = result.findings.find((item) => item.ruleId === "secrets/next-public-secret");
+
+    expect(finding).toBeDefined();
+    expect(finding?.confidence).toBe("MEDIUM");
+    expect(finding?.description).toContain("not proof");
+    expect(finding?.recommendation).toContain("intentionally public");
+  });
+
   it("detects register endpoints without rate limiting", async () => {
     const result = await scanFixture({ "app/api/register/route.ts": "export async function POST() { return Response.json({ ok: true }); }" });
 
@@ -1000,6 +1023,38 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
   });
 
+  it("does not treat validation words in comments or unknown wrappers as validation", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "// zod schema and validate() are mentioned here only.",
+        "function validatePayload(input) { return input; }",
+        "export async function POST(req) {",
+        "  const body = await req.json();",
+        "  validatePayload(body);",
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(true);
+  });
+
+  it("recognizes common validation calls without relying on keyword text", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": "const schema = { safeParse(value) { return { success: Boolean(value) }; } }; export async function POST(req) { const body = await req.json(); const parsed = schema.safeParse(body); return Response.json({ ok: parsed.success }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
+  it("does not treat JSON.parse alone as API input validation", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": "export async function POST(req) { const body = await req.json(); const parsed = JSON.parse(body.payload); return Response.json({ ok: Boolean(parsed) }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(true);
+  });
+
   it("detects admin routes without auth protection", async () => {
     const result = await scanFixture({
       "app/api/admin/users/route.ts": "export async function GET() { return Response.json({ users: [] }); }"
@@ -1027,6 +1082,31 @@ describe("built-in security rules", () => {
   it("does not flag admin routes with auth protection", async () => {
     const result = await scanFixture({
       "app/api/admin/users/route.ts": "import { getServerSession } from 'next-auth'; export async function GET() { const session = await getServerSession(); return Response.json({ users: [] }); }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("does not treat auth words in comments or generic role values as auth intent", async () => {
+    const result = await scanFixture({
+      "app/api/admin/commented/route.ts": [
+        "// auth(), requireAuth, and getServerSession are mentioned in this comment.",
+        "export async function GET() { return Response.json({ ok: true }); }"
+      ].join("\n"),
+      "app/api/admin/role/route.ts": "const role = 'admin'; export async function GET() { return Response.json({ role }); }"
+    });
+
+    expect(
+      result.findings
+        .filter((finding) => finding.ruleId === "auth/admin-route-without-auth")
+        .map((finding) => finding.filePath)
+        .sort()
+    ).toEqual(["app/api/admin/commented/route.ts", "app/api/admin/role/route.ts"]);
+  });
+
+  it("recognizes common auth intent calls without imports", async () => {
+    const result = await scanFixture({
+      "app/api/admin/users/route.ts": "export async function GET() { const user = requireAuth(); if (!isAdmin(user)) return Response.json({ ok: false }, { status: 403 }); return Response.json({ users: [] }); }"
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);

@@ -18,6 +18,29 @@ const SQL_QUERY_METHOD_NAMES = new Set(["query", "execute"]);
 const SQL_RAW_TAG_NAMES = new Set(["$queryRaw", "$executeRaw"]);
 const SQL_KEYWORD_PATTERN = /\b(SELECT|INSERT|UPDATE|DELETE)\b/i;
 const SANITIZER_MODULE_PATTERN = /^(?:dompurify|sanitize-html)$/i;
+const AUTH_CALL_NAMES = new Set([
+  "auth",
+  "clerk",
+  "currentUser",
+  "getServerSession",
+  "getUser",
+  "isAdmin",
+  "middleware",
+  "requireAuth",
+  "verifyToken",
+  "withAuth"
+]);
+const AUTH_GUARD_PROPERTY_NAMES = new Set(["permission", "role"]);
+const AUTH_GUARD_TARGET_NAMES = new Set(["account", "claims", "session", "user"]);
+const VALIDATION_CALL_NAMES = new Set(["isValid", "parse", "safeParse", "validate", "validateSync"]);
+const VALIDATION_MODULE_PATTERN = /^(?:arktype|joi|superstruct|valibot|yup|zod)(?:\/|$)/i;
+const VALIDATION_TYPE_NAMES = new Set(["boolean", "function", "number", "object", "string"]);
+const TYPEOF_COMPARISON_OPERATORS = new Set([
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken
+]);
 
 export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
   const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
@@ -118,6 +141,55 @@ export function findRouteHandlerExports(file: SourceFile): AstMatch[] {
   });
 
   return dedupeMatches(matches);
+}
+
+export function hasAuthIntentSignal(file: SourceFile): boolean {
+  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  let found = false;
+
+  visit(sourceFile, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isAuthIntentCall(node.expression)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isPropertyAccessExpression(node) && isAuthGuardProperty(node)) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
+export function hasValidationIntentSignal(file: SourceFile): boolean {
+  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
+  let found = false;
+
+  visit(sourceFile, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isImportDeclaration(node) && isValidationLibraryImport(node)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isValidationCall(node)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isBinaryExpression(node) && isTypeofValidationCheck(node)) {
+      found = true;
+    }
+  });
+
+  return found;
 }
 
 export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
@@ -248,6 +320,75 @@ function isSqlQuerySinkCall(node: ts.CallExpression): boolean {
 function isRawSqlTaggedTemplate(node: ts.TaggedTemplateExpression): boolean {
   const tag = node.tag;
   return ts.isPropertyAccessExpression(tag) && SQL_RAW_TAG_NAMES.has(tag.name.text);
+}
+
+function isAuthIntentCall(expression: ts.Expression): boolean {
+  if (ts.isIdentifier(expression)) {
+    return AUTH_CALL_NAMES.has(expression.text);
+  }
+
+  if (!ts.isPropertyAccessExpression(expression)) {
+    return false;
+  }
+
+  if (AUTH_CALL_NAMES.has(expression.name.text)) {
+    return true;
+  }
+
+  return (
+    expression.name.text === "verify" &&
+    ts.isIdentifier(expression.expression) &&
+    /^(auth|jwt|session|token)$/i.test(expression.expression.text)
+  );
+}
+
+function isAuthGuardProperty(node: ts.PropertyAccessExpression): boolean {
+  return (
+    AUTH_GUARD_PROPERTY_NAMES.has(node.name.text) &&
+    ts.isIdentifier(node.expression) &&
+    AUTH_GUARD_TARGET_NAMES.has(node.expression.text)
+  );
+}
+
+function isValidationLibraryImport(node: ts.ImportDeclaration): boolean {
+  return ts.isStringLiteralLike(node.moduleSpecifier) && VALIDATION_MODULE_PATTERN.test(node.moduleSpecifier.text);
+}
+
+function isValidationCall(node: ts.CallExpression): boolean {
+  const expression = node.expression;
+  if (ts.isIdentifier(expression)) {
+    return VALIDATION_CALL_NAMES.has(expression.text);
+  }
+
+  if (!ts.isPropertyAccessExpression(expression)) {
+    return false;
+  }
+
+  if (expression.name.text === "isArray" && isArrayTarget(expression.expression)) {
+    return true;
+  }
+
+  if (!VALIDATION_CALL_NAMES.has(expression.name.text)) {
+    return false;
+  }
+
+  return expression.name.text !== "parse" || !isBuiltInParserTarget(expression.expression);
+}
+
+function isArrayTarget(expression: ts.Expression): boolean {
+  return ts.isIdentifier(expression) && expression.text === "Array";
+}
+
+function isBuiltInParserTarget(expression: ts.Expression): boolean {
+  return ts.isIdentifier(expression) && /^(?:Date|JSON|Number|URL)$/i.test(expression.text);
+}
+
+function isTypeofValidationCheck(node: ts.BinaryExpression): boolean {
+  if (!TYPEOF_COMPARISON_OPERATORS.has(node.operatorToken.kind) || !ts.isTypeOfExpression(node.left)) {
+    return false;
+  }
+
+  return ts.isStringLiteralLike(node.right) && VALIDATION_TYPE_NAMES.has(node.right.text);
 }
 
 function isInterpolatedSqlTemplate(node: ts.Node | undefined): boolean {

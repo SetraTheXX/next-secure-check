@@ -6,7 +6,7 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 | --- | --- |
 | Last reviewed | 2026-08-22 |
 | Current release | v0.3.0 published |
-| Current next task | v0.4 Phase 2 - clarify `NEXT_PUBLIC_*` review-signal messaging |
+| Current next task | v0.4 Phase 4 - AnalysisFacts and parse cache |
 
 ## Progress Legend
 
@@ -25,7 +25,7 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 - [x] CLI `rules`, `explain`, and `init` commands
 - [x] Terminal, JSON, Markdown, GitHub, and SARIF output
 - [x] GitHub Actions and public repository web-demo flow
-- [x] 429 passing tests: 286 package tests and 143 web tests
+- [x] Published release baseline: 431 passing tests (288 package tests and 143 web tests)
 - [x] NPM and GitHub release completed
 
 ## v0.4.0 - Bounded Analysis Quality
@@ -79,47 +79,56 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 2 - Review-Signal Messaging
 
-**Status:** `[ ] Next`
+**Status:** `[x] Complete`
 
 **Goal:** Make security language precise before expanding detection depth.
 
-- [ ] Update `secrets/next-public-secret` wording so it signals exposure risk without claiming every match is a confirmed leak.
-- [ ] Add safe examples for public configuration versus actual secret material.
-- [ ] Add negative tests for public client configuration and documentation/example values.
-- [ ] Verify terminal, JSON, Markdown, GitHub, and SARIF messages remain consistent.
-- [ ] Add or update the rule documentation and changelog entry.
+- [x] Update `secrets/next-public-secret` wording so it signals exposure risk without claiming every match is a confirmed leak.
+- [x] Add safe examples for public configuration versus actual secret material.
+- [x] Add negative tests for public client configuration and documentation/example values.
+- [x] Verify terminal, JSON, Markdown, GitHub, and SARIF messages remain consistent.
+- [x] Add or update the rule documentation and changelog entry.
 
 **Exit criteria:** A user can distinguish “review this exposure” from “this is definitely a leaked credential,” and all formats preserve the same rule ID and safe explanation.
 
-**Depends on:** Phase 1.
+**Depends on:** Phase 1 scope decision.
 
 **Expected size:** Small, low-risk rule/docs change.
 
 ## Phase 3 - Auth Intent and Validation Signals
 
-**Status:** `[ ] Planned`
+**Status:** `[x] Complete`
 
 **Goal:** Reduce keyword-only findings around authentication and API validation.
 
 ### Issue `#7` - Auth Intent
 
-- [ ] Define a small allowlist of recognizable auth wrappers and session checks.
-- [ ] Distinguish route-handler checks from UI words, comments, and unrelated identifiers.
-- [ ] Add positive and negative fixtures for `getServerSession`, `auth`, `requireAuth`, `isAdmin`, middleware, and custom unknown wrappers.
-- [ ] Keep unknown wrappers conservative instead of assuming they are safe.
+- [x] Define a small allowlist of recognizable auth wrappers and session checks.
+- [x] Distinguish route-handler checks from UI words, comments, and unrelated identifiers.
+- [x] Add positive and negative fixtures for `getServerSession`, `auth`, `requireAuth`, `isAdmin`, middleware, and custom unknown wrappers.
+- [x] Keep unknown wrappers conservative instead of assuming they are safe.
 
 ### Issue `#8` - Validation Wrapper
 
-- [ ] Define a small allowlist of recognizable validation calls.
-- [ ] Cover direct body parsing and common schema validation patterns.
-- [ ] Add negative fixtures for labels, types, comments, and UI-only `validate` names.
-- [ ] Document unsupported custom wrappers as intentional limitations.
+- [x] Define a small allowlist of recognizable validation calls.
+- [x] Cover direct body parsing and common schema validation patterns.
+- [x] Add negative fixtures for labels, types, comments, and UI-only `validate` names.
+- [x] Document unsupported custom wrappers as intentional limitations.
 
 **Exit criteria:** Auth and validation findings use structural intent signals with fixture-backed negative coverage; no broad keyword expansion is accepted without a noise measurement.
 
 **Depends on:** Phase 1.
 
 **Expected size:** Medium, rule-focused changes.
+
+**Validation:** 293 package tests, 143 web tests, 436 total tests; self-scan remains 100/100 with `--preset app`, and the vulnerable fixture remains 26 findings at `critical` with `--preset strict`.
+
+## Current v0.4 Development Baseline
+
+- 293 package tests
+- 143 web tests
+- 436 total tests
+- Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 
 ## Phase 4 - AnalysisFacts and Parse Cache
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Clarified `secrets/next-public-secret` wording as a review signal based on a secret-like name, not proof that the assigned value is a credential.
+- Added guidance for intentionally public client identifiers and more descriptive `NEXT_PUBLIC_*` names.
+- Refined auth and API validation intent detection to ignore comments and keyword-only identifiers while recognizing common auth and validation calls.
+
+### Tests
+- Current validation baseline: 293 package tests, 143 web tests, 436 total tests.
+
 ## [0.3.0] - 2026-06-04
 
 ### Added

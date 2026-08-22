@@ -16,7 +16,9 @@ Admin and dashboard routes typically provide access to sensitive functionality: 
 
 ## Detection Logic
 
-The rule looks for files with path indicators suggesting admin, dashboard, or management functionality. If the file content does not contain any authentication or authorization patterns (e.g., `getServerSession`, `clerk`, `middleware`, `session`, `jwt.verify`, `isAdmin`), the route is flagged.
+The rule first requires an API route path with an exported route handler, such as `app/api/admin/**/route.ts` or `pages/api/admin/**`. It then looks for a small set of structural auth-intent signals: recognized calls such as `auth()`, `getServerSession()`, `requireAuth()`, `isAdmin()`, `currentUser()`, `withAuth()`, or `middleware()`, plus access checks such as `session.role`, `session.permission`, `user.role`, or `user.permission`. Comments, string literals, and unrelated identifiers such as `const role = "admin"` do not count as auth protection.
+
+Middleware matchers that cover the route are evaluated separately. Unknown custom wrappers remain conservative and may still be reported until they are made visible through a recognized signal.
 
 ## Common False Positives
 

@@ -18,13 +18,14 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 429 passing tests across packages and the web demo
+- 436 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - Context metadata on findings
 - CLI preset system for app-focused, strict, CI, audit, library, and monorepo scans
 - Context-aware severity/confidence tuning to reduce noisy findings in large repositories
 - AST-assisted checks for command execution, raw SQL interpolation, dangerous HTML rendering, and password handling
 - Route-aware admin route detection and endpoint-aware upload validation
+- Syntax-aware auth intent and API validation signals with conservative unknown-wrapper handling
 - Middleware-aware auth/rate-limit signals for common Next.js middleware patterns
 - Regression fixture suite for representative monorepo, registry, tooling, XSS, SQL, password, admin, upload, and config noise cases
 - Reduced `unknown` context classifications for registry, story, demo, playground, fixture, and package UI paths
@@ -297,9 +298,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 286 tests
+packages: 293 tests
 apps/web: 143 tests
-total: 429 tests
+total: 436 tests
 ```
 
 After building, the CLI can be run locally:
@@ -514,7 +515,7 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 
 Manual validation notes:
 
-- Current v0.3 baseline: 286 package tests, 143 web tests, 429 total tests.
+- Current validation baseline: 293 package tests, 143 web tests, 436 total tests.
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)

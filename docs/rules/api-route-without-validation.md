@@ -16,7 +16,9 @@ Without input validation, malicious or malformed data can reach your business lo
 
 ## Detection Logic
 
-The rule looks for API routes (files in `app/api` or `pages/api`) that contain evidence of reading user input (`req.body`, `searchParams`, etc.) but do not contain any schema validation library or custom validation patterns.
+The rule looks for API routes (files in `app/api` or `pages/api`) that contain evidence of reading user input (`req.body`, `searchParams`, `request.json()`, or `request.formData()`) but do not contain a recognized validation-intent signal. Recognized signals include imports from common validation libraries such as Zod, Yup, Joi, Valibot, Superstruct, or ArkType, direct calls such as `safeParse()`, `parse()`, `validate()`, `isValid()`, and `Array.isArray()`, and structural `typeof value === "string"`-style checks. `JSON.parse()` alone is not input validation.
+
+Comments, labels, and unknown custom wrappers are intentionally not treated as proof of validation. A project-specific helper can therefore still be reported unless its implementation exposes one of the recognized syntax-level signals.
 
 ## Common False Positives
 

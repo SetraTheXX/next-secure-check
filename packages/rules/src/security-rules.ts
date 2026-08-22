@@ -5,7 +5,9 @@ import {
   findPasswordHandlingMatches,
   findRawSqlConcatMatches,
   findRouteHandlerExports,
-  findUploadRouteHandlerMatches
+  findUploadRouteHandlerMatches,
+  hasAuthIntentSignal,
+  hasValidationIntentSignal
 } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches, hasDependency } from "./rule-utils.js";
 
@@ -330,7 +332,7 @@ export const missingSecurityHeadersRule: Rule = {
 
 export const nextPublicSecretRule: Rule = {
   id: "secrets/next-public-secret",
-  title: "NEXT_PUBLIC secret-like variable detected",
+  title: "NEXT_PUBLIC secret-like value requires review",
   severity: "HIGH",
   category: "secrets",
   confidence: "MEDIUM",
@@ -346,9 +348,9 @@ export const nextPublicSecretRule: Rule = {
           column: match.column,
           evidence: match.evidence,
           description:
-            "NEXT_PUBLIC environment variables may be exposed to the browser in Next.js. Secret-like names should not use the NEXT_PUBLIC prefix.",
+            "NEXT_PUBLIC values are exposed to browser-side code in Next.js. This finding is a review signal based on a secret-like variable name, not proof that the assigned value is a credential.",
           recommendation:
-            "Move secret values to server-only environment variables and remove the NEXT_PUBLIC prefix unless the value is intentionally public."
+            "Review the assigned value and its intended audience. Keep credentials in server-only environment variables and remove the NEXT_PUBLIC prefix; if the value is intentionally public, use a name that does not imply a secret."
         })
       )
     );
@@ -468,13 +470,11 @@ export const apiRouteWithoutValidationRule: Rule = {
   scan(context) {
     const pathSignals = /\b(app\/api|pages\/api)\b/i;
     const contentSignals = /(\breq\.body\b|\breq\.query\b|\breq\.json\(|request\.json\(|request\.formData\(|searchParams|nextUrl\.searchParams)/i;
-    const validationSignals =
-      /\b(zod|yup|joi|safeParse|parse\(|validate|validator|schema)\b|typeof\s+[\w.]+\s*[!=]={1,2}\s*["'](?:string|number|boolean|object)["']|Array\.isArray\(/i;
 
     return codeFiles(context)
       .filter((file) => pathSignals.test(file.path))
       .filter((file) => contentSignals.test(file.content))
-      .filter((file) => !validationSignals.test(file.content))
+      .filter((file) => !hasValidationIntentSignal(file))
       .map((file) =>
         createFinding({
           rule: apiRouteWithoutValidationRule,
@@ -494,7 +494,7 @@ export const adminRouteWithoutAuthRule: Rule = {
   confidence: "MEDIUM",
   scan(context) {
     return codeFiles(context).flatMap((file) => {
-      if (!isAdminApiRoutePath(file.path) || hasAdminAuthSignal(file.content)) {
+      if (!isAdminApiRoutePath(file.path) || hasAuthIntentSignal(file)) {
         return [];
       }
 
@@ -817,12 +817,6 @@ function middlewareMatcherCoversRoute(matcher: string, routePath: string): boole
 
 function normalizeMiddlewareMatcher(matcher: string): string {
   return matcher.trim().replace(/\/+$/, "") || "/";
-}
-
-function hasAdminAuthSignal(content: string): boolean {
-  return /\b(auth\(|getServerSession|currentUser|clerk|getUser|requireAuth|middleware|withAuth|session|jwt\.verify|verifyToken|isAdmin|role|permission)\b/i.test(
-    content
-  );
 }
 
 function hasRateLimitSignal(content: string): boolean {
