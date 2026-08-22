@@ -447,7 +447,7 @@ function recordCommandDeclaration(node: ts.VariableDeclaration, state: CommandFl
     }
 
     state.initialized.add(node.name.text);
-    trackCommandValue(node.name.text, sourcePathForAssignment(node.initializer, state), state);
+    trackCommandValue(node.name.text, sourcePathForAssignment(node.initializer, state, node.name.text), state);
     return;
   }
 
@@ -492,7 +492,7 @@ function recordCommandAssignment(node: ts.BinaryExpression, state: CommandFlowSt
 
   state.declared.add(target);
   state.initialized.add(target);
-  trackCommandValue(target, sourcePathForAssignment(node.right, state), state);
+  trackCommandValue(target, sourcePathForAssignment(node.right, state, target), state);
 }
 
 function trackCommandValue(name: string, value: CommandFlowValue | undefined, state: CommandFlowState): void {
@@ -560,12 +560,16 @@ function sourcePathForExpression(expression: ts.Expression, state: CommandFlowSt
   return sourcePathForReference(normalized, state);
 }
 
-function sourcePathForAssignment(expression: ts.Expression, state: CommandFlowState): CommandFlowValue | undefined {
+function sourcePathForAssignment(
+  expression: ts.Expression,
+  state: CommandFlowState,
+  targetName?: string
+): CommandFlowValue | undefined {
   const normalized = unwrapCommandExpression(expression);
   if (ts.isIdentifier(normalized)) {
     const tracked = state.tracked.get(normalized.text);
     if (tracked && !state.invalidated.has(normalized.text)) {
-      return commandAlias(tracked, normalized.text);
+      return commandAlias(tracked, targetName ?? normalized.text);
     }
   }
 

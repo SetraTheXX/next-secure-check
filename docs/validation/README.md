@@ -5,9 +5,9 @@ This folder contains manual validation notes for project phases and milestone ch
 Current validation baseline:
 
 ```txt
-packages: 302 tests
+packages: 304 tests
 apps/web: 143 tests
-total: 445 tests
+total: 447 tests
 ```
 
 Historical v0.1 baseline:
@@ -23,6 +23,8 @@ Phase 0-3 do not have separate manual validation reports in this folder. Those p
 Phase 4 has a separate manual validation note because the web demo required additional end-to-end checks across the UI, API, public GitHub repository scanning flow, exports, and CLI smoke behavior.
 
 Phase 6 external review fixes are documented separately because they were a focused bugfix and hardening pass after Claude/Codex review, covering CLI behavior, rule false positives, web hardening, and SARIF output quality.
+
+The current v0.4 bounded command-flow matrix and performance gate are documented in [phase-6-bounded-flow.md](./phase-6-bounded-flow.md).
 
 ## Post-release Real-world Smoke Note
 

@@ -125,9 +125,9 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 302 package tests
+- 304 package tests
 - 143 web tests
-- 445 total tests
+- 447 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 - Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 
@@ -173,17 +173,18 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 6 - Regression and Performance Gate
 
-**Status:** `[ ] Planned`
+**Status:** `[~] Matrix/performance measured; acceptance comparison pending`
 
 **Goal:** Turn the v0.4 quality claim into repeatable evidence.
 
-- [ ] Finish the 30-case synthetic fixture matrix.
-- [ ] Add direct/aliased source-to-sink, safe literal, parameterized input, reassignment stop, and function-boundary cases.
-- [ ] Cover JS/JSX/TS/TSX and App/Pages Router patterns.
-- [ ] Run CLI terminal/JSON/GitHub/SARIF compatibility checks.
-- [ ] Measure cold and warm scans on small and medium fixtures.
-- [ ] Add a documented real-world smoke command, without making large external repositories a required CI dependency.
-- [ ] Record remaining false positives and false negatives as issues or backlog notes.
+- [x] Finish the 30-case synthetic fixture matrix.
+- [x] Add direct/aliased source-to-sink, safe literal, parameterized input, reassignment stop, and function-boundary cases.
+- [x] Cover JS/JSX/TS/TSX and App/Pages Router patterns.
+- [x] Run CLI terminal/JSON/GitHub/SARIF compatibility checks.
+- [x] Measure cold and warm scans on small and medium fixtures.
+- [x] Add a documented real-world smoke command, without making large external repositories a required CI dependency.
+- [x] Record remaining false positives and false negatives as validation notes.
+- [ ] Compare the bounded-flow pilot with a pre-pilot baseline and document five confirmed noise reductions or five correct additional findings.
 
 **Exit criteria:** At least five confirmed noise reductions or five correct additional findings, no critical regression, deterministic outputs, and performance within the decision-note budget.
 
