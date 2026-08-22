@@ -6,6 +6,7 @@ export type FindingInput = {
   line?: number;
   column?: number;
   evidence?: string;
+  evidencePath?: string;
   description: string;
   recommendation: string;
   confidence?: Confidence;
@@ -24,6 +25,7 @@ export function createFinding(input: FindingInput): Finding {
     line: input.line,
     column: input.column,
     evidence: input.evidence,
+    evidencePath: input.evidencePath,
     description: input.description,
     recommendation: input.recommendation,
     references: input.references

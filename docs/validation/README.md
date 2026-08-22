@@ -5,9 +5,9 @@ This folder contains manual validation notes for project phases and milestone ch
 Current validation baseline:
 
 ```txt
-packages: 296 tests
+packages: 302 tests
 apps/web: 143 tests
-total: 439 tests
+total: 445 tests
 ```
 
 Historical v0.1 baseline:

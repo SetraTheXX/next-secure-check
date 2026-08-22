@@ -138,6 +138,7 @@ describe("formatSummary", () => {
         line: 12,
         column: 7,
         evidence: "const apiKey = \"sk_live_super_secret\"",
+        evidencePath: "request.json() -> apiKey",
         description: "A secret-like value appears in source code.",
         recommendation: "Move secrets to environment variables and rotate exposed values."
       },
@@ -228,7 +229,8 @@ describe("formatSummary", () => {
         context: "api-code",
         contextReason: "matched Next.js API route path",
         nextSecureCheckFindingId: "finding-1",
-        evidenceRedacted: true
+        evidenceRedacted: true,
+        evidencePath: "request.json() -> apiKey"
       }
     });
     expect(results[1].ruleIndex).toBe(0);

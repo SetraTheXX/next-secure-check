@@ -202,7 +202,8 @@ export function formatSarif(result: ScanResult): string {
             context: finding.context ?? "unknown",
             contextReason: finding.contextReason ?? "no context metadata available",
             nextSecureCheckFindingId: finding.id,
-            evidenceRedacted: isSecretFinding(finding)
+            evidenceRedacted: isSecretFinding(finding),
+            ...(finding.evidencePath ? { evidencePath: finding.evidencePath } : {})
           }
         }))
       }

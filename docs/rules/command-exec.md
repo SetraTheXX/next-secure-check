@@ -23,7 +23,9 @@ In v0.1, this rule uses lightweight static matching. It can flag intentional com
 
 These findings are not automatic proof of exploitation. Command execution in app runtime code, API routes, or user-input paths is much higher risk. Command execution in CI, release, or local tooling code should still be reviewed, but it may be expected behavior.
 
-v0.2 is planned to add context-aware severity and confidence so tooling/release findings can be separated from application runtime findings.
+The current bounded analysis also records an optional source-to-sink evidence path when a request-derived value can be followed inside the same function. Supported source signals include `request.json()`, `request.formData()`, `req.body`, `req.query`, `searchParams.get(...)`, and route parameters. The path is exposed as `evidencePath` in JSON and SARIF properties.
+
+This is intentionally conservative: it supports direct expressions, direct assignments, and up to two short identifier aliases. Tracking stops at reassignment, mutation, callback/closure escape, and function boundaries. Cross-function, cross-file, type-aware, and full control-flow analysis are not part of this pilot. A command finding without a proven source still remains a valid review signal.
 
 ## Examples
 
@@ -32,6 +34,14 @@ v0.2 is planned to add context-aware severity and confidence so tooling/release 
 import { exec } from "child_process";
 const cmd = searchParams.get("cmd");
 exec(cmd); // Extremely dangerous
+```
+
+When the bounded source-to-sink pilot can prove the path, JSON and SARIF include metadata similar to:
+
+```json
+{
+  "evidencePath": "searchParams.get()"
+}
 ```
 
 ### Secure

@@ -40,6 +40,7 @@ export type Finding = {
   line?: number;
   column?: number;
   evidence?: string;
+  evidencePath?: string;
   description: string;
   recommendation: string;
   references?: string[];

@@ -6,7 +6,7 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 | --- | --- |
 | Last reviewed | 2026-08-22 |
 | Current release | v0.3.0 published |
-| Current next task | v0.4 Phase 5 - bounded command source-to-sink pilot |
+| Current next task | v0.4 Phase 6 - regression and performance gate |
 
 ## Progress Legend
 
@@ -125,9 +125,9 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 296 package tests
+- 302 package tests
 - 143 web tests
-- 439 total tests
+- 445 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 - Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 
@@ -153,19 +153,19 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 5 - Bounded Command Source-to-Sink Pilot
 
-**Status:** `[ ] Planned`
+**Status:** `[~] Pilot implemented; Phase 6 gate pending`
 
 **Goal:** Improve `injection/command-exec` with explainable same-function flow.
 
-- [ ] Recognize sources: `request.json()`, `request.formData()`, `req.body`, `req.query`, `searchParams.get(...)`, and route parameters.
-- [ ] Recognize sinks: `exec`, `execSync`, `spawn`, and `spawnSync` with explicit shell risk.
-- [ ] Support direct expressions, direct assignments, and a short identifier alias chain.
-- [ ] Stop tracking on reassignment, mutation, closure/callback escape, and function boundary.
-- [ ] Add optional evidence-path metadata without changing the rule ID.
-- [ ] Keep imported sink detection working when no source can be proven.
+- [x] Recognize sources: `request.json()`, `request.formData()`, `req.body`, `req.query`, `searchParams.get(...)`, and route parameters.
+- [x] Recognize sinks: `exec`, `execSync`, `spawn`, and `spawnSync` with existing imported/namespace detection.
+- [x] Support direct expressions, direct assignments, and a short identifier alias chain.
+- [x] Stop tracking on reassignment, mutation, closure/callback escape, and function boundary.
+- [x] Add optional evidence-path metadata without changing the rule ID.
+- [x] Keep imported sink detection working when no source can be proven.
 - [ ] Add safe command allowlist and early-return guard fixtures where they are syntax-visible.
 
-**Exit criteria:** The pilot reduces measured false positives or adds measured true positives without changing safe fixture behavior, report formats, or default scan startup expectations.
+**Exit criteria:** The pilot must reduce measured false positives or add measured true positives without changing safe fixture behavior, report formats, or default scan startup expectations. The implementation is in place; Phase 6 supplies the required 30-case measurement gate.
 
 **Depends on:** Phases 1 and 4.
 

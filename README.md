@@ -18,12 +18,13 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 436 passing tests across packages and the web demo
+- 445 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - Context metadata on findings
 - CLI preset system for app-focused, strict, CI, audit, library, and monorepo scans
 - Context-aware severity/confidence tuning to reduce noisy findings in large repositories
 - AST-assisted checks for command execution, raw SQL interpolation, dangerous HTML rendering, and password handling
+- Bounded same-function command source-to-sink evidence paths for request-derived inputs
 - Route-aware admin route detection and endpoint-aware upload validation
 - Syntax-aware auth intent and API validation signals with conservative unknown-wrapper handling
 - Shared `AnalysisFacts` parse cache for syntax analysis without changing finding behavior
@@ -261,6 +262,7 @@ The SARIF reporter includes:
 - `security-severity` and precision metadata
 - deterministic `partialFingerprints` for more stable result tracking
 - context and context reason properties for review triage
+- optional bounded source-to-sink evidence paths when a command source is proven
 - concise result messages built from the finding title, description, and recommendation
 
 Raw secret evidence is not included in SARIF output.
@@ -299,9 +301,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 296 tests
+packages: 302 tests
 apps/web: 143 tests
-total: 439 tests
+total: 445 tests
 ```
 
 After building, the CLI can be run locally:
@@ -516,7 +518,7 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 
 Manual validation notes:
 
-- Current validation baseline: 296 package tests, 143 web tests, 439 total tests.
+- Current validation baseline: 302 package tests, 143 web tests, 445 total tests.
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)

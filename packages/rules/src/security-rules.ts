@@ -397,6 +397,7 @@ export const commandExecRule: Rule = {
           line: match.line,
           column: match.column,
           evidence: match.evidence,
+          evidencePath: match.evidencePath,
           description: "Shell command execution can lead to command injection if user input reaches the command or arguments.",
           recommendation: "Avoid shell execution for user-controlled input. Use safe APIs, strict allowlists, and argument arrays when command execution is required."
         })

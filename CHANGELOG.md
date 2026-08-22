@@ -12,9 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added guidance for intentionally public client identifiers and more descriptive `NEXT_PUBLIC_*` names.
 - Refined auth and API validation intent detection to ignore comments and keyword-only identifiers while recognizing common auth and validation calls.
 - Added shared `AnalysisFacts` syntax parsing with a per-scan source-file cache.
+- Added a bounded same-function command source-to-sink pilot with optional JSON/SARIF `evidencePath` metadata.
 
 ### Tests
-- Current validation baseline: 296 package tests, 143 web tests, 439 total tests.
+- Current validation baseline: 302 package tests, 143 web tests, 445 total tests.
 
 ## [0.3.0] - 2026-06-04
 

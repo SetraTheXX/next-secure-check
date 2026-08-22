@@ -797,6 +797,125 @@ describe("built-in security rules", () => {
     ]);
   });
 
+  it("records a bounded request JSON source path for command sinks", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  exec(command);",
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find(
+      (candidate) => candidate.ruleId === "injection/command-exec" && candidate.evidence?.includes("exec(command)")
+    );
+    expect(finding?.evidencePath).toBe("request.json() -> command");
+  });
+
+  it("records a request form-data source path for command sinks", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const formData = await request.formData();",
+        "  const command = formData.get('command');",
+        "  exec(command);",
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find(
+      (candidate) => candidate.ruleId === "injection/command-exec" && candidate.evidence?.includes("exec(command)")
+    );
+    expect(finding?.evidencePath).toBe("request.formData() -> get()");
+  });
+
+  it("records req query, search params, and route parameter sources", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function GET(req, { params }) {",
+        "  const queryCommand = req.query.command;",
+        "  const searchCommand = searchParams.get('command');",
+        "  const { routeCommand } = params;",
+        "  exec(queryCommand);",
+        "  exec(searchCommand);",
+        "  exec(routeCommand);",
+        "}"
+      ].join("\n")
+    });
+
+    const sinkFindings = result.findings.filter(
+      (finding) => finding.ruleId === "injection/command-exec" && finding.evidence?.includes("exec(")
+    );
+    expect(sinkFindings.map((finding) => finding.evidencePath)).toEqual([
+      "req.query -> command",
+      "searchParams.get()",
+      "params -> routeCommand"
+    ]);
+  });
+
+  it("records a search params source behind a safe fallback", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function GET() {",
+        "  const command = searchParams.get('command') || 'ls';",
+        "  exec(command);",
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find(
+      (candidate) => candidate.ruleId === "injection/command-exec" && candidate.evidence?.includes("exec(command)")
+    );
+    expect(finding?.evidencePath).toBe("searchParams.get()");
+  });
+
+  it("keeps short aliases but stops after reassignment", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  const alias = command;",
+        "  alias = 'safe';",
+        "  exec(alias);",
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find(
+      (candidate) => candidate.ruleId === "injection/command-exec" && candidate.evidence?.includes("exec(alias)")
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.evidencePath).toBeUndefined();
+  });
+
+  it("does not carry source facts across a function boundary", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "function run(command) { exec(command); }",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  run(body.command);",
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find(
+      (candidate) => candidate.ruleId === "injection/command-exec" && candidate.evidence?.includes("exec(command)")
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.evidencePath).toBeUndefined();
+  });
+
   it("detects require destructuring command execution", async () => {
     const result = await scanFixture({ "index.ts": "const { exec: run } = require('child_process');\nrun('ls');" });
     const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
