@@ -4,9 +4,11 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: v0.3.0 release prep is complete. MVP, hardening, context-aware scanning, presets, AST-assisted rule refinements, SARIF polish, and CLI helper commands are complete.
+> Current status: v0.3.0 is published. MVP, hardening, context-aware scanning, presets, AST-assisted rule refinements, SARIF polish, and CLI helper commands are complete.
 
-Demo video planned.
+Demo video planned after the next analysis-quality milestones are stable.
+
+See the public [roadmap](./ROADMAP.md) and the [v0.4 analysis-scope decision](./docs/decisions/0001-v0.4-analysis-scope.md) for the next development direction.
 
 Started on May 9, 2026.
 
@@ -40,7 +42,7 @@ Completed:
 Current release focus:
 
 ```txt
-v0.3.x: improve real-project signal quality, document CLI workflows, and keep false-positive handling honest.
+v0.4.x: bounded same-function source-to-sink analysis, rule-intent signals, and evidence-driven noise reduction.
 ```
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
@@ -115,7 +117,7 @@ npm install -g next-secure-check
 next-secure-check scan .
 ```
 
-If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.2 options such as `--preset`. Check and remove the global install when needed:
+If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.3 options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
 
 ```bash
 next-secure-check --version
@@ -429,7 +431,7 @@ The in-memory scan guard is intended for the local/single-instance demo stage. P
 - Findings are review signals, not proof of exploitation.
 - Large monorepos, demo/example-heavy repositories, template repositories, and tooling-focused repositories can still produce noisy findings.
 - CLI generators and release/tooling scripts may trigger command execution findings even when that behavior is intentional for the tool.
-- Full type-aware analysis is a v0.3 roadmap item.
+- Full type-aware analysis is intentionally deferred to a measured, opt-in spike before any default-mode adoption.
 - The in-memory scan guard is only a local/single-instance fallback.
 - Public deployments should use the optional Upstash/distributed guard or equivalent platform-level protection.
 - IP-based limits depend on trusted proxy/platform forwarded headers.
@@ -512,23 +514,14 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 
 Manual validation notes:
 
+- Current v0.3 baseline: 286 package tests, 143 web tests, 429 total tests.
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)
 
 ## Future Roadmap
 
-Planned follow-up work:
-
-- Optional type-aware analysis for rules that need deeper data-flow context.
-- Deeper source analysis where syntax-level checks are not enough.
-- More precise route graph and middleware matching.
-- Custom rule configuration and rule enable/disable controls.
-- Nonce/hash-based CSP hardening for the web demo.
-- Public hosted demo hardening.
-- More GitHub Code Scanning integration examples.
-- Rule noise reduction and false positive tracking.
-- VS Code extension or ESLint plugin exploration.
+The detailed public plan now lives in [ROADMAP.md](./ROADMAP.md). The next release direction is deliberately narrow: improve explainable signal quality with bounded same-function analysis before considering type-aware or plugin-based expansion.
 
 ## Release Gates
 

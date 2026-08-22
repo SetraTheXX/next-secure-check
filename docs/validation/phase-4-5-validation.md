@@ -1,5 +1,7 @@
 # Phase 4.5 Validation
 
+> Historical validation snapshot. The current project baseline is documented in `docs/validation/README.md`.
+
 Date: 2026-05-18
 
 ## Scope

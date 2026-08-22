@@ -1,5 +1,7 @@
 # Phase 6 External Review Fixes
 
+> Historical validation snapshot. The current project baseline is documented in `docs/validation/README.md`.
+
 Date: 2026-05-19
 
 ## Scope

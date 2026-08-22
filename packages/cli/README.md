@@ -31,7 +31,7 @@ npm install -g next-secure-check
 next-secure-check scan .
 ```
 
-If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.2 options such as `--preset`. Check and remove the global install when needed:
+If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.3 options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
 
 ```bash
 next-secure-check --version

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-05-24
+## [0.3.0] - 2026-06-04
 
 ### Added
 - Benchmark/regression fixture suite for representative monorepo, registry, tooling, XSS, SQL, password, admin, upload, and config cases.
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 - v0.3.0 keeps the same core CLI scan surface while improving analysis quality and CLI usability.
 - Findings remain deterministic review signals, not proof of exploitation.
-- Full type-aware analysis and a larger route graph remain future work.
+- Full type-aware analysis and a larger route graph remain future work beyond the v0.3 release.
 
 ## [0.2.1] - 2026-05-24
 
@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 - Findings are review signals, not a full security audit.
 - False positives and false negatives are still possible.
-- Full AST/type-aware analysis remains a v0.3 roadmap item.
+- Full type-aware analysis was intentionally deferred beyond the v0.2 release.
 
 ## [0.1.0] - 2026-05-20
 

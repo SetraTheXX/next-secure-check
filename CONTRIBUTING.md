@@ -61,11 +61,13 @@ When adding or changing a rule, please update:
 - Documentation under `docs/rules`.
 - Example or fixture behavior when the rule intentionally changes scanner output.
 
-Think through false positives before raising severity. For v0.1, predictable behavior is more important than catching every possible edge case.
+Think through false positives before raising severity. For the current v0.3 line and the planned v0.4 work, predictable and explainable behavior is more important than catching every possible edge case.
 
 ## Pull Requests
 
 Please keep pull requests focused. A good PR usually changes one behavior, one rule, or one documentation area at a time.
+
+Please include a short problem statement, the intended behavior, and any known false-positive or false-negative tradeoffs. For scanner changes, include vulnerable and safe examples whenever possible.
 
 Before opening a PR, run:
 
@@ -74,6 +76,13 @@ pnpm build
 pnpm typecheck
 pnpm test
 ```
+
+Before requesting review, check that:
+
+- [ ] The change is covered by focused tests or documentation validation.
+- [ ] Rule changes include safe and unsafe examples.
+- [ ] User-facing behavior and report formats remain compatible unless the PR explains the change.
+- [ ] No secrets, private repository contents, generated artifacts, or local planning notes are included.
 
 ## Security Issues
 

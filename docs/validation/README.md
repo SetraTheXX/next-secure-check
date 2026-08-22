@@ -2,7 +2,15 @@
 
 This folder contains manual validation notes for project phases and milestone checks.
 
-Current v0.1 validation baseline:
+Current v0.3 validation baseline:
+
+```txt
+packages: 286 tests
+apps/web: 143 tests
+total: 429 tests
+```
+
+Historical v0.1 baseline:
 
 ```txt
 packages: 118 tests
@@ -20,4 +28,4 @@ Phase 6 external review fixes are documented separately because they were a focu
 
 After v0.1.0 was published, `shadcn-ui/ui` and `t3-oss/create-t3-app` were scanned as real-world smoke tests. The scanner did not crash, but the results showed that v0.1 can be noisy on large monorepos, template repositories, generator CLIs, demo/example-heavy paths, and tooling/release scripts.
 
-Those results should be treated as validation and learning notes, not launch claims. They have been converted into the v0.2 context-aware scanning and preset backlog.
+Those results should be treated as validation and learning notes, not launch claims. They informed the v0.2 context/preset work, the v0.3 regression fixtures, and the v0.4 bounded source-to-sink analysis backlog.

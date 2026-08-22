@@ -24,5 +24,9 @@ docs/plans/
 next-secure-check-report.md
 *-report.md
 
+# Local runtime evidence and private workspace artifacts
+*-runtime-evidence.txt
+.local/
+
 # Ctxo local cache (never committed)
 .ctxo/.cache/
