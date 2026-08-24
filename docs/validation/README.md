@@ -28,6 +28,8 @@ The current v0.4 bounded command-flow matrix and performance gate are documented
 
 The isolated TypeChecker measurement and syntax fallback decision are documented in [phase-7-typechecker-spike.md](./phase-7-typechecker-spike.md).
 
+The reproducible vulnerable-versus-secure terminal demo and current rule-level signal notes are documented in [phase-8-demo.md](./phase-8-demo.md).
+
 ## Post-release Real-world Smoke Note
 
 After v0.1.0 was published, `shadcn-ui/ui` and `t3-oss/create-t3-app` were scanned as real-world smoke tests. The scanner did not crash, but the results showed that v0.1 can be noisy on large monorepos, template repositories, generator CLIs, demo/example-heavy paths, and tooling/release scripts.

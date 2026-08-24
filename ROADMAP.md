@@ -213,17 +213,19 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 8 - Release and Demo
 
-**Status:** `[ ] Planned after quality gate`
+**Status:** `In progress`
 
 **Goal:** Explain the improved behavior with evidence instead of a feature list.
 
-- [ ] Update rule docs and README examples with before/after signal explanations.
-- [ ] Add a short vulnerable-versus-secure terminal demo.
+- [x] Update rule docs and README examples with before/after signal explanations.
+- [x] Add a short vulnerable-versus-secure terminal demo.
 - [ ] Record a 30-45 second demo only after findings and output are stable.
 - [ ] Run full validation, pack smoke, and publish dry-run.
 - [ ] Prepare concise v0.4 release notes with known limitations.
 
 **Exit criteria:** The release can show what the tool catches, what it intentionally does not claim, and how to report a false positive.
+
+**Evidence:** [Phase 8 demo validation note](./docs/validation/phase-8-demo.md).
 
 **Depends on:** Phase 6; Phase 7 is informative, not a v0.4 blocker.
 

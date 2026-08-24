@@ -206,6 +206,26 @@ npx --yes next-secure-check@latest scan . --preset app
 
 Use `--preset strict` when you want the more aggressive review mode. You can still add `--exclude` patterns when a repository has project-specific generated, demo, or fixture paths. Findings are focused pre-release review signals for common mistakes.
 
+## Reproducible Vulnerable/Secure Demo
+
+After `pnpm build`, the repository includes two small fixtures that make the scanner behavior easy to verify locally:
+
+```bash
+node packages/cli/dist/index.js scan examples/vulnerable-next-app --preset strict
+node packages/cli/dist/index.js scan examples/secure-next-app --preset app
+node packages/cli/dist/index.js scan . --preset app
+```
+
+The expected summary is:
+
+| Target | Expected result |
+| --- | --- |
+| `vulnerable-next-app` with `strict` | `0/100`, `critical`, 26 findings (`12 HIGH`, `11 MEDIUM`, `2 LOW`, `1 INFO`) |
+| `secure-next-app` with `app` | `99/100`, `excellent`, 1 LOW finding |
+| repository self-scan with `app` | `100/100`, `excellent`, 0 findings |
+
+These are regression-fixture expectations, not a claim that every repository will produce the same score. The vulnerable fixture demonstrates detection; the secure fixture demonstrates that the scanner can leave a small review signal without treating every project as critical. See the [Phase 8 demo validation note](./docs/validation/phase-8-demo.md) for the rule-level before/after examples and demo flow.
+
 ## CLI Config
 
 The CLI can read a local JSON config file named `.next-secure-check.json` from the scan target root.
@@ -523,6 +543,7 @@ Manual validation notes:
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)
 - [Phase 6 bounded command-flow validation](./docs/validation/phase-6-bounded-flow.md)
+- [Phase 8 vulnerable/secure demo](./docs/validation/phase-8-demo.md)
 
 ## Future Roadmap
 

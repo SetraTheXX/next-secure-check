@@ -1,7 +1,7 @@
 # injection/raw-sql-concat
 
 ## Description
-Detects the use of string concatenation or template literals to build SQL queries.
+Detects interpolated SQL passed directly to a recognized query sink.
 
 ## Why is this a problem?
 Building SQL queries by directly inserting variables into the query string leads to SQL Injection (SQLi). An attacker can manipulate the input to alter the structure of the SQL query, allowing them to bypass authentication, access, modify, or delete unauthorized data, or even execute administrative operations on the database.
@@ -13,8 +13,8 @@ Building SQL queries by directly inserting variables into the query string leads
 
 ## Context and False Positives
 
-In v0.1, this rule uses regex/lightweight context. Some template strings in demo/example components, documentation-style code, or non-query UI strings may be flagged even when they are not actually sent to a database.
+The current rule uses syntax-level AST matching for direct call arguments and tagged-template query sinks such as `db.query(...)`, `connection.execute(...)`, and ``prisma.$queryRaw`...` ``. Plain SQL-like template strings assigned to a variable are intentionally outside the current flow boundary unless they are passed directly to a recognized sink.
 
-The highest-risk pattern is user-controlled input reaching a real query sink such as `db.query`, `connection.execute`, or an unsafe raw SQL API. Treat findings as review signals and confirm whether the SQL string is actually executed.
+The highest-risk pattern is user-controlled input reaching a real query sink such as `db.query`, `connection.execute`, or an unsafe raw SQL API. Parameterized queries with placeholders and a separate values array are not treated as the same interpolation pattern. Treat findings as review signals and confirm whether the SQL string is actually executed.
 
-v0.2 is planned to explore AST-assisted sink/context analysis so real query construction can be distinguished from lower-risk strings more accurately.
+Variable flow across separate statements, custom query wrappers, and type-aware sink resolution remain limitations. A future version may extend the sink model after benchmark coverage shows that the added reach improves signal without recreating broad string noise.

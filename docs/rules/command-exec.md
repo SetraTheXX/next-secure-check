@@ -19,7 +19,7 @@ Avoid shell execution for user-controlled input. If command execution is require
 
 ## Context and False Positives
 
-In v0.1, this rule uses lightweight static matching. It can flag intentional command execution in `.github/**`, release scripts, changeset/version scripts, and CLI tooling helpers.
+The rule uses import-aware AST matching plus lightweight path context. It can still flag intentional command execution in `.github/**`, release scripts, changeset/version scripts, and CLI tooling helpers.
 
 These findings are not automatic proof of exploitation. Command execution in app runtime code, API routes, or user-input paths is much higher risk. Command execution in CI, release, or local tooling code should still be reviewed, but it may be expected behavior.
 
@@ -28,6 +28,8 @@ The current bounded analysis also records an optional source-to-sink evidence pa
 Static `spawn(...)` and `spawnSync(...)` calls with a literal executable, a literal argument array, and no shell (or an explicit `shell: false`) are treated as non-shell process launches and are not reported by this rule. Dynamic executable or argument values and explicit `shell: true` remain review signals.
 
 This is intentionally conservative: it supports direct expressions, direct assignments, and up to two short identifier aliases. Tracking stops at reassignment, mutation, callback/closure escape, and function boundaries. Cross-function, cross-file, type-aware, and full control-flow analysis are not part of this pilot. A command finding without a proven source still remains a valid review signal.
+
+Compared with the earlier broad matcher, unrelated calls such as `regex.exec(input)` and static non-shell `spawn("ls", ["-l"])` are excluded. Imported `child_process` sinks, dynamic command arguments, and explicit `shell: true` remain findings for review.
 
 ## Examples
 
