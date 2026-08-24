@@ -4,9 +4,9 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 
 | Field | Value |
 | --- | --- |
-| Last reviewed | 2026-08-22 |
+| Last reviewed | 2026-08-24 |
 | Current release | v0.3.0 published |
-| Current next task | v0.4 Phase 8 - release and demo preparation |
+| Current next task | v0.4 Phase 8 - final demo evidence and release preparation |
 
 ## Progress Legend
 
@@ -61,17 +61,19 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 1 - Scope and Measurement
 
-**Status:** `[~] Decision recorded; issue execution pending`
+**Status:** `[x] Complete`
 
 **Goal:** Define what the v0.4 analysis layer is allowed to claim before writing scanner code.
 
 - [x] Write the bounded-analysis decision note.
-- [ ] Review and close or rewrite issue `#10` around explicit source/sink scope.
-- [ ] Create a 30-case fixture matrix covering safe, unsafe, alias, reassignment, malformed, JS, JSX, TS, TSX, App Router, and Pages Router cases.
-- [ ] Record a syntax-scan performance baseline on a small fixture project and a medium monorepo.
-- [ ] Define the finding and SARIF compatibility checks before implementation.
+- [x] Review and close or rewrite issue `#10` around explicit source/sink scope.
+- [x] Create a 30-case fixture matrix covering safe, unsafe, alias, reassignment, malformed, JS, JSX, TS, TSX, App Router, and Pages Router cases.
+- [x] Record a syntax-scan performance baseline on a small fixture project and a medium monorepo.
+- [x] Define the finding and SARIF compatibility checks before implementation.
 
 **Exit criteria:** The fixture categories, non-goals, performance baseline, and compatibility checks are written down and reviewable.
+
+**Evidence:** [v0.4 analysis decision](./docs/decisions/0001-v0.4-analysis-scope.md) and [bounded-flow validation](./docs/validation/phase-6-bounded-flow.md).
 
 **Depends on:** Phase 0.
 
@@ -213,9 +215,15 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 8 - Release and Demo
 
-**Status:** `In progress`
+**Status:** `[~] In progress`
 
 **Goal:** Explain the improved behavior with evidence instead of a feature list.
+
+### Demo evidence policy
+
+- The primary public demo uses the checked-in vulnerable and secure fixtures because their expected findings are reviewed, deterministic, and reproducible.
+- Real repositories are optional smoke-test inputs, not accuracy claims. A finding is not used as launch evidence until its source, context, and recommendation have been manually reviewed.
+- External benchmark output, raw reports, credentials, and private recordings stay outside the repository unless they are intentionally summarized in a validation note.
 
 - [x] Update rule docs and README examples with before/after signal explanations.
 - [x] Add a short vulnerable-versus-secure terminal demo.
