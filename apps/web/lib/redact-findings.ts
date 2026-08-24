@@ -12,7 +12,8 @@ export function redactFindingEvidence(finding: Finding): RedactedFinding {
     return { ...finding };
   }
 
-  const { evidence: _evidence, ...safeFinding } = finding;
+  const safeFinding = { ...finding };
+  delete safeFinding.evidence;
   return {
     ...safeFinding,
     evidence: REDACTED_EVIDENCE

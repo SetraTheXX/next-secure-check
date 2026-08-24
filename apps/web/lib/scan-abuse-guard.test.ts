@@ -156,7 +156,8 @@ describe("tryAcquireScanSlot", () => {
       .fn()
       .mockResolvedValueOnce(createUpstashResponse([{ result: 1 }, { result: 1 }]))
       .mockResolvedValueOnce(createUpstashResponse([{ result: 3 }, { result: 1 }]))
-      .mockResolvedValueOnce(createUpstashResponse([{ result: 2 }]));
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 2 }]))
+      .mockResolvedValueOnce(createUpstashResponse([{ result: 0 }]));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await tryAcquireScanSlot("203.0.113.72", 1_000);
@@ -166,7 +167,10 @@ describe("tryAcquireScanSlot", () => {
       code: "CONCURRENT_SCAN_LIMIT_EXCEEDED",
       message: "Too many scans are running. Please try again shortly."
     });
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(JSON.parse(String((fetchMock.mock.calls[3]?.[1] as RequestInit).body))).toEqual([
+      ["DECR", "next-secure-check:scan-rate:203.0.113.72:0"]
+    ]);
   });
 
   it("fails closed without leaking tokens when the distributed store fails", async () => {

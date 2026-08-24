@@ -125,9 +125,9 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 309 package tests
-- 143 web tests
-- 452 total tests
+- 315 package tests
+- 146 web tests
+- 461 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 - Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 
@@ -219,6 +219,7 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 - [x] Update rule docs and README examples with before/after signal explanations.
 - [x] Add a short vulnerable-versus-secure terminal demo.
+- [x] Complete a pre-release correctness, dependency-security, CI, and package-metadata audit.
 - [ ] Record a 30-45 second demo only after findings and output are stable.
 - [ ] Run full validation, pack smoke, and publish dry-run.
 - [ ] Prepare concise v0.4 release notes with known limitations.

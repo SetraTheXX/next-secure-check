@@ -62,22 +62,6 @@ export function findMatches(
   return matches;
 }
 
-export function hasDependency(context: ScanContext, packageNames: string[]): boolean {
-  const dependencies = {
-    ...(context.packageJson?.dependencies ?? {}),
-    ...(context.packageJson?.devDependencies ?? {})
-  };
-
-  return packageNames.some((packageName) => packageName in dependencies);
-}
-
-export function projectContains(context: ScanContext, pattern: RegExp): boolean {
-  return context.files.some((file) => {
-    pattern.lastIndex = 0;
-    return pattern.test(file.content);
-  });
-}
-
 export function codeFiles(context: ScanContext): SourceFile[] {
   return context.files.filter((file) => /\.(ts|tsx|js|jsx)$/.test(file.path));
 }

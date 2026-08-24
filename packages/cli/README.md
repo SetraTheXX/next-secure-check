@@ -4,6 +4,8 @@ Deterministic security checks for Next.js projects. No AI required.
 
 Run a quick static security sanity check before deploying a Next.js app.
 
+Requires Node.js 20 or newer.
+
 ## Usage
 
 Recommended one-off usage:

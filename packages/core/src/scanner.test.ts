@@ -103,7 +103,40 @@ describe("scanProject", () => {
         filePath: "middleware.ts",
         hasAuthSignal: true,
         hasRateLimitSignal: true,
-        matchers: ["/api/admin/:path*", "/api/login/:path*"]
+        matchers: ["/api/admin/:path*", "/api/login/:path*"],
+        scopeRoot: ""
+      }
+    ]);
+  });
+
+  it("extracts app-scoped middleware signals in monorepos", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "apps/web/middleware.ts",
+      "export function middleware() { return auth(); }\nexport const config = { matcher: '/api/admin/:path*' };"
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/nested-middleware",
+      title: "Nested middleware",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals).toEqual([
+      {
+        filePath: "apps/web/middleware.ts",
+        hasAuthSignal: true,
+        hasRateLimitSignal: false,
+        matchers: ["/api/admin/:path*"],
+        scopeRoot: "apps/web"
       }
     ]);
   });

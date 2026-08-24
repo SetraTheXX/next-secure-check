@@ -4,6 +4,7 @@ import type { ScanResult } from "@next-secure-check/core";
 export type ReportFormat = "terminal" | "json" | "markdown" | "github" | "sarif";
 
 const SEVERITY_ORDER = ["HIGH", "MEDIUM", "LOW", "INFO"] as const;
+const CONFIDENCE_ORDER = ["HIGH", "MEDIUM", "LOW"] as const;
 const INFORMATION_URI = "https://github.com/SetraTheXX/next-secure-check";
 
 export function formatReport(result: ScanResult, format: ReportFormat): string {
@@ -226,14 +227,30 @@ function githubStatus(high: number, totalFindings: number): string {
 }
 
 function uniqueRules(result: ScanResult): Array<Record<string, unknown>> {
-  const rules = new Map<string, ScanResult["findings"][number]>();
+  type Finding = ScanResult["findings"][number];
+  type RuleAggregate = {
+    finding: Finding;
+    severity: Finding["severity"];
+    confidence: Finding["confidence"];
+  };
+
+  const rules = new Map<string, RuleAggregate>();
   for (const finding of result.findings) {
-    if (!rules.has(finding.ruleId)) {
-      rules.set(finding.ruleId, finding);
+    const current = rules.get(finding.ruleId);
+    if (!current) {
+      rules.set(finding.ruleId, {
+        finding,
+        severity: finding.severity,
+        confidence: finding.confidence
+      });
+      continue;
     }
+
+    current.severity = strongestValue(current.severity, finding.severity, SEVERITY_ORDER);
+    current.confidence = strongestValue(current.confidence, finding.confidence, CONFIDENCE_ORDER);
   }
 
-  return [...rules.values()].map((finding) => ({
+  return [...rules.values()].map(({ finding, severity, confidence }) => ({
     id: finding.ruleId,
     name: finding.ruleId,
     shortDescription: {
@@ -243,7 +260,7 @@ function uniqueRules(result: ScanResult): Array<Record<string, unknown>> {
       text: finding.description
     },
     defaultConfiguration: {
-      level: sarifLevel(finding.severity)
+      level: sarifLevel(severity)
     },
     help: {
       markdown: finding.recommendation,
@@ -252,10 +269,18 @@ function uniqueRules(result: ScanResult): Array<Record<string, unknown>> {
     helpUri: ruleHelpUri(finding.ruleId),
     properties: {
       tags: sarifRuleTags(finding),
-      precision: sarifPrecision(finding.confidence),
-      "security-severity": sarifSecuritySeverity(finding.severity)
+      precision: sarifPrecision(confidence),
+      "security-severity": sarifSecuritySeverity(severity)
     }
   }));
+}
+
+function strongestValue<TValue extends string>(
+  current: TValue,
+  candidate: TValue,
+  order: readonly TValue[]
+): TValue {
+  return order.indexOf(candidate) < order.indexOf(current) ? candidate : current;
 }
 
 function sarifLevel(severity: ScanResult["findings"][number]["severity"]): "error" | "warning" | "note" {

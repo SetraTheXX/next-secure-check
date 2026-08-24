@@ -8,13 +8,14 @@ import { resolveScanCommandSettings, type ScanCommandOptions } from "./config.js
 import { shouldFail } from "./fail-on.js";
 import { formatInitResults, initProject } from "./init.js";
 import { formatRuleExplanation, formatRulesList, formatUnknownRuleMessage } from "./rules-info.js";
+import { CLI_VERSION } from "./version.js";
 
 const program = new Command();
 
 program
   .name("next-secure-check")
   .description("Deterministic security checks for Next.js projects.")
-  .version("0.3.0");
+  .version(CLI_VERSION);
 
 program
   .command("scan")

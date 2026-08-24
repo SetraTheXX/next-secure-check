@@ -373,6 +373,43 @@ describe("formatSummary", () => {
     expect(sarif.runs[0].results[0].level).toBe("warning");
     expect(sarif.runs[0].results[1].level).toBe("note");
   });
+
+  it("uses the strongest effective severity and confidence for shared SARIF rule metadata", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [
+      {
+        id: "release-finding",
+        ruleId: "injection/command-exec",
+        title: "Shell command execution detected",
+        severity: "LOW",
+        confidence: "LOW",
+        category: "injection",
+        filePath: ".github/release.ts",
+        description: "A shell command is executed.",
+        recommendation: "Review command inputs."
+      },
+      {
+        id: "api-finding",
+        ruleId: "injection/command-exec",
+        title: "Shell command execution detected",
+        severity: "HIGH",
+        confidence: "HIGH",
+        category: "injection",
+        filePath: "app/api/run/route.ts",
+        description: "A shell command is executed.",
+        recommendation: "Review command inputs."
+      }
+    ];
+
+    const sarif = JSON.parse(formatSarif(result));
+    const rule = sarif.runs[0].tool.driver.rules[0];
+
+    expect(sarif.runs[0].tool.driver.rules).toHaveLength(1);
+    expect(rule.defaultConfiguration.level).toBe("error");
+    expect(rule.properties["security-severity"]).toBe("8.0");
+    expect(rule.properties.precision).toBe("high");
+    expect(sarif.runs[0].results.map((entry: { level: string }) => entry.level)).toEqual(["warning", "error"]);
+  });
 });
 
 function createContextFinding() {

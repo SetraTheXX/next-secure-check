@@ -11,7 +11,6 @@ import {
   getVisibleFindings,
   LOADING_STATE_TITLE,
   validateRepoInput,
-  type ScanApiFinding,
   type ScanApiResult,
   type ScanApiSuccess,
   type ScanStatus

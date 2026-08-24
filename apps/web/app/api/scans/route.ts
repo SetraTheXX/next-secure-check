@@ -111,10 +111,13 @@ function statusForErrorCode(code: string): number {
     return 422;
   }
 
+  if (code === "RATE_LIMITED") {
+    return 429;
+  }
+
   if (
     code === "DOWNLOAD_TIMEOUT" ||
     code === "SCAN_TIMEOUT" ||
-    code === "RATE_LIMITED" ||
     code === "NETWORK_ERROR" ||
     code === "UNSUPPORTED_CONTENT_TYPE"
   ) {

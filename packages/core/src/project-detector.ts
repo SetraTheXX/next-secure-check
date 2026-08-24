@@ -23,12 +23,11 @@ export function detectProject(files: SourceFile[], rootPath: string): Pick<ScanC
 
   const hasNextDependency = "next" in allDependencies;
   const hasReactDependency = "react" in allDependencies || files.some((file) => /\.(tsx|jsx)$/.test(file.path));
-  const hasNextStructure = files.some((file) => file.path.startsWith("app/") || file.path.startsWith("src/app/"));
-  const hasApiRoutes = files.some((file) => file.path.includes("/api/") || file.path.startsWith("pages/api/"));
+  const hasNextStructure = files.some((file) => isAppRouterPath(file.path) || isPagesRouterPath(file.path));
 
   const project: ProjectInfo = {
     name: packageJson.name ?? path.basename(rootPath),
-    framework: hasNextDependency || hasNextStructure || hasApiRoutes ? "nextjs" : hasReactDependency ? "react" : "node",
+    framework: hasNextDependency || hasNextStructure ? "nextjs" : hasReactDependency ? "react" : "node",
     router: detectRouter(files),
     language: detectLanguage(files)
   };
@@ -63,8 +62,8 @@ function parsePackageJson(content?: string): ParsedPackageJson {
 }
 
 function detectRouter(files: SourceFile[]): ProjectInfo["router"] {
-  const hasApp = files.some((file) => file.path.startsWith("app/") || file.path.startsWith("src/app/"));
-  const hasPages = files.some((file) => file.path.startsWith("pages/") || file.path.startsWith("src/pages/"));
+  const hasApp = files.some((file) => isAppRouterPath(file.path));
+  const hasPages = files.some((file) => isPagesRouterPath(file.path));
 
   if (hasApp && hasPages) {
     return "mixed";
@@ -79,6 +78,14 @@ function detectRouter(files: SourceFile[]): ProjectInfo["router"] {
   }
 
   return "unknown";
+}
+
+function isAppRouterPath(filePath: string): boolean {
+  return /^(?:apps\/[^/]+\/)?(?:src\/)?app(?:\/|$)/.test(filePath);
+}
+
+function isPagesRouterPath(filePath: string): boolean {
+  return /^(?:apps\/[^/]+\/)?(?:src\/)?pages(?:\/|$)/.test(filePath);
 }
 
 function detectLanguage(files: SourceFile[]): ProjectInfo["language"] {

@@ -44,7 +44,6 @@ describe("downloadGitHubTarball", () => {
       createResponse({
         body: new Uint8Array(),
         contentType: "application/json",
-        ok: false,
         status: 403
       })
     );
@@ -148,7 +147,6 @@ describe("downloadGitHubTarball", () => {
       createResponse({
         body: new Uint8Array(),
         contentType: "application/json",
-        ok: false,
         status: 403
       })
     );
@@ -210,17 +208,16 @@ function createResponse(options: {
   body: Uint8Array;
   contentLength?: string;
   contentType: string;
-  ok?: boolean;
   status: number;
 }): Response {
-  return {
-    arrayBuffer: async () => options.body.buffer,
-    body: undefined,
-    headers: new Headers({
+  const body = new Uint8Array(options.body.byteLength);
+  body.set(options.body);
+
+  return new Response(body.buffer, {
+    headers: {
       ...(options.contentLength ? { "content-length": options.contentLength } : {}),
       "content-type": options.contentType
-    }),
-    ok: options.ok ?? (options.status >= 200 && options.status < 300),
+    },
     status: options.status
-  } as Response;
+  });
 }

@@ -1,6 +1,8 @@
 export const DEFAULT_GITHUB_TIMEOUT_MS = 12_000;
 export const DEFAULT_SCAN_TIMEOUT_MS = 60_000;
 
+type TimeoutEnvironment = Readonly<Record<string, string | undefined>>;
+
 export class OperationTimeoutError extends Error {
   constructor(message = "Operation timed out") {
     super(message);
@@ -8,11 +10,11 @@ export class OperationTimeoutError extends Error {
   }
 }
 
-export function getGitHubTimeoutMs(env = process.env): number {
+export function getGitHubTimeoutMs(env: TimeoutEnvironment = process.env): number {
   return parseTimeoutMs(env.NEXT_SECURE_CHECK_GITHUB_TIMEOUT_MS, DEFAULT_GITHUB_TIMEOUT_MS);
 }
 
-export function getScanTimeoutMs(env = process.env): number {
+export function getScanTimeoutMs(env: TimeoutEnvironment = process.env): number {
   return parseTimeoutMs(env.NEXT_SECURE_CHECK_SCAN_TIMEOUT_MS, DEFAULT_SCAN_TIMEOUT_MS);
 }
 

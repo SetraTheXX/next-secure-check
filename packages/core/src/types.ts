@@ -92,6 +92,7 @@ export type MiddlewareSignal = {
   hasAuthSignal: boolean;
   hasRateLimitSignal: boolean;
   matchers: string[];
+  scopeRoot?: string;
 };
 
 export type Rule = {

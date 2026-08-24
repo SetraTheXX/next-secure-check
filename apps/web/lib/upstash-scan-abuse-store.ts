@@ -35,6 +35,7 @@ export class UpstashScanAbuseStore implements ScanAbuseStore {
       const activeCount = await this.incrementWithExpiry(ACTIVE_SCAN_KEY, ACTIVE_SCAN_TTL_SECONDS);
       if (activeCount > MAX_ACTIVE_SCANS) {
         await this.decrementActiveScan();
+        await this.decrementCounter(rateKey);
         return concurrentLimitResult();
       }
 
@@ -69,10 +70,14 @@ export class UpstashScanAbuseStore implements ScanAbuseStore {
   }
 
   private async decrementActiveScan(): Promise<void> {
+    await this.decrementCounter(ACTIVE_SCAN_KEY);
+  }
+
+  private async decrementCounter(key: string): Promise<void> {
     try {
-      await this.pipeline([["DECR", ACTIVE_SCAN_KEY]]);
+      await this.pipeline([["DECR", key]]);
     } catch {
-      // Releasing a slot should not mask a completed scan response.
+      // Counter rollback should not expose store failures or mask a scan response.
     }
   }
 

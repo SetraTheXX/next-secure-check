@@ -261,6 +261,7 @@ describe("POST /api/scans", () => {
         .mockResolvedValueOnce(createUpstashResponse([{ result: 1 }, { result: 1 }]))
         .mockResolvedValueOnce(createUpstashResponse([{ result: 3 }, { result: 1 }]))
         .mockResolvedValueOnce(createUpstashResponse([{ result: 2 }]))
+        .mockResolvedValueOnce(createUpstashResponse([{ result: 0 }]))
     );
 
     const response = await POST(createScanRequest({ ip: "203.0.113.11" }));
@@ -348,6 +349,29 @@ describe("POST /api/scans", () => {
       ok: false
     });
     expect(JSON.stringify(payload)).not.toContain("stack");
+  });
+
+  it("maps upstream GitHub rate limits to HTTP 429", async () => {
+    scanPublicGitHubRepoMock.mockResolvedValueOnce({
+      code: "RATE_LIMITED",
+      message: "GitHub API rate limit exceeded",
+      ok: false,
+      status: 403
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body: JSON.stringify({ repoUrl: "https://github.com/owner/repo" }),
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "RATE_LIMITED",
+      message: "GitHub API rate limit exceeded",
+      ok: false
+    });
   });
 
   it("returns safe response for unexpected scan exceptions", async () => {

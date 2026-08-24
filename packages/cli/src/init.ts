@@ -1,6 +1,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CONFIG_FILE_NAME } from "./config.js";
+import { CLI_VERSION } from "./version.js";
 
 export const NEXT_SECURE_CHECK_WORKFLOW_PATH = ".github/workflows/next-secure-check.yml";
 
@@ -36,7 +37,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check
-        run: npx --yes next-secure-check@0.3.0 scan . --preset app --format github --fail-on high
+        run: npx --yes next-secure-check@${CLI_VERSION} scan . --preset app --format github --fail-on high
 `;
 
 const INIT_FILES = [

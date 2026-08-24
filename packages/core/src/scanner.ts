@@ -105,12 +105,21 @@ function extractMiddlewareSignals(files: SourceFile[]): MiddlewareSignal[] {
     filePath: file.path,
     hasAuthSignal: hasMiddlewareAuthSignal(file.content),
     hasRateLimitSignal: hasMiddlewareRateLimitSignal(file.content),
-    matchers: extractMiddlewareMatchers(file.content)
+    matchers: extractMiddlewareMatchers(file.content),
+    scopeRoot: middlewareScopeRoot(file.path) ?? ""
   }));
 }
 
 function isMiddlewareFile(file: SourceFile): boolean {
-  return /^(?:src\/)?middleware\.[tj]s$/.test(file.path);
+  return middlewareScopeRoot(file.path) !== undefined;
+}
+
+function middlewareScopeRoot(filePath: string): string | undefined {
+  if (/^(?:src\/)?middleware\.[tj]s$/.test(filePath)) {
+    return "";
+  }
+
+  return /^((?:apps|packages)\/[^/]+)\/(?:src\/)?middleware\.[tj]s$/.exec(filePath)?.[1];
 }
 
 function hasMiddlewareAuthSignal(content: string): boolean {

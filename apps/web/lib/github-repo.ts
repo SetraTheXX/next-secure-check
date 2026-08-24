@@ -43,10 +43,10 @@ export async function fetchPublicGitHubRepoMetadata(
         return { ok: false, error: "Repository not found", status: 404 };
       }
 
-      if (response.status === 403) {
+      if (response.status === 403 || response.status === 429) {
         return {
           ok: false,
-          error: "Private repositories are not supported",
+          error: "GitHub API rate limit exceeded",
           status: response.status
         };
       }

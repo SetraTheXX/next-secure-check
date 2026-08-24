@@ -7,7 +7,7 @@ Current validation baseline:
 ```txt
 packages: 309 tests
 apps/web: 143 tests
-total: 452 tests
+total: 461 tests
 ```
 
 Historical v0.1 baseline:

@@ -27,6 +27,26 @@ describe("detectProject", () => {
     expect(result.project.router).toBe("pages");
   });
 
+  it("detects a nested monorepo Next.js app", () => {
+    const result = detectProject(
+      [file("package.json", '{"name":"workspace"}'), file("apps/web/app/page.tsx")],
+      "/tmp/workspace"
+    );
+
+    expect(result.project.framework).toBe("nextjs");
+    expect(result.project.router).toBe("app");
+  });
+
+  it("does not treat an unrelated src/api directory as Next.js", () => {
+    const result = detectProject(
+      [file("package.json", '{"name":"node-library"}'), file("src/api/client.ts")],
+      "/tmp/node-library"
+    );
+
+    expect(result.project.framework).toBe("node");
+    expect(result.project.router).toBe("unknown");
+  });
+
   it("detects mixed TypeScript and JavaScript", () => {
     const result = detectProject([file("src/index.ts"), file("src/index.js")], "/tmp/demo");
 

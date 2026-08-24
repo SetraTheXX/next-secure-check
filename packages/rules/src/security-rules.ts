@@ -9,7 +9,7 @@ import {
   hasAuthIntentSignal,
   hasValidationIntentSignal
 } from "./ast-utils.js";
-import { codeFiles, configFiles, createFinding, findMatches, hasDependency } from "./rule-utils.js";
+import { codeFiles, configFiles, createFinding, findMatches } from "./rule-utils.js";
 
 const RATE_LIMIT_SIGNAL_PATTERN =
   /\b(rateLimit|rate-limit|ratelimit|limiter|checkRateLimit|applyRateLimit|upstash|redis|slowDown|throttle)\b|\b429\b|too many requests/i;
@@ -254,10 +254,6 @@ export const passwordWithoutHashingRule: Rule = {
   category: "auth",
   confidence: "MEDIUM",
   scan(context) {
-    if (hasDependency(context, ["bcrypt", "bcryptjs", "argon2"])) {
-      return [];
-    }
-
     return codeFiles(context).flatMap((file) =>
       findPasswordHandlingMatches(file).map((match) =>
         createFinding({
@@ -784,26 +780,35 @@ function isRouteProtectedByMiddleware(
   if (!routePath) {
     return false;
   }
+  const routeScopeRoot = scopeRootFromRoutePath(filePath);
 
   return (middlewareSignals ?? []).some((signal) => {
     const hasSignal = signalType === "auth" ? signal.hasAuthSignal : signal.hasRateLimitSignal;
-    return hasSignal && signal.matchers.some((matcher) => middlewareMatcherCoversRoute(matcher, routePath));
+    return (
+      hasSignal &&
+      (signal.scopeRoot ?? "") === routeScopeRoot &&
+      signal.matchers.some((matcher) => middlewareMatcherCoversRoute(matcher, routePath))
+    );
   });
 }
 
 function routePathFromFilePath(filePath: string): string | undefined {
   const normalizedPath = filePath.replace(/\\/g, "/");
-  const appRouteMatch = /^(?:apps\/[^/]+\/)?(?:src\/)?app\/api\/(.+)\/route\.[tj]s$/i.exec(normalizedPath);
+  const appRouteMatch = /^(?:(?:apps|packages)\/[^/]+\/)?(?:src\/)?app\/api\/(.+)\/route\.[tj]s$/i.exec(normalizedPath);
   if (appRouteMatch?.[1]) {
     return `/api/${appRouteMatch[1]}`;
   }
 
-  const pagesRouteMatch = /^(?:apps\/[^/]+\/)?pages\/api\/(.+)\.[tj]s$/i.exec(normalizedPath);
+  const pagesRouteMatch = /^(?:(?:apps|packages)\/[^/]+\/)?pages\/api\/(.+)\.[tj]s$/i.exec(normalizedPath);
   if (pagesRouteMatch?.[1]) {
     return `/api/${pagesRouteMatch[1]}`;
   }
 
   return undefined;
+}
+
+function scopeRootFromRoutePath(filePath: string): string {
+  return /^((?:apps|packages)\/[^/]+)\//.exec(filePath.replace(/\\/g, "/"))?.[1] ?? "";
 }
 
 function middlewareMatcherCoversRoute(matcher: string, routePath: string): boolean {

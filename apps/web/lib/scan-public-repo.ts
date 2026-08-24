@@ -88,7 +88,7 @@ export async function scanPublicGitHubRepo(
   if (!metadata.ok) {
     return {
       ok: false,
-      code: "METADATA_FETCH_FAILED",
+      code: metadata.status === 403 || metadata.status === 429 ? "RATE_LIMITED" : "METADATA_FETCH_FAILED",
       message: metadata.error,
       status: metadata.status
     };

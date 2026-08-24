@@ -8,6 +8,7 @@ import { CONFIG_FILE_NAME } from "./config.js";
 import { shouldFail } from "./fail-on.js";
 import { initProject, NEXT_SECURE_CHECK_WORKFLOW_PATH } from "./init.js";
 import { formatRuleExplanation, formatRulesList, formatUnknownRuleMessage } from "./rules-info.js";
+import { CLI_VERSION } from "./version.js";
 
 const tempDirs: string[] = [];
 
@@ -43,6 +44,16 @@ describe("shouldFail", () => {
 
   it("does not fail when failOn is not configured", () => {
     expect(shouldFail(createResult("critical", ["HIGH"]), undefined)).toBe(false);
+  });
+});
+
+describe("CLI version", () => {
+  it("reads the published version from the package manifest", async () => {
+    const manifest = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8")
+    ) as { version: string };
+
+    expect(CLI_VERSION).toBe(manifest.version);
   });
 });
 

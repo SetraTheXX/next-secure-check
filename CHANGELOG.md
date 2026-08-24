@@ -13,9 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refined auth and API validation intent detection to ignore comments and keyword-only identifiers while recognizing common auth and validation calls.
 - Added shared `AnalysisFacts` syntax parsing with a per-scan source-file cache.
 - Added a bounded same-function command source-to-sink pilot with optional JSON/SARIF `evidencePath` metadata.
+- Raised the supported Node.js baseline to Node 20 and aligned CLI metadata with `commander@14`.
+- Upgraded the web demo and secure fixture to Next.js 16.3.2 and added a warning-free ESLint gate.
+- Made workspace tests resolve package source instead of potentially stale `dist` output.
+- Added the lint gate to CI and included the MIT license text in every published package tarball.
+
+### Fixed
+- Kept password findings active when a hashing dependency is installed but not actually used.
+- Corrected monorepo Next.js project/router detection and avoided treating generic `src/api` directories as Next.js.
+- Scoped nested app middleware signals so they protect only routes in the same app.
+- Aggregated SARIF rule metadata using the strongest effective severity and confidence for each rule.
+- Mapped GitHub API rate limits safely and prevented rejected distributed-concurrency requests from consuming IP rate quota.
+- Removed duplicated hardcoded CLI version literals by reading the package manifest at runtime.
 
 ### Tests
-- Current validation baseline: 309 package tests, 143 web tests, 452 total tests.
+- Current validation baseline: 315 package tests, 146 web tests, 461 total tests.
 
 ## [0.3.0] - 2026-06-04
 

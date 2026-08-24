@@ -43,6 +43,8 @@ For bugs, please include:
 
 ## Development Setup
 
+Use Node.js 20.9 or newer for the workspace.
+
 ```bash
 pnpm install
 pnpm build

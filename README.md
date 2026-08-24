@@ -18,7 +18,7 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 452 passing tests across packages and the web demo
+- 461 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - Context metadata on findings
 - CLI preset system for app-focused, strict, CI, audit, library, and monorepo scans
@@ -57,7 +57,7 @@ The CLI is exercised in GitHub Actions as part of this repository's CI.
 - The workflow runs the scanner with `--format github` and writes the markdown report to the job **Step Summary** via `$GITHUB_STEP_SUMMARY`.
 - When `--fail-on high` is used, the job fails if any HIGH severity finding is reported.
 - When `--fail-on critical` is used, the job fails only when the scan summary risk level is `critical`.
-- The step order is: build -> typecheck -> test -> security check, ensuring workspace packages are compiled before typechecking.
+- The step order is: build -> typecheck -> lint -> test -> security check, ensuring workspace packages are compiled before typechecking.
 - The findings are deterministic pattern matches; no proof-of-exploit is executed.
 
 ## Why This Exists
@@ -100,6 +100,8 @@ The scanner currently checks for 20 common security patterns. You can read more 
 20. **[config/next-powered-by-header](./docs/rules/next-powered-by-header.md)**: Detects missing `poweredByHeader: false` in Next.js config.
 
 ## CLI Usage
+
+Requirements: Node.js 20 or newer.
 
 Recommended one-off usage:
 
@@ -321,9 +323,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 309 tests
-apps/web: 143 tests
-total: 452 tests
+packages: 315 tests
+apps/web: 146 tests
+total: 461 tests
 ```
 
 After building, the CLI can be run locally:
@@ -538,7 +540,7 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 
 Manual validation notes:
 
-- Current validation baseline: 309 package tests, 143 web tests, 452 total tests.
+- Current validation baseline: 315 package tests, 146 web tests, 461 total tests.
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)

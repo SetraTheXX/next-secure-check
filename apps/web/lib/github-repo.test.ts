@@ -98,7 +98,7 @@ describe("fetchPublicGitHubRepoMetadata", () => {
     expect(result).toEqual({ ok: false, error: "Repository not found", status: 404 });
   });
 
-  it("rejects private repo", async () => {
+  it("maps GitHub 403 responses to a rate-limit message", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
       status: 403
@@ -108,8 +108,34 @@ describe("fetchPublicGitHubRepoMetadata", () => {
     const result = await fetchPublicGitHubRepoMetadata("owner", "private");
     expect(result).toEqual({
       ok: false,
-      error: "Private repositories are not supported",
+      error: "GitHub API rate limit exceeded",
       status: 403
+    });
+  });
+
+  it("rejects private repository metadata without exposing details", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        full_name: "owner/private",
+        default_branch: "main",
+        private: true,
+        archived: false,
+        disabled: false,
+        size: 1,
+        html_url: "https://github.com/owner/private",
+        tarball_url: "https://api.github.com/repos/owner/private/tarball"
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock as typeof fetch);
+
+    const result = await fetchPublicGitHubRepoMetadata("owner", "private");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Private repositories are not supported",
+      status: 200
     });
   });
 

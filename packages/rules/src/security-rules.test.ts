@@ -460,13 +460,13 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(false);
   });
 
-  it("does not flag password handling when bcrypt is installed", async () => {
+  it("flags password handling when bcrypt is installed but unused", async () => {
     const result = await scanFixture({
       "package.json": '{"dependencies":{"bcrypt":"latest"}}',
       "app/api/register/route.ts": "const password = body.password;"
     });
 
-    expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(false);
+    expect(result.findings.some((finding) => finding.ruleId === "auth/password-without-hashing-library")).toBe(true);
   });
 
   it("does not flag plain raw SQL template assignments without a query sink", async () => {
@@ -1259,6 +1259,23 @@ describe("built-in security rules", () => {
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("applies nested middleware only to routes in the same app", async () => {
+    const result = await scanFixture({
+      "apps/web/middleware.ts": [
+        "export function middleware() { return auth(); }",
+        "export const config = { matcher: '/api/admin/:path*' };"
+      ].join("\n"),
+      "apps/web/app/api/admin/route.ts": "export async function GET() { return Response.json({ users: [] }); }",
+      "apps/other/app/api/admin/route.ts": "export async function GET() { return Response.json({ users: [] }); }"
+    });
+
+    expect(
+      result.findings
+        .filter((finding) => finding.ruleId === "auth/admin-route-without-auth")
+        .map((finding) => finding.filePath)
+    ).toEqual(["apps/other/app/api/admin/route.ts"]);
   });
 
   it("keeps admin route findings when auth middleware matcher does not cover the route", async () => {

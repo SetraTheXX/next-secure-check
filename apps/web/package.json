@@ -7,13 +7,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@next-secure-check/core": "workspace:*",
     "@next-secure-check/rules": "workspace:*",
-    "next": "^15.0.0",
+    "next": "^16.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tar-stream": "^3.2.0"
@@ -21,6 +22,8 @@
   "devDependencies": {
     "@types/react": "19.2.14",
     "@types/tar-stream": "^3.1.4",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.2",
     "vitest": "^4.1.5"
   }
 }

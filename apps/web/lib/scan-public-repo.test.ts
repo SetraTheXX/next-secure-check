@@ -1,8 +1,9 @@
-import type { Finding, Rule, ScanOptions, ScanResult } from "@next-secure-check/core";
+import type { Finding, Rule, ScanResult } from "@next-secure-check/core";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { GitHubRepoMetadataResult } from "./github-repo";
 import { resolveScanRoot, scanPublicGitHubRepo } from "./scan-public-repo";
 
 afterEach(() => {
@@ -175,6 +176,23 @@ describe("scanPublicGitHubRepo", () => {
       code: "METADATA_FETCH_FAILED",
       message: "Repository not found",
       status: 404
+    });
+  });
+
+  it("preserves GitHub metadata rate-limit failures", async () => {
+    const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
+      fetchMetadataImpl: vi.fn().mockResolvedValue({
+        error: "GitHub API rate limit exceeded",
+        ok: false,
+        status: 403
+      })
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "RATE_LIMITED",
+      message: "GitHub API rate limit exceeded",
+      status: 403
     });
   });
 
@@ -362,7 +380,9 @@ describe("scanPublicGitHubRepo", () => {
   });
 });
 
-function createMetadata(overrides?: Partial<ReturnType<typeof createMetadata>>) {
+type SuccessfulMetadata = Extract<GitHubRepoMetadataResult, { ok: true }>;
+
+function createMetadata(overrides?: Partial<SuccessfulMetadata>): SuccessfulMetadata {
   return {
     archived: false,
     defaultBranch: "main",
