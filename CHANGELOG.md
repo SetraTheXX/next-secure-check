@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded the web demo and secure fixture to Next.js 16.3.2 and added a warning-free ESLint gate.
 - Made workspace tests resolve package source instead of potentially stale `dist` output.
 - Added the lint gate to CI and included the MIT license text in every published package tarball.
+- Updated generated and documented GitHub workflows to current Node 24-based action majors while keeping scanned projects on Node.js 20.
 
 ### Fixed
 - Kept password findings active when a hashing dependency is installed but not actually used.
