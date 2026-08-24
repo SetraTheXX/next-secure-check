@@ -8,7 +8,7 @@ Contributions are most helpful when they keep the scanner understandable, testab
 
 ## Start With the Roadmap and Issues
 
-Before starting work, read [ROADMAP.md](./ROADMAP.md) and check the open GitHub issues. Prefer a focused issue or a short proposal before beginning a new rule, analyzer, or public API change. The current v0.4 direction is bounded, syntax-first analysis; full type-aware analysis, cross-file taint flow, and unrestricted plugin loading are not part of the default contribution scope.
+Before starting work, read [ROADMAP.md](./ROADMAP.md) and check the open GitHub issues. Prefer a focused issue or a short proposal before beginning a new rule, analyzer, or public API change. The published v0.4 line uses bounded, syntax-first analysis; the v0.5 direction will be planned around measured quality improvements. Full type-aware analysis, cross-file taint flow, and unrestricted plugin loading are not part of the default contribution scope.
 
 ## Before Opening an Issue
 
@@ -68,7 +68,7 @@ When adding or changing a rule, please update:
 - Documentation under `docs/rules`.
 - Example or fixture behavior when the rule intentionally changes scanner output.
 
-Think through false positives before raising severity. For the published v0.3 line and the unreleased v0.4 work, predictable and explainable behavior is more important than catching every possible edge case. Do not treat a new pattern match as a confirmed vulnerability without checking its context.
+Think through false positives before raising severity. For the published v0.4 line and planned v0.5 work, predictable and explainable behavior is more important than catching every possible edge case. Do not treat a new pattern match as a confirmed vulnerability without checking its context.
 
 ## Pull Requests
 
