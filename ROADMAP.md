@@ -230,7 +230,7 @@ Reduce high-value false positives and recover a small number of missed source-to
 - [x] Complete a pre-release correctness, dependency-security, CI, and package-metadata audit.
 - [x] Record a 30-45 second screen demo after findings and output stabilized.
 - [ ] Optional post-release edit, Turkish voice-over, English subtitles, and final privacy review.
-- [x] Run full validation, pack smoke, and publish dry-run.
+- [x] Run full validation, pack smoke, publish dry-run, and publish the v0.4.1 CLI patch.
 - [x] Prepare concise v0.4 release notes with known limitations.
 
 **Exit criteria:** The release can show what the tool catches, what it intentionally does not claim, and how to report a false positive.
