@@ -6,7 +6,7 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 | --- | --- |
 | Last reviewed | 2026-08-22 |
 | Current release | v0.3.0 published |
-| Current next task | v0.4 Phase 7 - opt-in TypeChecker measurement spike |
+| Current next task | v0.4 Phase 8 - release and demo preparation |
 
 ## Progress Legend
 
@@ -125,9 +125,9 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 306 package tests
+- 309 package tests
 - 143 web tests
-- 449 total tests
+- 452 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 - Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 
@@ -194,16 +194,16 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 7 - Opt-in TypeChecker Spike
 
-**Status:** `[ ] Deferred research`
+**Status:** `[x] Measured; productization deferred`
 
 **Goal:** Measure whether project-aware symbols justify their operational cost.
 
-- [ ] Add an isolated opt-in experiment; do not make it the default scan path.
-- [ ] Measure small project and medium monorepo startup/warm costs.
-- [ ] Test missing, malformed, and multi-project `tsconfig` behavior.
-- [ ] Compare import alias and symbol-resolution accuracy against the syntax baseline.
-- [ ] Require syntax fallback when project loading is unsafe or unavailable.
-- [ ] Decide whether TypeChecker belongs in v0.5, remains opt-in, or is rejected.
+- [x] Add an isolated opt-in experiment; do not make it the default scan path.
+- [x] Measure small project and medium fixture startup costs.
+- [x] Test missing, malformed, and multi-project `tsconfig` behavior.
+- [x] Compare import alias and symbol-resolution accuracy against the syntax baseline.
+- [x] Require syntax fallback when project loading is unsafe or unavailable.
+- [x] Decide to keep TypeChecker isolated until a broader productization study.
 
 **Exit criteria:** A measured decision exists. No TypeChecker productization happens based only on intuition.
 

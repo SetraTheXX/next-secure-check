@@ -5,9 +5,9 @@ This folder contains manual validation notes for project phases and milestone ch
 Current validation baseline:
 
 ```txt
-packages: 306 tests
+packages: 309 tests
 apps/web: 143 tests
-total: 449 tests
+total: 452 tests
 ```
 
 Historical v0.1 baseline:
@@ -25,6 +25,8 @@ Phase 4 has a separate manual validation note because the web demo required addi
 Phase 6 external review fixes are documented separately because they were a focused bugfix and hardening pass after Claude/Codex review, covering CLI behavior, rule false positives, web hardening, and SARIF output quality.
 
 The current v0.4 bounded command-flow matrix and performance gate are documented in [phase-6-bounded-flow.md](./phase-6-bounded-flow.md).
+
+The isolated TypeChecker measurement and syntax fallback decision are documented in [phase-7-typechecker-spike.md](./phase-7-typechecker-spike.md).
 
 ## Post-release Real-world Smoke Note
 
