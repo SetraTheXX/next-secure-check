@@ -992,8 +992,8 @@ describe("built-in security rules", () => {
     });
 
     const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
-    expect(commandFindings).toHaveLength(2);
-    expect(commandFindings[1]?.evidence).toBe('object.exec(); spawn("ls");');
+    expect(commandFindings).toHaveLength(1);
+    expect(commandFindings[0]?.evidence).toBe('object.exec(); spawn("ls");');
   });
 
   it("detects child_process imports", async () => {

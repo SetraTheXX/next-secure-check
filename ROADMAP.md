@@ -6,7 +6,7 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 | --- | --- |
 | Last reviewed | 2026-08-22 |
 | Current release | v0.3.0 published |
-| Current next task | v0.4 Phase 6 - regression and performance gate |
+| Current next task | v0.4 Phase 7 - opt-in TypeChecker measurement spike |
 
 ## Progress Legend
 
@@ -125,9 +125,9 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 304 package tests
+- 306 package tests
 - 143 web tests
-- 447 total tests
+- 449 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 - Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 
@@ -153,7 +153,7 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 5 - Bounded Command Source-to-Sink Pilot
 
-**Status:** `[~] Pilot implemented; Phase 6 gate pending`
+**Status:** `[x] Pilot implemented; Phase 6 gate passed`
 
 **Goal:** Improve `injection/command-exec` with explainable same-function flow.
 
@@ -173,7 +173,7 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 6 - Regression and Performance Gate
 
-**Status:** `[~] Matrix/performance measured; acceptance comparison pending`
+**Status:** `[x] Complete`
 
 **Goal:** Turn the v0.4 quality claim into repeatable evidence.
 
@@ -184,7 +184,7 @@ Reduce high-value false positives and recover a small number of missed source-to
 - [x] Measure cold and warm scans on small and medium fixtures.
 - [x] Add a documented real-world smoke command, without making large external repositories a required CI dependency.
 - [x] Record remaining false positives and false negatives as validation notes.
-- [ ] Compare the bounded-flow pilot with a pre-pilot baseline and document five confirmed noise reductions or five correct additional findings.
+- [x] Compare the bounded-flow pilot with a pre-pilot baseline and document five confirmed noise reductions or five correct additional findings.
 
 **Exit criteria:** At least five confirmed noise reductions or five correct additional findings, no critical regression, deterministic outputs, and performance within the decision-note budget.
 

@@ -225,7 +225,8 @@ const COMMAND_FLOW_FIXTURES: CommandFlowFixture[] = [
     name: "argument array without source",
     filePath: "app/api/argument-array/route.ts",
     content: "import { spawn } from 'node:child_process';\nspawn('git', ['status']);",
-    sinkMarker: "spawn('git', ['status'])"
+    sinkMarker: "spawn('git', ['status'])",
+    expectedFinding: false
   },
   {
     name: "reassignment stop",
@@ -252,6 +253,14 @@ const COMMAND_FLOW_FIXTURES: CommandFlowFixture[] = [
     sinkMarker: "exec(command)"
   }
 ];
+
+const SAFE_STATIC_SPAWN_FIXTURES = {
+  "cli/src/helpers/git.ts": "import { spawn } from 'node:child_process';\nspawn('git', ['status']);",
+  "cli/src/helpers/git-sync.ts": "const cp = require('child_process');\ncp.spawnSync('git', ['status']);",
+  ".github/scripts/pnpm-version.ts": "import * as cp from 'node:child_process';\ncp.spawn('pnpm', ['--version'], { shell: false });",
+  "scripts/release/node-version.ts": "const child_process = require('child_process');\nchild_process.spawnSync('node', ['--version'], { shell: false });",
+  "packages/tooling/src/git.ts": "const cp = require('child_process');\ncp.spawn('git', ['diff', '--stat'], { stdio: 'ignore' });"
+};
 
 describe("v0.3 regression fixtures", () => {
   it("keeps shadcn-style monorepo component and registry paths separate from runtime API risk", async () => {
@@ -286,7 +295,7 @@ describe("v0.3 regression fixtures", () => {
 
   it("keeps CLI tooling command execution tuned in standard mode and aggressive with tuning off", async () => {
     const files = {
-      "cli/src/helpers/git.ts": "import * as cp from 'node:child_process';\ncp.spawn('git', ['status']);"
+      "cli/src/helpers/git.ts": "import * as cp from 'node:child_process';\nconst command = process.argv[2] ?? 'git';\ncp.spawn(command);"
     };
 
     const standard = await scanFixture(files);
@@ -536,5 +545,32 @@ describe("v0.4 bounded command-flow gate", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  it("reduces five safe static non-shell spawn false positives", async () => {
+    const result = await scanFixture(SAFE_STATIC_SPAWN_FIXTURES);
+
+    expect(Object.keys(SAFE_STATIC_SPAWN_FIXTURES)).toHaveLength(5);
+    expect(findingsFor(result, "injection/command-exec")).toEqual([]);
+  });
+
+  it("keeps dynamic and shell-enabled spawn calls detectable", async () => {
+    const result = await scanFixture({
+      "app/api/dynamic-spawn/route.ts": [
+        "import * as cp from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  cp.spawn(body.command, ['--version']);",
+        "}"
+      ].join("\n"),
+      "app/api/shell-spawn/route.ts": "import * as cp from 'node:child_process';\ncp.spawn('git', ['status'], { shell: true });"
+    });
+
+    expect(findingsFor(result, "injection/command-exec")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ filePath: "app/api/dynamic-spawn/route.ts" }),
+        expect.objectContaining({ filePath: "app/api/shell-spawn/route.ts" })
+      ])
+    );
   });
 });

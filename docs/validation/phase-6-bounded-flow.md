@@ -4,7 +4,7 @@ Date: 2026-08-23
 
 ## Scope
 
-This validation note covers the v0.4 bounded, syntax-only `injection/command-exec` source-to-sink pilot. It does not claim cross-function, cross-file, type-aware, or full control-flow analysis.
+This validation note covers the v0.4 bounded, syntax-only `injection/command-exec` source-to-sink pilot and its narrow non-shell spawn noise reduction. It does not claim cross-function, cross-file, type-aware, or full control-flow analysis.
 
 ## Regression Matrix
 
@@ -14,14 +14,15 @@ This validation note covers the v0.4 bounded, syntax-only `injection/command-exe
 - The matrix covers JavaScript, JSX, TypeScript, TSX, App Router-style paths, and Pages Router-style paths.
 - Reassignment, mutation, callback/closure escape, and cross-function flow stop tracking as intended.
 - Literal commands, argument-array commands, and unrelated object methods do not receive a source path; the existing imported sink review signal remains intact.
+- Five static non-shell `spawn`/`spawnSync` tooling patterns are suppressed, while dynamic executable values and `shell: true` remain findings.
 
 ## Performance Measurement
 
 The local Vitest measurement used a 100-file syntax-only fixture project:
 
 ```txt
-cold: 82.5ms
-warm: 77.4ms
+cold: 124.9ms
+warm: 115.2ms
 ```
 
 These numbers are directional local measurements, not a universal benchmark. The test uses an 8-second ceiling to catch pathological regressions while leaving room for slower CI machines.
@@ -44,9 +45,9 @@ node packages/cli/dist/index.js scan examples/vulnerable-next-app --format sarif
 
 ## Validation Snapshot
 
-- Package tests: 304 passed.
+- Package tests: 306 passed.
 - Web tests: 143 passed.
-- Total: 447 passed.
+- Total: 449 passed.
 - Self-scan with `--preset app`: `100/100`, `excellent`, 0 findings.
 - Vulnerable fixture with `--preset strict`: `0/100`, `critical`, 26 findings.
 
@@ -56,4 +57,4 @@ The pilot deliberately records no source path for values that cross a function b
 
 ## Gate Status
 
-The 30-case matrix, deterministic output checks, and local performance measurement are complete with no critical regression in the vulnerable or self-scan fixtures. The broader acceptance criterion of five measured false-positive reductions or five additional findings is not claimed yet because this pilot adds explainable flow metadata while preserving sink-only detection. Phase 6 remains open for a measured noise/coverage comparison before the v0.4 release decision.
+The 30-case matrix, deterministic output checks, local performance measurement, and five-case static non-shell spawn comparison are complete with no critical regression in the vulnerable or self-scan fixtures. The five confirmed noise reductions come from static executable-plus-argument-array `spawn`/`spawnSync` tooling patterns that the previous broad sink matcher reported. Dynamic executable values and `shell: true` remain findings. Phase 6 acceptance is complete; TypeChecker and broader source-to-sink coverage remain later work.

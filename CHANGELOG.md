@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a bounded same-function command source-to-sink pilot with optional JSON/SARIF `evidencePath` metadata.
 
 ### Tests
-- Current validation baseline: 304 package tests, 143 web tests, 447 total tests.
+- Current validation baseline: 306 package tests, 143 web tests, 449 total tests.
 
 ## [0.3.0] - 2026-06-04
 

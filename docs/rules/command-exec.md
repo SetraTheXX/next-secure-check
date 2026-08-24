@@ -25,6 +25,8 @@ These findings are not automatic proof of exploitation. Command execution in app
 
 The current bounded analysis also records an optional source-to-sink evidence path when a request-derived value can be followed inside the same function. Supported source signals include `request.json()`, `request.formData()`, `req.body`, `req.query`, `searchParams.get(...)`, and route parameters. The path is exposed as `evidencePath` in JSON and SARIF properties.
 
+Static `spawn(...)` and `spawnSync(...)` calls with a literal executable, a literal argument array, and no shell (or an explicit `shell: false`) are treated as non-shell process launches and are not reported by this rule. Dynamic executable or argument values and explicit `shell: true` remain review signals.
+
 This is intentionally conservative: it supports direct expressions, direct assignments, and up to two short identifier aliases. Tracking stops at reassignment, mutation, callback/closure escape, and function boundaries. Cross-function, cross-file, type-aware, and full control-flow analysis are not part of this pilot. A command finding without a proven source still remains a valid review signal.
 
 ## Examples

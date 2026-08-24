@@ -18,7 +18,7 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 447 passing tests across packages and the web demo
+- 449 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - Context metadata on findings
 - CLI preset system for app-focused, strict, CI, audit, library, and monorepo scans
@@ -301,9 +301,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 304 tests
+packages: 306 tests
 apps/web: 143 tests
-total: 447 tests
+total: 449 tests
 ```
 
 After building, the CLI can be run locally:
@@ -518,7 +518,7 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 
 Manual validation notes:
 
-- Current validation baseline: 304 package tests, 143 web tests, 447 total tests.
+- Current validation baseline: 306 package tests, 143 web tests, 449 total tests.
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)

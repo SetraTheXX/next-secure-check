@@ -103,7 +103,7 @@ export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
   const matches = commandDeclarationNodes.map((node) => matchFromNode(file, sourceFile, node));
 
   visit(sourceFile, (node) => {
-    if (!ts.isCallExpression(node) || !isCommandExecutionCall(node.expression, commandIdentifiers, childProcessNamespaces)) {
+    if (!ts.isCallExpression(node) || !isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)) {
       return;
     }
 
@@ -280,7 +280,9 @@ function collectChildProcessImports(
     }
 
     commandIdentifiers.add(importSpecifier.name.text);
-    declarationNodes.push(importSpecifier);
+    if (importedName === "exec" || importedName === "execSync") {
+      declarationNodes.push(importSpecifier);
+    }
   }
 }
 
@@ -309,7 +311,9 @@ function collectChildProcessRequires(
         }
 
         commandIdentifiers.add(localName);
-        declarationNodes.push(element);
+        if (importedName === "exec" || importedName === "execSync") {
+          declarationNodes.push(element);
+        }
       }
     }
 
@@ -320,7 +324,9 @@ function collectChildProcessRequires(
     const importedName = node.initializer.name.text;
     if (ts.isIdentifier(node.name) && COMMAND_EXECUTION_NAMES.has(importedName)) {
       commandIdentifiers.add(node.name.text);
-      declarationNodes.push(node);
+      if (importedName === "exec" || importedName === "execSync") {
+        declarationNodes.push(node);
+      }
     }
   }
 }
@@ -339,6 +345,69 @@ function isCommandExecutionCall(
   }
 
   return ts.isIdentifier(expression.expression) && childProcessNamespaces.has(expression.expression.text);
+}
+
+function isAnalyzableCommandExecutionCall(
+  node: ts.CallExpression,
+  commandIdentifiers: ReadonlySet<string>,
+  childProcessNamespaces: ReadonlySet<string>
+): boolean {
+  return isCommandExecutionCall(node.expression, commandIdentifiers, childProcessNamespaces) && !isSafeStaticSpawnCall(node);
+}
+
+function isSafeStaticSpawnCall(node: ts.CallExpression): boolean {
+  const methodName = commandExecutionName(node.expression);
+  if (methodName !== "spawn" && methodName !== "spawnSync") {
+    return false;
+  }
+
+  const command = node.arguments[0] ? unwrapCommandExpression(node.arguments[0]) : undefined;
+  const argumentsArray = node.arguments[1] ? unwrapCommandExpression(node.arguments[1]) : undefined;
+  if (!command || literalText(command) === undefined || !argumentsArray || !ts.isArrayLiteralExpression(argumentsArray)) {
+    return false;
+  }
+
+  if (!argumentsArray.elements.every((element) => !ts.isSpreadElement(element) && literalText(element) !== undefined)) {
+    return false;
+  }
+
+  const options = node.arguments[2] ? unwrapCommandExpression(node.arguments[2]) : undefined;
+  if (!options) {
+    return true;
+  }
+
+  if (!ts.isObjectLiteralExpression(options)) {
+    return false;
+  }
+
+  return options.properties.every((property) => {
+    if (ts.isSpreadAssignment(property)) {
+      return false;
+    }
+
+    if (!ts.isPropertyAssignment(property)) {
+      return true;
+    }
+
+    const propertyName = ts.isIdentifier(property.name) || ts.isStringLiteral(property.name) ? property.name.text : undefined;
+    if (!propertyName) {
+      return false;
+    }
+
+    if (propertyName !== "shell") {
+      return true;
+    }
+
+    return property.initializer.kind === ts.SyntaxKind.FalseKeyword;
+  });
+}
+
+function commandExecutionName(expression: ts.Expression): string | undefined {
+  if (ts.isIdentifier(expression)) {
+    return expression.text;
+  }
+
+  return ts.isPropertyAccessExpression(expression) ? expression.name.text : undefined;
 }
 
 type CommandFlowValue = {
@@ -413,7 +482,7 @@ function analyzeCommandScope(
   }
 
   if (ts.isCallExpression(node)) {
-    if (isCommandExecutionCall(node.expression, commandIdentifiers, childProcessNamespaces)) {
+    if (isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)) {
       const sourcePath = findCommandSourcePathInArguments(node, state);
       if (sourcePath) {
         sourcePaths.set(node, sourcePath);
