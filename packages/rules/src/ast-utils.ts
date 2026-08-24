@@ -8,6 +8,7 @@ import {
   isChildProcessSpecifier
 } from "./command-ast.js";
 import { collectCommandSourcePaths, isAnalyzableCommandExecutionCall } from "./command-flow.js";
+import { findRawSqlConcatNodes } from "./sql-ast.js";
 
 export type AstMatch = {
   line: number;
@@ -22,9 +23,6 @@ export type DangerouslySetInnerHtmlMatch = AstMatch & {
 };
 
 const ROUTE_HANDLER_NAMES = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
-const SQL_QUERY_METHOD_NAMES = new Set(["query", "execute"]);
-const SQL_RAW_TAG_NAMES = new Set(["$queryRaw", "$executeRaw"]);
-const SQL_KEYWORD_PATTERN = /\b(SELECT|INSERT|UPDATE|DELETE)\b/i;
 const SANITIZER_MODULE_PATTERN = /^(?:dompurify|sanitize-html)$/i;
 const AUTH_CALL_NAMES = new Set([
   "auth",
@@ -109,23 +107,7 @@ export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
 
 export function findRawSqlConcatMatches(file: SourceFile): AstMatch[] {
   const { sourceFile } = getAnalysisFacts(file);
-  const matches: AstMatch[] = [];
-
-  visit(sourceFile, (node) => {
-    if (ts.isCallExpression(node) && isSqlQuerySinkCall(node)) {
-      const [firstArgument] = node.arguments;
-      if (isInterpolatedSqlTemplate(firstArgument)) {
-        matches.push(matchFromNode(file, sourceFile, node));
-      }
-      return;
-    }
-
-    if (ts.isTaggedTemplateExpression(node) && isRawSqlTaggedTemplate(node) && isInterpolatedSqlTemplate(node.template)) {
-      matches.push(matchFromNode(file, sourceFile, node));
-    }
-  });
-
-  return dedupeMatches(matches);
+  return dedupeMatches(findRawSqlConcatNodes(sourceFile).map((node) => matchFromNode(file, sourceFile, node)));
 }
 
 export function findDangerouslySetInnerHtmlMatches(file: SourceFile): DangerouslySetInnerHtmlMatch[] {
@@ -323,16 +305,6 @@ function collectChildProcessRequires(
   }
 }
 
-function isSqlQuerySinkCall(node: ts.CallExpression): boolean {
-  const expression = node.expression;
-  return ts.isPropertyAccessExpression(expression) && SQL_QUERY_METHOD_NAMES.has(expression.name.text);
-}
-
-function isRawSqlTaggedTemplate(node: ts.TaggedTemplateExpression): boolean {
-  const tag = node.tag;
-  return ts.isPropertyAccessExpression(tag) && SQL_RAW_TAG_NAMES.has(tag.name.text);
-}
-
 function isAuthIntentCall(expression: ts.Expression): boolean {
   if (ts.isIdentifier(expression)) {
     return AUTH_CALL_NAMES.has(expression.text);
@@ -447,10 +419,6 @@ function isTypeofValidationCheck(node: ts.BinaryExpression): boolean {
   }
 
   return ts.isStringLiteralLike(node.right) && VALIDATION_TYPE_NAMES.has(node.right.text);
-}
-
-function isInterpolatedSqlTemplate(node: ts.Node | undefined): boolean {
-  return node !== undefined && ts.isTemplateExpression(node) && SQL_KEYWORD_PATTERN.test(node.getText());
 }
 
 function dangerouslySetInnerHtmlSeverity(
