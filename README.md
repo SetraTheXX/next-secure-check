@@ -4,9 +4,9 @@ Deterministic security checks for Next.js projects. No AI required.
 
 `next-secure-check` helps developers find common security mistakes before they reach production: leaked secrets, unsafe API routes, missing rate limits, weak configuration, XSS risks, raw SQL patterns, unsafe upload endpoints, and missing security headers.
 
-> Current status: v0.3.0 is published. MVP, hardening, context-aware scanning, presets, AST-assisted rule refinements, SARIF polish, and CLI helper commands are complete.
+> Current status: v0.4.1 is published on npm. It contains the v0.4.0 feature release plus a CLI documentation-only patch.
 
-Demo video planned after the next analysis-quality milestones are stable.
+Demo screen recording is prepared; editing, Turkish voice-over, and English subtitles are supplementary release material and can be added to the GitHub README later.
 
 See the public [roadmap](./ROADMAP.md) and the [v0.4 analysis-scope decision](./docs/decisions/0001-v0.4-analysis-scope.md) for the next development direction.
 
@@ -45,8 +45,10 @@ Completed:
 Current release focus:
 
 ```txt
-v0.4.x: bounded same-function source-to-sink analysis, rule-intent signals, and evidence-driven noise reduction.
+v0.4.0: bounded same-function source-to-sink analysis, rule-intent signals, and evidence-driven noise reduction.
 ```
+
+The v0.4.1 release is published and validated with the repository fixtures. Use `next-secure-check@latest` for local scans or pin `next-secure-check@0.4.1` for reproducible CLI usage.
 
 The web demo scans public GitHub repositories using static analysis only. It does not run repository code, install dependencies, execute tests, or access private repositories.
 
@@ -112,7 +114,7 @@ npx --yes next-secure-check@latest scan . --preset app
 For reproducible CI runs, pin the package version:
 
 ```bash
-npx --yes next-secure-check@0.3.0 scan . --preset app
+npx --yes next-secure-check@0.4.1 scan . --preset app
 ```
 
 Install globally:
@@ -122,7 +124,7 @@ npm install -g next-secure-check
 next-secure-check scan .
 ```
 
-If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.3 options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
+If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.4 options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
 
 ```bash
 next-secure-check --version
@@ -152,7 +154,7 @@ npx --yes next-secure-check@latest init
 node packages/cli/dist/index.js scan . --exclude "**/*.test.ts,examples/**"
 ```
 
-Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.3.0` in CI.
+Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.4.1` in CI for reproducible CLI usage.
 
 ## CLI Helpers
 
@@ -198,7 +200,7 @@ Presets adjust path coverage for common scan modes. They do not replace manual r
 
 ## App-Focused Scans for Large Repositories
 
-`next-secure-check` v0.3 is most useful as a quick review signal for application code. Large monorepos, template repositories, generator CLIs, release scripts, and demo/example-heavy repositories can still produce noise, but context metadata, presets, middleware signals, and AST-assisted rules make the default experience more practical.
+`next-secure-check` v0.4 is most useful as a quick review signal for application code. Large monorepos, template repositories, generator CLIs, release scripts, and demo/example-heavy repositories can still produce noise, but bounded source-to-sink evidence, context metadata, presets, middleware signals, and AST-assisted rules make the default experience more practical.
 
 For a production app-code-focused scan, you can start with:
 
@@ -495,7 +497,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.3.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.4.1 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 This fails the pull request when findings at `HIGH` or above are found. Change `--fail-on` to `medium`, `low`, or `info` if your team wants a stricter severity gate. Use `--fail-on critical` when you only want to fail on a `critical` scan summary risk level.
@@ -526,7 +528,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.3.0 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.4.1 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3

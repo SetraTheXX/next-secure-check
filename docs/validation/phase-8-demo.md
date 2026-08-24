@@ -2,6 +2,8 @@
 
 Date: 2026-08-24
 
+Recording status: screen capture completed; edit, Turkish voice-over, English subtitles, and final privacy review are supplementary release material.
+
 ## Purpose
 
 This note defines a short, reproducible terminal flow for showing what `next-secure-check` catches and what its results do not claim. It uses the repository's checked-in fixtures rather than an external project, so the expected output remains stable and reviewable.

@@ -2,6 +2,10 @@
 
 Describe the user-facing problem and the smallest change that solves it.
 
+## Related issue
+
+Link the issue or explain why this is a small documentation, maintenance, or release-hygiene change.
+
 ## Scope
 
 - [ ] Runtime or rule behavior
@@ -26,3 +30,6 @@ For scanner changes, describe expected finding-count, severity, confidence, cont
 - [ ] False-positive and false-negative tradeoffs are documented.
 - [ ] User-facing docs and rule docs are updated when needed.
 - [ ] Security-sensitive changes follow `SECURITY.md`.
+- [ ] I checked the roadmap and kept the change within the stated v0.4 scope.
+
+Do not include private plans, raw benchmark reports, terminal recordings, credentials, generated build output, or private repository contents.

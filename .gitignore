@@ -28,5 +28,13 @@ next-secure-check-report.md
 *-runtime-evidence.txt
 .local/
 
+# Local demo recordings and generated scan reports
+next-secure-check-demo.*
+next-secure-check-v*.mp4
+next-secure-check-v*.webm
+demo.sarif
+report.sarif
+*.cast
+
 # Ctxo local cache (never committed)
 .ctxo/.cache/

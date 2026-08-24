@@ -1,4 +1,4 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability disclosure
     url: https://github.com/SetraTheXX/next-secure-check/security/advisories/new
@@ -6,3 +6,6 @@ contact_links:
   - name: Contribution guide
     url: https://github.com/SetraTheXX/next-secure-check/blob/main/CONTRIBUTING.md
     about: Read the contribution and reproduction expectations before opening an issue.
+  - name: Public roadmap
+    url: https://github.com/SetraTheXX/next-secure-check/blob/main/ROADMAP.md
+    about: Check the current release direction and planned work before proposing a broad feature.

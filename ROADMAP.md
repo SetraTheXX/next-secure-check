@@ -5,8 +5,8 @@ Public progress board for `next-secure-check`. This file tracks the current rele
 | Field | Value |
 | --- | --- |
 | Last reviewed | 2026-08-24 |
-| Current release | v0.3.0 published |
-| Current next task | v0.4 Phase 8 - final demo evidence and release preparation |
+| Current release | v0.4.1 published; v0.4.0 bounded-analysis feature release remains the compatibility baseline |
+| Current next task | Collect post-release feedback and maintain the v0.5 backlog |
 
 ## Progress Legend
 
@@ -215,7 +215,7 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Phase 8 - Release and Demo
 
-**Status:** `[~] In progress`
+**Status:** `[x] Complete`
 
 **Goal:** Explain the improved behavior with evidence instead of a feature list.
 
@@ -228,9 +228,10 @@ Reduce high-value false positives and recover a small number of missed source-to
 - [x] Update rule docs and README examples with before/after signal explanations.
 - [x] Add a short vulnerable-versus-secure terminal demo.
 - [x] Complete a pre-release correctness, dependency-security, CI, and package-metadata audit.
-- [ ] Record a 30-45 second demo only after findings and output are stable.
-- [ ] Run full validation, pack smoke, and publish dry-run.
-- [ ] Prepare concise v0.4 release notes with known limitations.
+- [x] Record a 30-45 second screen demo after findings and output stabilized.
+- [ ] Optional post-release edit, Turkish voice-over, English subtitles, and final privacy review.
+- [x] Run full validation, pack smoke, and publish dry-run.
+- [x] Prepare concise v0.4 release notes with known limitations.
 
 **Exit criteria:** The release can show what the tool catches, what it intentionally does not claim, and how to report a false positive.
 

@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+No changes yet.
+
+## [0.4.1] - 2026-08-24
+
+### Documentation
+- Clarified that v0.4.0 is published and removed stale release-candidate wording from the CLI package documentation.
+- Updated npm-facing usage guidance for reproducible v0.4 scans and the v0.4.1 CLI documentation patch.
+
+## [0.4.0] - 2026-08-24
+
 ### Changed
+- Prepared a reproducible fixture-first demo flow for v0.4 release review; external repositories remain optional smoke-test inputs rather than accuracy claims.
 - Clarified `secrets/next-public-secret` wording as a review signal based on a secret-like name, not proof that the assigned value is a credential.
 - Added guidance for intentionally public client identifiers and more descriptive `NEXT_PUBLIC_*` names.
 - Refined auth and API validation intent detection to ignore comments and keyword-only identifiers while recognizing common auth and validation calls.

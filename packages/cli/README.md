@@ -14,10 +14,10 @@ Recommended one-off usage:
 npx --yes next-secure-check@latest scan . --preset app
 ```
 
-For reproducible CI runs, pin the version:
+For reproducible CI runs, pin the release version:
 
 ```bash
-npx --yes next-secure-check@0.3.0 scan . --preset app
+npx --yes next-secure-check@0.4.1 scan . --preset app
 ```
 
 Or run without installing:
@@ -33,7 +33,7 @@ npm install -g next-secure-check
 next-secure-check scan .
 ```
 
-If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.3 options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
+If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.4 options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
 
 ```bash
 next-secure-check --version
@@ -58,7 +58,7 @@ npx --yes next-secure-check@latest scan . --preset ci
 
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
-Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.3.0` in CI.
+Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.4.1` in CI for reproducible CLI usage.
 
 ## CLI Helpers
 
@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.3.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.4.1 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 SARIF / GitHub Code Scanning workflow:
@@ -163,7 +163,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.3.0 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.4.1 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -180,7 +180,7 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.
 
-## v0.3.0 Highlights
+## v0.4.0 Highlights
 
 - Context-aware scanning with finding context metadata
 - Preset system for app, strict, CI, audit, library, and monorepo scans
@@ -191,6 +191,18 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 - Middleware auth/rate-limit signals and refined rate-limit detection
 - SARIF metadata polish for GitHub Code Scanning
 - CLI `rules`, `explain`, and `init` commands
+
+## Release Status
+
+The v0.4.0 release contains bounded same-function source-to-sink analysis, rule-intent signals, and evidence-driven noise reduction. This package is published as v0.4.1 with documentation-only corrections; its runtime dependencies remain on the v0.4.0 analysis packages.
+
+To try the local build from a clone:
+
+```bash
+pnpm install
+pnpm build
+node packages/cli/dist/index.js scan . --preset app
+```
 
 ## Honest Note
 

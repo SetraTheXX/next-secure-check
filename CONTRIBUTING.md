@@ -6,6 +6,10 @@ This project is a deterministic static security scanner for Next.js projects. It
 
 Contributions are most helpful when they keep the scanner understandable, testable, and honest about false positives and false negatives.
 
+## Start With the Roadmap and Issues
+
+Before starting work, read [ROADMAP.md](./ROADMAP.md) and check the open GitHub issues. Prefer a focused issue or a short proposal before beginning a new rule, analyzer, or public API change. The current v0.4 direction is bounded, syntax-first analysis; full type-aware analysis, cross-file taint flow, and unrestricted plugin loading are not part of the default contribution scope.
+
 ## Before Opening an Issue
 
 Please include:
@@ -49,6 +53,7 @@ Use Node.js 20.9 or newer for the workspace.
 pnpm install
 pnpm build
 pnpm typecheck
+pnpm lint
 pnpm test
 ```
 
@@ -63,7 +68,7 @@ When adding or changing a rule, please update:
 - Documentation under `docs/rules`.
 - Example or fixture behavior when the rule intentionally changes scanner output.
 
-Think through false positives before raising severity. For the current v0.3 line and the planned v0.4 work, predictable and explainable behavior is more important than catching every possible edge case.
+Think through false positives before raising severity. For the published v0.3 line and the unreleased v0.4 work, predictable and explainable behavior is more important than catching every possible edge case. Do not treat a new pattern match as a confirmed vulnerability without checking its context.
 
 ## Pull Requests
 
@@ -71,11 +76,14 @@ Please keep pull requests focused. A good PR usually changes one behavior, one r
 
 Please include a short problem statement, the intended behavior, and any known false-positive or false-negative tradeoffs. For scanner changes, include vulnerable and safe examples whenever possible.
 
+Link the related issue when one exists. Keep the pull request focused and do not mix a rule behavior change with an unrelated refactor, release, or generated artifact update.
+
 Before opening a PR, run:
 
 ```bash
 pnpm build
 pnpm typecheck
+pnpm lint
 pnpm test
 ```
 
@@ -85,6 +93,10 @@ Before requesting review, check that:
 - [ ] Rule changes include safe and unsafe examples.
 - [ ] User-facing behavior and report formats remain compatible unless the PR explains the change.
 - [ ] No secrets, private repository contents, generated artifacts, or local planning notes are included.
+
+## Repository Hygiene
+
+Do not commit private plans, raw benchmark reports, terminal recordings, credentials, generated build output, or repository contents from private projects. Keep local demo exports outside the repository unless they have been intentionally reviewed as public assets. Historical decisions belong in public validation notes or the changelog, not in private working files.
 
 ## Security Issues
 
