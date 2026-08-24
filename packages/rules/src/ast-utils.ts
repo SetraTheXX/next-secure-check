@@ -1,6 +1,17 @@
 import type { Severity, SourceFile } from "@next-secure-check/core";
 import ts from "typescript";
 import { SourceAnalysisCache, type AnalysisCacheStats } from "./analysis-cache.js";
+import {
+  COMMAND_ALIAS_LIMIT,
+  COMMAND_EXECUTION_NAMES,
+  REQUEST_SOURCE_NAMES,
+  ROUTE_PARAMS_NAMES,
+  SEARCH_PARAMS_NAME,
+  commandExecutionName,
+  isCommandAssignmentOperator,
+  isCommandExecutionCall,
+  isCommandMutationOperator
+} from "./command-ast.js";
 
 export type AstMatch = {
   line: number;
@@ -14,7 +25,6 @@ export type DangerouslySetInnerHtmlMatch = AstMatch & {
   severity: Extract<Severity, "LOW" | "MEDIUM">;
 };
 
-const COMMAND_EXECUTION_NAMES = new Set(["exec", "execSync", "spawn", "spawnSync"]);
 const ROUTE_HANDLER_NAMES = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
 const SQL_QUERY_METHOD_NAMES = new Set(["query", "execute"]);
 const SQL_RAW_TAG_NAMES = new Set(["$queryRaw", "$executeRaw"]);
@@ -43,10 +53,6 @@ const TYPEOF_COMPARISON_OPERATORS = new Set([
   ts.SyntaxKind.ExclamationEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken
 ]);
-const COMMAND_ALIAS_LIMIT = 2;
-const REQUEST_SOURCE_NAMES = /^(?:req|request)$/i;
-const ROUTE_PARAMS_NAMES = /^(?:params|routeParams)$/i;
-const SEARCH_PARAMS_NAME = /^searchParams$/i;
 
 export type AnalysisFacts = {
   sourceFile: ts.SourceFile;
@@ -321,22 +327,6 @@ function collectChildProcessRequires(
   }
 }
 
-function isCommandExecutionCall(
-  expression: ts.Expression,
-  commandIdentifiers: ReadonlySet<string>,
-  childProcessNamespaces: ReadonlySet<string>
-): boolean {
-  if (ts.isIdentifier(expression)) {
-    return commandIdentifiers.has(expression.text);
-  }
-
-  if (!ts.isPropertyAccessExpression(expression) || !COMMAND_EXECUTION_NAMES.has(expression.name.text)) {
-    return false;
-  }
-
-  return ts.isIdentifier(expression.expression) && childProcessNamespaces.has(expression.expression.text);
-}
-
 function isAnalyzableCommandExecutionCall(
   node: ts.CallExpression,
   commandIdentifiers: ReadonlySet<string>,
@@ -390,14 +380,6 @@ function isSafeStaticSpawnCall(node: ts.CallExpression): boolean {
 
     return property.initializer.kind === ts.SyntaxKind.FalseKeyword;
   });
-}
-
-function commandExecutionName(expression: ts.Expression): string | undefined {
-  if (ts.isIdentifier(expression)) {
-    return expression.text;
-  }
-
-  return ts.isPropertyAccessExpression(expression) ? expression.name.text : undefined;
 }
 
 type CommandFlowValue = {
@@ -761,14 +743,6 @@ function commandTargetIdentifier(node: ts.Node): string | undefined {
   }
 
   return undefined;
-}
-
-function isCommandMutationOperator(operator: ts.PrefixUnaryOperator | ts.PostfixUnaryOperator): boolean {
-  return operator === ts.SyntaxKind.PlusPlusToken || operator === ts.SyntaxKind.MinusMinusToken;
-}
-
-function isCommandAssignmentOperator(kind: ts.SyntaxKind): boolean {
-  return kind >= ts.SyntaxKind.FirstAssignment && kind <= ts.SyntaxKind.LastAssignment;
 }
 
 function unwrapCommandExpression(expression: ts.Expression): ts.Expression {
