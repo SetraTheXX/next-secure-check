@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed duplicated hardcoded CLI version literals by reading the package manifest at runtime.
 
 ### Tests
-- Current validation baseline: 315 package tests, 146 web tests, 461 total tests.
+- Current validation baseline: 320 package tests, 146 web tests, 466 total tests.
 
 ## [0.3.0] - 2026-06-04
 

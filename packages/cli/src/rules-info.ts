@@ -44,6 +44,11 @@ const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
     why: "Committed secrets can be copied, leaked, and abused after publication.",
     falsePositiveNote: "Obvious sample values are filtered, but rotate any real token that was committed."
   },
+  "secrets/next-public-secret": {
+    checks: "Flags NEXT_PUBLIC_ variable names containing secret-like terms; it does not prove that the assigned value is a credential.",
+    why: "NEXT_PUBLIC_ values are exposed to browser-side code in Next.js, so credential-like values deserve review before shipping.",
+    falsePositiveNote: "Public client identifiers or browser-safe tokens can be intentional. Review the assigned value and audience, and rename the variable when practical."
+  },
   "headers/missing-security-headers": {
     checks: "Looks for missing common security header configuration in Next.js apps.",
     why: "Security headers help reduce XSS, clickjacking, content sniffing, and referrer leakage risks.",

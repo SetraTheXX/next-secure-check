@@ -125,9 +125,9 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 319 package tests
+- 320 package tests
 - 146 web tests
-- 465 total tests
+- 466 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 - Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 

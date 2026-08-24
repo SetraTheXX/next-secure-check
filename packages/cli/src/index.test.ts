@@ -81,6 +81,15 @@ describe("rules CLI helpers", () => {
     expect(output).toContain("Help: https://github.com/SetraTheXX/next-secure-check#xss-dangerously-set-inner-html");
   });
 
+  it("explains NEXT_PUBLIC secret matches as review signals", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "secrets/next-public-secret");
+
+    expect(output).toContain("Rule: secrets/next-public-secret");
+    expect(output).toContain("does not prove that the assigned value is a credential");
+    expect(output).toContain("exposed to browser-side code");
+    expect(output).toContain("Public client identifiers or browser-safe tokens can be intentional");
+  });
+
   it("returns undefined and formats a helpful message for unknown rule ids", () => {
     const rules = getBuiltInRules();
 

@@ -18,7 +18,7 @@ Completed:
 
 - CLI MVP
 - 20 deterministic security rules
-- 461 passing tests across packages and the web demo
+- 466 passing tests across packages and the web demo
 - Terminal, JSON, Markdown, GitHub, and SARIF report formats
 - Context metadata on findings
 - CLI preset system for app-focused, strict, CI, audit, library, and monorepo scans
@@ -91,7 +91,7 @@ The scanner currently checks for 20 common security patterns. You can read more 
 11. **[auth/password-without-hashing-library](./docs/rules/password-without-hashing-library.md)**: Detects password handling without bcrypt/argon2.
 12. **[injection/raw-sql-concat](./docs/rules/raw-sql-concat.md)**: Detects raw SQL string interpolation.
 13. **[headers/missing-security-headers](./docs/rules/missing-security-headers.md)**: Detects missing security headers in Next.js config.
-14. **[secrets/next-public-secret](./docs/rules/next-public-secret.md)**: Detects `NEXT_PUBLIC_` secret-like variables.
+14. **[secrets/next-public-secret](./docs/rules/next-public-secret.md)**: Flags `NEXT_PUBLIC_` secret-like names for review; it does not prove that the assigned value is a credential.
 15. **[upload/missing-file-type-validation](./docs/rules/missing-file-type-validation.md)**: Detects upload endpoints missing file type validation.
 16. **[upload/missing-file-size-limit](./docs/rules/missing-file-size-limit.md)**: Detects upload endpoints missing file size limits.
 17. **[validation/api-route-without-validation](./docs/rules/api-route-without-validation.md)**: Detects API routes that may be missing input validation.
@@ -323,9 +323,9 @@ The root test command currently runs both package tests and web demo tests.
 Expected current test coverage:
 
 ```txt
-packages: 315 tests
+packages: 320 tests
 apps/web: 146 tests
-total: 461 tests
+total: 466 tests
 ```
 
 After building, the CLI can be run locally:
@@ -540,7 +540,7 @@ Findings are deterministic pattern matches, not proof of exploitation. Review th
 
 Manual validation notes:
 
-- Current validation baseline: 315 package tests, 146 web tests, 461 total tests.
+- Current validation baseline: 320 package tests, 146 web tests, 466 total tests.
 - [Phase 4 validation](./docs/validation/phase-4-validation.md)
 - [Phase 4.5 validation](./docs/validation/phase-4-5-validation.md)
 - [Phase 6 external review fixes](./docs/validation/phase-6-external-review-fixes.md)
