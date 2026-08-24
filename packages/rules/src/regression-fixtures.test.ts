@@ -547,6 +547,52 @@ describe("v0.4 bounded command-flow gate", () => {
     }
   });
 
+  it("recognizes explicit same-function command allowlist guards", async () => {
+    const result = await scanFixture({
+      "app/api/guarded/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  if (![\"git\", \"ls\"].includes(command)) return Response.json({ ok: false });",
+        "  exec(command);",
+        "}"
+      ].join("\n"),
+      "app/api/branch-guard/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  if (allowedCommands.has(command)) {",
+        "    exec(command);",
+        "  }",
+        "}"
+      ].join("\n"),
+      "app/api/unsafe-args/route.ts": [
+        "import { spawn } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  if (![\"git\"].includes(command)) return Response.json({ ok: false });",
+        "  spawn(command, body.args);",
+        "}"
+      ].join("\n")
+    });
+
+    const commandFindings = findingsFor(result, "injection/command-exec");
+    expect(commandFindings.some((finding) => finding.filePath === "app/api/guarded/route.ts" && finding.evidence?.includes("exec(command)"))).toBe(false);
+    expect(commandFindings.some((finding) => finding.filePath === "app/api/branch-guard/route.ts" && finding.evidence?.includes("exec(command)"))).toBe(false);
+    expect(commandFindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filePath: "app/api/unsafe-args/route.ts",
+          evidence: "spawn(command, body.args);",
+          evidencePath: "request.json() -> command"
+        })
+      ])
+    );
+  });
+
   it("reduces five safe static non-shell spawn false positives", async () => {
     const result = await scanFixture(SAFE_STATIC_SPAWN_FIXTURES);
 

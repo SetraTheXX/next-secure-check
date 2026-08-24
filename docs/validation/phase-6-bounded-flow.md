@@ -15,6 +15,7 @@ This validation note covers the v0.4 bounded, syntax-only `injection/command-exe
 - Reassignment, mutation, callback/closure escape, and cross-function flow stop tracking as intended.
 - Literal commands, argument-array commands, and unrelated object methods do not receive a source path; the existing imported sink review signal remains intact.
 - Five static non-shell `spawn`/`spawnSync` tooling patterns are suppressed, while dynamic executable values and `shell: true` remain findings.
+- Explicit same-function `includes`/`has` allowlist guards suppress a request-derived command sink; a `spawn` call still remains detectable when later arguments carry request data.
 
 ## Performance Measurement
 

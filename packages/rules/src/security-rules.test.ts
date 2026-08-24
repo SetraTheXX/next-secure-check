@@ -876,6 +876,61 @@ describe("built-in security rules", () => {
     expect(finding?.evidencePath).toBe("searchParams.get()");
   });
 
+  it("suppresses a request-derived command sink behind an explicit early-return allowlist guard", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  if (![\"git\", \"ls\"].includes(command)) return Response.json({ ok: false });",
+        "  exec(command);",
+        "}"
+      ].join("\n")
+    });
+
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+    expect(commandFindings).toHaveLength(1);
+    expect(commandFindings[0]?.evidence).toContain("import { exec }");
+  });
+
+  it("suppresses a request-derived command sink inside a positive allowlist branch", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { exec } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  if (allowedCommands.has(command)) {",
+        "    exec(command);",
+        "  }",
+        "}"
+      ].join("\n")
+    });
+
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+    expect(commandFindings).toHaveLength(1);
+    expect(commandFindings[0]?.evidence).toContain("import { exec }");
+  });
+
+  it("does not suppress a spawn sink when later arguments still carry request data", async () => {
+    const result = await scanFixture({
+      "app/api/debug/route.ts": [
+        "import { spawn } from 'node:child_process';",
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  const command = body.command;",
+        "  if (![\"git\"].includes(command)) return Response.json({ ok: false });",
+        "  spawn(command, body.args);",
+        "}"
+      ].join("\n")
+    });
+
+    const commandFindings = result.findings.filter((finding) => finding.ruleId === "injection/command-exec");
+    expect(commandFindings).toHaveLength(1);
+    expect(commandFindings.some((finding) => finding.evidence?.includes("spawn(command, body.args)"))).toBe(true);
+  });
+
   it("keeps short aliases but stops after reassignment", async () => {
     const result = await scanFixture({
       "app/api/debug/route.ts": [

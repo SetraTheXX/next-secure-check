@@ -125,9 +125,9 @@ Reduce high-value false positives and recover a small number of missed source-to
 
 ## Current v0.4 Development Baseline
 
-- 315 package tests
+- 319 package tests
 - 146 web tests
-- 461 total tests
+- 465 total tests
 - Auth and validation intent signals are syntax-only and conservative for unknown custom wrappers.
 - Shared `AnalysisFacts` syntax parsing is cached per `SourceFile` lifecycle.
 
@@ -163,7 +163,7 @@ Reduce high-value false positives and recover a small number of missed source-to
 - [x] Stop tracking on reassignment, mutation, closure/callback escape, and function boundary.
 - [x] Add optional evidence-path metadata without changing the rule ID.
 - [x] Keep imported sink detection working when no source can be proven.
-- [ ] Add safe command allowlist and early-return guard fixtures where they are syntax-visible.
+- [x] Add safe command allowlist and early-return guard fixtures where they are syntax-visible.
 
 **Exit criteria:** The pilot must reduce measured false positives or add measured true positives without changing safe fixture behavior, report formats, or default scan startup expectations. The implementation is in place; Phase 6 supplies the required 30-case measurement gate.
 

@@ -12,6 +12,12 @@ import {
   isCommandExecutionCall,
   isCommandMutationOperator
 } from "./command-ast.js";
+import { hasCommandAllowlistGuard, isCommandAllowlistMembershipCall } from "./command-guards.js";
+
+export type CommandFlowFacts = {
+  sourcePaths: ReadonlyMap<ts.CallExpression, string>;
+  safeCommandCalls: ReadonlySet<ts.CallExpression>;
+};
 
 export function isAnalyzableCommandExecutionCall(
   node: ts.CallExpression,
@@ -26,8 +32,17 @@ export function collectCommandSourcePaths(
   commandIdentifiers: ReadonlySet<string>,
   childProcessNamespaces: ReadonlySet<string>
 ): ReadonlyMap<ts.CallExpression, string> {
+  return collectCommandFlowFacts(sourceFile, commandIdentifiers, childProcessNamespaces).sourcePaths;
+}
+
+export function collectCommandFlowFacts(
+  sourceFile: ts.SourceFile,
+  commandIdentifiers: ReadonlySet<string>,
+  childProcessNamespaces: ReadonlySet<string>
+): CommandFlowFacts {
   const sourcePaths = new Map<ts.CallExpression, string>();
-  analyzeCommandScope(sourceFile, sourceFile, commandIdentifiers, childProcessNamespaces, sourcePaths);
+  const safeCommandCalls = new Set<ts.CallExpression>();
+  analyzeCommandScope(sourceFile, sourceFile, commandIdentifiers, childProcessNamespaces, sourcePaths, safeCommandCalls);
 
   visitCommandNodes(sourceFile, (node) => {
     if (!isCommandFunctionLike(node)) {
@@ -36,11 +51,11 @@ export function collectCommandSourcePaths(
 
     const body = commandFunctionBody(node);
     if (body) {
-      analyzeCommandScope(body, body, commandIdentifiers, childProcessNamespaces, sourcePaths);
+      analyzeCommandScope(body, body, commandIdentifiers, childProcessNamespaces, sourcePaths, safeCommandCalls);
     }
   });
 
-  return sourcePaths;
+  return { sourcePaths, safeCommandCalls };
 }
 
 function isSafeStaticSpawnCall(node: ts.CallExpression): boolean {
@@ -117,6 +132,7 @@ function analyzeCommandScope(
   commandIdentifiers: ReadonlySet<string>,
   childProcessNamespaces: ReadonlySet<string>,
   sourcePaths: Map<ts.CallExpression, string>,
+  safeCommandCalls: Set<ts.CallExpression>,
   state: CommandFlowState = createCommandFlowState()
 ): void {
   if (node !== scopeRoot && isCommandFunctionLike(node)) {
@@ -143,18 +159,45 @@ function analyzeCommandScope(
     if (isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)) {
       const sourcePath = findCommandSourcePathInArguments(node, state);
       if (sourcePath) {
-        sourcePaths.set(node, sourcePath);
+        if (isGuardedCommandSink(node, state)) {
+          safeCommandCalls.add(node);
+        } else {
+          sourcePaths.set(node, sourcePath);
+        }
       } else {
         invalidateTaintedReferences(node, state);
       }
-    } else if (!sourcePathForExpression(node, state)) {
+    } else if (!isCommandAllowlistMembershipCall(node) && !sourcePathForExpression(node, state)) {
       invalidateTaintedReferences(node, state);
     }
   }
 
   ts.forEachChild(node, (child) =>
-    analyzeCommandScope(scopeRoot, child, commandIdentifiers, childProcessNamespaces, sourcePaths, state)
+    analyzeCommandScope(scopeRoot, child, commandIdentifiers, childProcessNamespaces, sourcePaths, safeCommandCalls, state)
   );
+}
+
+function isGuardedCommandSink(node: ts.CallExpression, state: CommandFlowState): boolean {
+  const [commandArgument] = node.arguments;
+  if (!commandArgument) {
+    return false;
+  }
+
+  const normalized = unwrapCommandExpression(commandArgument);
+  if (!ts.isIdentifier(normalized) || !sourcePathForExpression(normalized, state)) {
+    return false;
+  }
+
+  return hasCommandAllowlistGuard(node, normalized.text) && !hasUntrustedSpawnArguments(node, state);
+}
+
+function hasUntrustedSpawnArguments(node: ts.CallExpression, state: CommandFlowState): boolean {
+  const methodName = commandExecutionName(node.expression);
+  if (methodName !== "spawn" && methodName !== "spawnSync") {
+    return false;
+  }
+
+  return node.arguments.slice(1).some((argument) => Boolean(findCommandSourcePathInExpression(argument, state)));
 }
 
 function createCommandFlowState(): CommandFlowState {

@@ -2,7 +2,7 @@ import type { Severity, SourceFile } from "@next-secure-check/core";
 import ts from "typescript";
 import { SourceAnalysisCache, type AnalysisCacheStats } from "./analysis-cache.js";
 import { collectCommandDiscovery } from "./command-discovery.js";
-import { collectCommandSourcePaths, isAnalyzableCommandExecutionCall } from "./command-flow.js";
+import { collectCommandFlowFacts, isAnalyzableCommandExecutionCall } from "./command-flow.js";
 import { findPasswordHandlingNodes, hasPasswordHashingCall } from "./password-ast.js";
 import { findRawSqlConcatNodes } from "./sql-ast.js";
 import {
@@ -33,6 +33,7 @@ export type AnalysisFacts = {
   childProcessNamespaces: ReadonlySet<string>;
   commandDeclarationNodes: readonly ts.Node[];
   commandSourcePaths: ReadonlyMap<ts.CallExpression, string>;
+  safeCommandCalls: ReadonlySet<ts.CallExpression>;
   routeHandlerNodes: readonly ts.Node[];
   sanitizerIdentifiers: ReadonlySet<string>;
   safeHtmlIdentifiers: ReadonlySet<string>;
@@ -68,11 +69,15 @@ export function resetAnalysisFactsCacheForTests(): void {
 }
 
 export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
-  const { sourceFile, commandIdentifiers, childProcessNamespaces, commandDeclarationNodes, commandSourcePaths } = getAnalysisFacts(file);
+  const { sourceFile, commandIdentifiers, childProcessNamespaces, commandDeclarationNodes, commandSourcePaths, safeCommandCalls } = getAnalysisFacts(file);
   const matches = commandDeclarationNodes.map((node) => matchFromNode(file, sourceFile, node));
 
   visit(sourceFile, (node) => {
-    if (!ts.isCallExpression(node) || !isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)) {
+    if (
+      !ts.isCallExpression(node) ||
+      safeCommandCalls.has(node) ||
+      !isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)
+    ) {
       return;
     }
 
@@ -139,6 +144,11 @@ export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
 
 function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
   const commandDiscovery = collectCommandDiscovery(sourceFile);
+  const commandFlow = collectCommandFlowFacts(
+    sourceFile,
+    commandDiscovery.commandIdentifiers,
+    commandDiscovery.childProcessNamespaces
+  );
   const routeHandlerNodes: ts.Node[] = [];
   let hasUploadHandling = false;
 
@@ -160,11 +170,8 @@ function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
     commandIdentifiers: commandDiscovery.commandIdentifiers,
     childProcessNamespaces: commandDiscovery.childProcessNamespaces,
     commandDeclarationNodes: commandDiscovery.commandDeclarationNodes,
-    commandSourcePaths: collectCommandSourcePaths(
-      sourceFile,
-      commandDiscovery.commandIdentifiers,
-      commandDiscovery.childProcessNamespaces
-    ),
+    commandSourcePaths: commandFlow.sourcePaths,
+    safeCommandCalls: commandFlow.safeCommandCalls,
     routeHandlerNodes,
     sanitizerIdentifiers: xssFacts.sanitizerIdentifiers,
     safeHtmlIdentifiers: xssFacts.safeHtmlIdentifiers,
