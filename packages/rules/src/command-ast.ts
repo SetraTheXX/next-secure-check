@@ -37,3 +37,19 @@ export function isCommandMutationOperator(operator: ts.PrefixUnaryOperator | ts.
 export function isCommandAssignmentOperator(kind: ts.SyntaxKind): boolean {
   return kind >= ts.SyntaxKind.FirstAssignment && kind <= ts.SyntaxKind.LastAssignment;
 }
+
+export function isChildProcessSpecifier(node: ts.Node | undefined): boolean {
+  return node !== undefined && ts.isStringLiteralLike(node) && /^(?:node:)?child_process$/.test(node.text);
+}
+
+export function bindingElementName(element: ts.BindingElement): string | undefined {
+  if (element.propertyName) {
+    return ts.isIdentifier(element.propertyName) || ts.isStringLiteralLike(element.propertyName) ? element.propertyName.text : undefined;
+  }
+
+  return ts.isIdentifier(element.name) ? element.name.text : undefined;
+}
+
+export function bindingElementLocalName(element: ts.BindingElement): string | undefined {
+  return ts.isIdentifier(element.name) ? element.name.text : undefined;
+}
