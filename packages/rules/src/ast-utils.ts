@@ -1,5 +1,6 @@
 import type { Severity, SourceFile } from "@next-secure-check/core";
 import ts from "typescript";
+import { SourceAnalysisCache, type AnalysisCacheStats } from "./analysis-cache.js";
 
 export type AstMatch = {
   line: number;
@@ -62,40 +63,29 @@ export type AnalysisFacts = {
   hasUploadHandling: boolean;
 };
 
-export type AnalysisFactsCacheStats = {
-  cacheHits: number;
-  cacheMisses: number;
-};
+export type AnalysisFactsCacheStats = AnalysisCacheStats;
 
-let analysisFactsCache = new WeakMap<SourceFile, AnalysisFacts>();
-let analysisFactsCacheHits = 0;
-let analysisFactsCacheMisses = 0;
+const analysisFactsCache = new SourceAnalysisCache<AnalysisFacts>();
 
 export function getAnalysisFacts(file: SourceFile): AnalysisFacts {
-  const cached = analysisFactsCache.get(file);
-  if (cached) {
-    analysisFactsCacheHits += 1;
-    return cached;
-  }
-
-  const sourceFile = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true, scriptKindForPath(file.path));
-  const facts = createAnalysisFacts(sourceFile);
-  analysisFactsCache.set(file, facts);
-  analysisFactsCacheMisses += 1;
-  return facts;
+  return analysisFactsCache.get(file, () => {
+    const sourceFile = ts.createSourceFile(
+      file.path,
+      file.content,
+      ts.ScriptTarget.Latest,
+      true,
+      scriptKindForPath(file.path)
+    );
+    return createAnalysisFacts(sourceFile);
+  });
 }
 
 export function getAnalysisFactsCacheStats(): AnalysisFactsCacheStats {
-  return {
-    cacheHits: analysisFactsCacheHits,
-    cacheMisses: analysisFactsCacheMisses
-  };
+  return analysisFactsCache.stats();
 }
 
 export function resetAnalysisFactsCacheForTests(): void {
-  analysisFactsCache = new WeakMap<SourceFile, AnalysisFacts>();
-  analysisFactsCacheHits = 0;
-  analysisFactsCacheMisses = 0;
+  analysisFactsCache.clear();
 }
 
 export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
