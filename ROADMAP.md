@@ -153,6 +153,17 @@ The working theme is:
 
 The first production slice should be a bounded `injection/raw-sql-concat` flow built on the existing `AnalysisFacts` and AST utilities. It should be small enough to measure, explain, and roll back without changing the scanner's public contract.
 
+### v0.5 issue map
+
+- [ ] [#13 Baseline and bounded-flow contract](https://github.com/SetraTheXX/next-secure-check/issues/13)
+- [ ] [#14 Shared `AnalysisFacts` foundation](https://github.com/SetraTheXX/next-secure-check/issues/14)
+- [ ] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
+- [ ] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
+- [ ] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
+- [ ] [#18 Evidence and reporter explanations](https://github.com/SetraTheXX/next-secure-check/issues/18)
+- [ ] [#19 Regression and performance release gate](https://github.com/SetraTheXX/next-secure-check/issues/19)
+- [ ] [#20 v0.5 release and feedback loop](https://github.com/SetraTheXX/next-secure-check/issues/20)
+
 ### v0.5 compatibility rules
 
 - [ ] Keep `default` syntax-first and fast.
@@ -172,7 +183,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 - [ ] Keep test count as a health signal, not as the primary release KPI.
 - [ ] Require a validation note for behavior changes that affect vulnerable or secure fixture output.
 
-## v0.5 Phase 0 - Baseline and analysis contract
+## v0.5 Phase 0 - Baseline and analysis contract (#13)
 
 - [ ] **Phase status:** Planned
 
@@ -190,7 +201,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 **Expected size:** Small, documentation and test design.
 
-## v0.5 Phase 1 - Shared bounded-flow foundation
+## v0.5 Phase 1 - Shared bounded-flow foundation (#14)
 
 - [ ] **Phase status:** Planned
 
@@ -207,7 +218,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 **Expected size:** Medium.
 
-## v0.5 Phase 2 - Raw SQL bounded flow pilot
+## v0.5 Phase 2 - Raw SQL bounded flow pilot (#15)
 
 - [ ] **Phase status:** Planned; first implementation target
 
@@ -226,7 +237,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 **Expected size:** Medium/high, split into small PRs.
 
-## v0.5 Phase 3 - XSS source and sanitizer refinement
+## v0.5 Phase 3 - XSS source and sanitizer refinement (#16)
 
 - [ ] **Phase status:** Planned
 
@@ -245,7 +256,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 **Expected size:** Medium.
 
-## v0.5 Phase 4 - Auth and middleware intent
+## v0.5 Phase 4 - Auth and middleware intent (#17)
 
 - [ ] **Phase status:** Planned
 
@@ -263,7 +274,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 **Expected size:** Medium/high.
 
-## v0.5 Phase 5 - Evidence and reporter UX
+## v0.5 Phase 5 - Evidence and reporter UX (#18)
 
 - [ ] **Phase status:** Planned
 
@@ -280,7 +291,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 **Expected size:** Small/medium.
 
-## v0.5 Phase 6 - Regression, benchmark, and release gate
+## v0.5 Phase 6 - Regression, benchmark, and release gate (#19)
 
 - [ ] **Phase status:** Planned
 
@@ -299,7 +310,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 **Expected size:** Medium.
 
-## v0.5 Phase 7 - Release and feedback loop
+## v0.5 Phase 7 - Release and feedback loop (#20)
 
 - [ ] **Phase status:** Planned
 
