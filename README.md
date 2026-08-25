@@ -251,6 +251,22 @@ jobs:
 
 This fails the job when a `HIGH` or more severe finding is reported. Use `--fail-on critical` when the job should fail only for a `critical` scan risk level.
 
+### Reusable GitHub Action
+
+After the first `v1` Action release, projects can use the reusable composite Action as a single workflow step:
+
+~~~yaml
+- uses: SetraTheXX/next-secure-check@v1
+  with:
+    preset: app
+    fail-on: high
+    format: github
+~~~
+
+The Action runs the published `next-secure-check@0.4.1` CLI against the checked-out workspace. It does not install or execute scripts from the scanned repository. The default `github` format is written to the job Step Summary; use `format: sarif` and `output: next-secure-check.sarif` when a separate SARIF upload step is desired.
+
+The Action runs only when the consuming repository adds it to a workflow triggered by events such as `pull_request` or `push`. It does not monitor repositories on its own.
+
 ### SARIF and GitHub Code Scanning
 
 ~~~yaml

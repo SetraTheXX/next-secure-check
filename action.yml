@@ -1,0 +1,87 @@
+name: Next Secure Check
+description: Run deterministic security checks for a Next.js project in GitHub Actions.
+author: SetraTheXX
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  path:
+    description: Project path to scan, relative to the checked-out workspace.
+    required: false
+    default: "."
+  preset:
+    description: Scan preset to use.
+    required: false
+    default: "app"
+  fail-on:
+    description: Severity threshold, or critical risk-level gate.
+    required: false
+    default: "high"
+  format:
+    description: "Report format: terminal, json, markdown, github, or sarif."
+    required: false
+    default: "github"
+  exclude:
+    description: Comma-separated relative path globs to exclude.
+    required: false
+    default: ""
+  output:
+    description: Optional report path. SARIF defaults to next-secure-check.sarif.
+    required: false
+    default: ""
+
+outputs:
+  report-path:
+    description: Report path when the action writes a report file.
+    value: ${{ steps.scan.outputs.report-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: 20
+
+    - name: Run next-secure-check
+      id: scan
+      shell: bash
+      env:
+        SCAN_PATH: ${{ inputs.path }}
+        SCAN_PRESET: ${{ inputs.preset }}
+        SCAN_FAIL_ON: ${{ inputs.fail-on }}
+        SCAN_FORMAT: ${{ inputs.format }}
+        SCAN_EXCLUDE: ${{ inputs.exclude }}
+        SCAN_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+
+        args=(scan "$SCAN_PATH" --preset "$SCAN_PRESET" --fail-on "$SCAN_FAIL_ON" --format "$SCAN_FORMAT")
+        report_path="$SCAN_OUTPUT"
+
+        if [[ -n "$SCAN_EXCLUDE" ]]; then
+          args+=(--exclude "$SCAN_EXCLUDE")
+        fi
+
+        if [[ "$SCAN_FORMAT" == "sarif" && -z "$report_path" ]]; then
+          report_path="next-secure-check.sarif"
+        fi
+
+        if [[ -n "$report_path" ]]; then
+          args+=(--output "$report_path")
+        fi
+
+        if [[ "$SCAN_FORMAT" == "github" && -z "$report_path" ]]; then
+          npx --yes next-secure-check@0.4.1 "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+        else
+          npx --yes next-secure-check@0.4.1 "${args[@]}"
+
+          if [[ "$SCAN_FORMAT" == "github" ]]; then
+            cat "$report_path" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
+
+        if [[ -n "$report_path" ]]; then
+          printf 'report-path=%s\n' "$report_path" >> "$GITHUB_OUTPUT"
+        fi

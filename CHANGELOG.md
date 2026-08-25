@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+- Added a root composite GitHub Action wrapper for `next-secure-check@0.4.1` with preset, fail-on, format, exclude, and output inputs.
+- Added a CI smoke step that exercises the local Action against the secure fixture.
 
 ## [0.4.1] - 2026-08-24
 

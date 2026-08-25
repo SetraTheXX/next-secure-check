@@ -54,3 +54,11 @@ jobs:
           status=${PIPESTATUS[0]}
           cat next-secure-check-report.md >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+
+      - name: Smoke test reusable Action
+        uses: ./
+        with:
+          path: examples/secure-next-app
+          preset: app
+          fail-on: high
+          format: github
