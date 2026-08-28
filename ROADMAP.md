@@ -4,10 +4,10 @@ Public progress board for `next-secure-check`. It records completed release work
 
 | Field | Value |
 | --- | --- |
-| Last reviewed | 2026-08-25 |
+| Last reviewed | 2026-08-29 |
 | Current release | `v0.4.1` published |
 | Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 0 - baseline and AnalysisFacts contract |
+| Current next task | v0.5 Phase 1 - Shared `AnalysisFacts` foundation (#14) |
 | Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
 
 ## Progress Legend
@@ -24,7 +24,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 320 package tests, 146 web tests, 466 total tests.
+- [x] Current validation baseline: 323 package tests, 146 web tests, 469 total tests.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
@@ -41,6 +41,9 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [bounded-flow validation](./docs/validation/phase-6-bounded-flow.md)
 - [x] [TypeChecker spike decision](./docs/validation/phase-7-typechecker-spike.md)
 - [x] [vulnerable/secure demo validation](./docs/validation/phase-8-demo.md)
+- [x] [v0.5 concise terminal summary validation](./docs/validation/phase-9-summary-output.md)
+- [x] [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
+- [x] [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [release history](./CHANGELOG.md)
 
@@ -155,7 +158,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ### v0.5 issue map
 
-- [ ] [#13 Baseline and bounded-flow contract](https://github.com/SetraTheXX/next-secure-check/issues/13)
+- [x] [#13 Baseline and bounded-flow contract](https://github.com/SetraTheXX/next-secure-check/issues/13)
 - [ ] [#14 Shared `AnalysisFacts` foundation](https://github.com/SetraTheXX/next-secure-check/issues/14)
 - [ ] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
 - [ ] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
@@ -185,17 +188,17 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 0 - Baseline and analysis contract (#13)
 
-- [ ] **Phase status:** Planned
+- [x] **Phase status:** Complete; baseline and contract recorded locally on 2026-08-29
 
 **Purpose:** Freeze the current behavior and define the narrow flow model before writing new rule logic.
 
-- [ ] Capture current self-scan, vulnerable-fixture, and secure-fixture summaries.
-- [ ] Capture finding IDs, severity/confidence, score, risk, and report output for the baseline.
-- [ ] Define the `AnalysisFacts` contract for source, sink, guard, alias, reassignment, and evidence-path facts.
-- [ ] Define the supported flow boundary: same function, local scope, direct assignment, and at most a short identifier alias chain.
-- [ ] Define stop conditions: reassignment, mutation, closure/callback escape, function boundary, dynamic property flow, and cross-file flow.
-- [ ] Record non-goals: call graphs, heap/property aliasing, full CFG, dynamic resolution, and default TypeChecker analysis.
-- [ ] Write a short v0.5 decision note before implementation.
+- [x] Capture current self-scan, vulnerable-fixture, and secure-fixture summaries.
+- [x] Capture finding IDs, severity/confidence, score, risk, and report output for the baseline.
+- [x] Define the `AnalysisFacts` contract for source, sink, guard, alias, reassignment, and evidence-path facts.
+- [x] Define the supported flow boundary: same function, local scope, direct assignment, and at most a short identifier alias chain.
+- [x] Define stop conditions: reassignment, mutation, closure/callback escape, function boundary, dynamic property flow, and cross-file flow.
+- [x] Record non-goals: call graphs, heap/property aliasing, full CFG, dynamic resolution, and default TypeChecker analysis.
+- [x] Write a short v0.5 decision note before implementation.
 
 **Exit criteria:** A reviewer can tell which flows are supported, which are intentional false negatives, and how a changed fixture result will be judged.
 
@@ -343,7 +346,7 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 
 ## Recommended implementation order
 
-1. [ ] v0.5 Phase 0 - baseline and analysis contract.
+1. [x] v0.5 Phase 0 - baseline and analysis contract.
 2. [ ] v0.5 Phase 1 - shared bounded-flow foundation.
 3. [ ] v0.5 Phase 2 - raw SQL bounded flow pilot.
 4. [ ] v0.5 Phase 6 - regression and performance gate for the SQL pilot.

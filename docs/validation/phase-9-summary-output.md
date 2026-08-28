@@ -2,7 +2,7 @@
 
 Date: 2026-08-29
 
-Status: local implementation and validation in progress; no commit or push is implied by this note.
+Status: Implemented and validated on `main` at commit `ca2ad1d`; v0.5.0 is not published yet.
 
 ## Purpose
 
@@ -37,6 +37,13 @@ The expected score/risk/finding values remain the established fixture baseline:
 | `vulnerable-next-app` with `strict` | `0/100`, `critical`, 26 findings |
 | `secure-next-app` with `app` | `99/100`, `excellent`, 1 LOW finding |
 | repository self-scan with `app` | `100/100`, `excellent`, 0 findings |
+
+## Recorded verification
+
+- `pnpm build`, `pnpm typecheck`, `pnpm lint`, and `pnpm test` pass.
+- Package tests: `323`; web tests: `146`; total: `469`.
+- CLI summary smoke, `scan --help`, non-terminal format rejection, JSON parsing, and SARIF parsing pass.
+- The README GIF is `1100x620`, `13.84` seconds, approximately `296 KB`, and contains no checked-out local paths or secret/token patterns.
 
 The README VHS recording uses the same summary commands, labels each fixture, and clears the terminal between scans. This keeps the comparison legible without exposing local checkout paths or raw secret evidence.
 
