@@ -10,6 +10,10 @@ next-secure-check scans a local project and reports common security mistakes bef
 [![CI](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml/badge.svg)](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
+<p align="center">
+  <img src="./docs/assets/next-secure-check-banner.svg" alt="next-secure-check — deterministic security checks for Next.js" width="100%">
+</p>
+
 ## Why use it?
 
 - Run a quick security sanity check with one `npx` command.
@@ -17,6 +21,14 @@ next-secure-check scans a local project and reports common security mistakes bef
 - Use the same scanner locally, in GitHub Actions, or through SARIF-compatible Code Scanning workflows.
 
 It is a lightweight pre-release review signal, not a penetration test or a replacement for a full security audit.
+
+## See It in Action
+
+<p align="center">
+  <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
+</p>
+
+The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows a review signal, not proof of exploitability or a universal security score.
 
 ## Quick Start
 
@@ -86,7 +98,15 @@ npx --yes next-secure-check@latest scan . --format github
 
 # SARIF for GitHub Code Scanning
 npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
+
+# Concise terminal summary
+npx --yes next-secure-check@latest scan . --preset app --summary
+
+# Scan command help
+npx --yes next-secure-check@latest scan --help
 ~~~
+
+`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output.
 
 ### Failure gates
 
@@ -154,6 +174,8 @@ Supported fields in the current release:
 - `format`: `terminal`, `json`, `markdown`, or `github`
 - `preset`: `default`, `app`, `strict`, `ci`, `audit`, `library`, or `monorepo`
 
+`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output.
+
 Example:
 
 ~~~json
@@ -197,9 +219,9 @@ The repository contains deliberately unsafe and mostly secure fixtures so the sc
 ~~~bash
 pnpm build
 
-node packages/cli/dist/index.js scan examples/vulnerable-next-app --preset strict
-node packages/cli/dist/index.js scan examples/secure-next-app --preset app
-node packages/cli/dist/index.js scan . --preset app
+node packages/cli/dist/index.js scan examples/vulnerable-next-app --preset strict --summary
+node packages/cli/dist/index.js scan examples/secure-next-app --preset app --summary
+node packages/cli/dist/index.js scan . --preset app --summary
 ~~~
 
 Expected fixture summaries:
@@ -392,6 +414,7 @@ Useful validation references:
 - [v0.4 analysis scope decision](./docs/decisions/0001-v0.4-analysis-scope.md)
 - [bounded-flow validation](./docs/validation/phase-6-bounded-flow.md)
 - [vulnerable/secure demo validation](./docs/validation/phase-8-demo.md)
+- [concise terminal summary validation](./docs/validation/phase-9-summary-output.md)
 
 ## Learning Project and Development Philosophy
 

@@ -284,6 +284,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 - [ ] Keep context and context reason visible in JSON, terminal, Markdown, GitHub, and SARIF outputs.
 - [ ] Keep raw secrets, tokens, local paths, and stack traces out of user-facing output.
 - [ ] Improve `explain` guidance for common false-positive and false-negative boundaries.
+- [x] Provide an opt-in concise terminal summary for quick reviews and README demos while preserving the detailed default report.
 - [ ] Add deterministic reporter tests for evidence paths, empty findings, SARIF fingerprints, and secret redaction.
 - [ ] Avoid adding a new output format when existing formats can carry the information.
 
@@ -303,6 +304,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 - [ ] Record cold/warm median and p95 measurements with environment details.
 - [ ] Compare before/after findings by rule, context, severity, confidence, and reviewed FP/FN outcome.
 - [ ] Run build, typecheck, lint, package/web tests, CLI smoke, JSON/SARIF parse, and pack dry-run.
+- [ ] Include concise-summary CLI smoke, determinism, line-count, and public-output privacy checks in the release gate.
 - [ ] Require a release note when fixture counts change intentionally.
 - [ ] Update README, CHANGELOG, validation notes, and GitHub release notes.
 

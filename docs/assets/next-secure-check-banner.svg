@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-labelledby="title desc">
+  <title id="title">next-secure-check</title>
+  <desc id="desc">Fast, deterministic security checks for Next.js projects.</desc>
+
+  <rect width="1200" height="240" rx="18" fill="#0b1220"/>
+  <rect x="1" y="1" width="1198" height="238" rx="17" fill="none" stroke="#2a3952" stroke-width="2"/>
+
+  <g transform="translate(64 50)">
+    <path d="M64 0 118 19v55c0 38-25 64-54 78C35 138 10 112 10 74V19Z" fill="#12243a" stroke="#72f1b8" stroke-width="5"/>
+    <path d="m34 70 19 19 39-45" fill="none" stroke="#72f1b8" stroke-linecap="round" stroke-linejoin="round" stroke-width="10"/>
+  </g>
+
+  <g font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="222" y="92" fill="#f6f8ff" font-size="48" font-weight="700" letter-spacing="-1.5">next-secure-check</text>
+    <text x="224" y="132" fill="#a8b5c7" font-size="22">Fast, deterministic security checks for Next.js</text>
+    <text x="1134" y="44" text-anchor="end" fill="#7dd3fc" font-size="13" font-weight="700" letter-spacing="1.2">REVIEW SIGNAL • NOT PROOF</text>
+  </g>
+
+  <g transform="translate(224 166)" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" letter-spacing="1">
+    <rect width="126" height="32" rx="16" fill="#14352f" stroke="#2d6855"/>
+    <text x="63" y="21" text-anchor="middle" fill="#72f1b8">PRE-DEPLOY</text>
+    <rect x="140" width="102" height="32" rx="16" fill="#142b43" stroke="#2d5577"/>
+    <text x="191" y="21" text-anchor="middle" fill="#7dd3fc">CI-READY</text>
+    <rect x="256" width="142" height="32" rx="16" fill="#24233d" stroke="#514d7a"/>
+    <text x="327" y="21" text-anchor="middle" fill="#c4b5fd">EXPLAINABLE</text>
+  </g>
+</svg>

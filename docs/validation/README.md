@@ -30,6 +30,8 @@ The isolated TypeChecker measurement and syntax fallback decision are documented
 
 The reproducible vulnerable-versus-secure terminal demo and current rule-level signal notes are documented in [phase-8-demo.md](./phase-8-demo.md).
 
+The v0.5 concise terminal summary contract and README demo validation are documented in [phase-9-summary-output.md](./phase-9-summary-output.md).
+
 ## Post-release Real-world Smoke Note
 
 After v0.1.0 was published, `shadcn-ui/ui` and `t3-oss/create-t3-app` were scanned as real-world smoke tests. The scanner did not crash, but the results showed that v0.1 can be noisy on large monorepos, template repositories, generator CLIs, demo/example-heavy paths, and tooling/release scripts.

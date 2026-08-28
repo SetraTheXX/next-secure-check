@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import { scanProject } from "@next-secure-check/core";
 import { getBuiltInRules } from "@next-secure-check/rules";
-import { formatReport } from "@next-secure-check/reporter";
+import { formatReport, formatSummary } from "@next-secure-check/reporter";
 import { resolveScanCommandSettings, type ScanCommandOptions } from "./config.js";
 import { shouldFail } from "./fail-on.js";
 import { formatInitResults, initProject } from "./init.js";
@@ -22,6 +22,7 @@ program
   .description("Scan a project directory.")
   .argument("[path]", "Project path", ".")
   .option("--format <format>", "Output format: terminal, json, markdown, github, or sarif")
+  .option("--summary", "Show a concise terminal summary")
   .option("--output <path>", "Write the report to a file")
   .option("--fail-on <level>", "Exit with code 1 on severity threshold, or critical risk level")
   .option("--category <categories>", "Comma-separated categories to run, e.g. secrets,auth,xss")
@@ -47,7 +48,13 @@ program
         rules,
         toolVersion: program.version()
       });
-      const output = formatReport(result, settings.format);
+      if (options.summary && settings.format !== "terminal") {
+        throw new Error("--summary requires --format terminal.");
+      }
+
+      const output = options.summary
+        ? formatSummary(result)
+        : formatReport(result, settings.format);
 
       if (options.output) {
         await writeFile(options.output, output, "utf8");

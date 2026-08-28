@@ -23,6 +23,7 @@ export type CliConfig = {
 
 export type ScanCommandOptions = {
   format?: string;
+  summary?: boolean;
   output?: string;
   failOn?: string;
   category?: string;

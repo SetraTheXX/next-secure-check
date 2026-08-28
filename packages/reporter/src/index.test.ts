@@ -10,6 +10,74 @@ describe("formatSummary", () => {
     expect(formatSummary(result)).toContain("Risk Level: excellent");
   });
 
+  it("renders a concise finding overview without evidence details", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.summary = {
+      score: 80,
+      riskLevel: "medium",
+      totalFindings: 1,
+      high: 0,
+      medium: 1,
+      low: 0,
+      info: 0
+    };
+    result.findings = [
+      {
+        ...createContextFinding(),
+        evidence: "request.json() -> query",
+        line: 12,
+        recommendation: "Add input validation."
+      }
+    ];
+
+    const summary = formatSummary(result);
+
+    expect(summary).toContain("next-secure-check summary");
+    expect(summary).toContain("Score: 80/100 | Risk Level: medium");
+    expect(summary).toContain("Findings: 1 | HIGH 0 | MEDIUM 1 | LOW 0 | INFO 0");
+    expect(summary).toContain(
+      "- MEDIUM validation/api-route-without-validation [confidence: MEDIUM, context: api-code] app/api/users/route.ts:12"
+    );
+    expect(summary).not.toContain("Evidence:");
+    expect(summary).not.toContain("Fix:");
+  });
+
+  it("limits the overview to deterministic top findings", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.summary = {
+      score: 42,
+      riskLevel: "high",
+      totalFindings: 4,
+      high: 1,
+      medium: 2,
+      low: 1,
+      info: 0
+    };
+    result.findings = [
+      { ...createContextFinding(), id: "medium-z", filePath: "z.ts" },
+      { ...createContextFinding(), id: "low-a", filePath: "a.ts", severity: "LOW", confidence: "LOW" },
+      { ...createContextFinding(), id: "high-a", filePath: "a.ts", severity: "HIGH", confidence: "HIGH" },
+      { ...createContextFinding(), id: "medium-a", filePath: "a.ts" }
+    ];
+
+    const summary = formatSummary(result);
+
+    expect(summary.indexOf("- HIGH validation/api-route-without-validation")).toBeLessThan(
+      summary.indexOf("- MEDIUM validation/api-route-without-validation")
+    );
+    expect(summary).toContain("+1 more findings. Run without --summary for full details.");
+  });
+
+  it("keeps evidence and recommendations in the default terminal report", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [{ ...createContextFinding(), evidence: "request.json() -> query" }];
+
+    const terminal = formatReport(result, "terminal");
+
+    expect(terminal).toContain("Evidence: request.json() -> query");
+    expect(terminal).toContain("Fix: Add input validation.");
+  });
+
   it("renders json reports", () => {
     const result = createScanResultSkeleton("demo-app");
 

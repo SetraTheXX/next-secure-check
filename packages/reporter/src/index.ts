@@ -6,6 +6,7 @@ export type ReportFormat = "terminal" | "json" | "markdown" | "github" | "sarif"
 const SEVERITY_ORDER = ["HIGH", "MEDIUM", "LOW", "INFO"] as const;
 const CONFIDENCE_ORDER = ["HIGH", "MEDIUM", "LOW"] as const;
 const INFORMATION_URI = "https://github.com/SetraTheXX/next-secure-check";
+const SUMMARY_FINDING_LIMIT = 3;
 
 export function formatReport(result: ScanResult, format: ReportFormat): string {
   switch (format) {
@@ -60,7 +61,36 @@ export function formatTerminal(result: ScanResult): string {
 }
 
 export function formatSummary(result: ScanResult): string {
-  return formatTerminal(result);
+  const { summary } = result;
+  const lines = [
+    "next-secure-check summary",
+    "",
+    `Project: ${result.project.name ?? "unknown"} | Framework: ${result.project.framework}`,
+    `Score: ${summary.score}/100 | Risk Level: ${summary.riskLevel}`,
+    `Findings: ${summary.totalFindings} | HIGH ${summary.high} | MEDIUM ${summary.medium} | LOW ${summary.low} | INFO ${summary.info}`
+  ];
+
+  if (result.findings.length === 0) {
+    return [...lines, "", "No findings detected."].join("\n");
+  }
+
+  const representativeFindings = [...result.findings]
+    .sort(compareSummaryFindings)
+    .slice(0, SUMMARY_FINDING_LIMIT);
+
+  lines.push("", "Top findings:");
+  for (const finding of representativeFindings) {
+    lines.push(
+      `- ${finding.severity} ${finding.ruleId} [confidence: ${finding.confidence}, context: ${formatContext(finding)}] ${formatLocation(finding)}`
+    );
+  }
+
+  const remainingFindings = result.findings.length - representativeFindings.length;
+  if (remainingFindings > 0) {
+    lines.push("", `+${remainingFindings} more findings. Run without --summary for full details.`);
+  }
+
+  return lines.join("\n");
 }
 
 export function formatMarkdown(result: ScanResult): string {
@@ -394,6 +424,40 @@ function formatSarifUri(filePath: string): string {
 
 function formatLocation(finding: ScanResult["findings"][number]): string {
   return `${finding.filePath}${finding.line ? `:${finding.line}` : ""}`;
+}
+
+function compareSummaryFindings(
+  left: ScanResult["findings"][number],
+  right: ScanResult["findings"][number]
+): number {
+  const severityOrder = SEVERITY_ORDER.indexOf(left.severity) - SEVERITY_ORDER.indexOf(right.severity);
+  if (severityOrder !== 0) {
+    return severityOrder;
+  }
+
+  const locationOrder = compareText(formatLocation(left), formatLocation(right));
+  if (locationOrder !== 0) {
+    return locationOrder;
+  }
+
+  const ruleOrder = compareText(left.ruleId, right.ruleId);
+  if (ruleOrder !== 0) {
+    return ruleOrder;
+  }
+
+  return compareText(left.title, right.title);
+}
+
+function compareText(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+
+  if (left > right) {
+    return 1;
+  }
+
+  return 0;
 }
 
 function formatContext(finding: ScanResult["findings"][number]): string {
