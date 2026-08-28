@@ -48,6 +48,20 @@ describe("analysis facts cache", () => {
     expect(facts.guards).toHaveLength(0);
   });
 
+  it("records a direct route-parameter source in bounded-flow facts", () => {
+    const file = sourceFile([
+      'import { exec } from "node:child_process";',
+      "export function GET(params) {",
+      "  exec(params);",
+      "}"
+    ].join("\n"));
+
+    const facts = getAnalysisFacts(file).boundedFlow;
+
+    expect(facts.sources.map((source) => source.path)).toEqual(["params"]);
+    expect([...facts.evidencePaths.values()]).toEqual(["params"]);
+  });
+
   it("records guards, invalidations, and function boundaries without widening flow", () => {
     const file = sourceFile([
       'import { exec } from "node:child_process";',

@@ -5,7 +5,7 @@ import type { BoundedFlowFacts } from "./analysis-facts.js";
 import { collectCommandDiscovery } from "./command-discovery.js";
 import { collectCommandFlowFacts, isAnalyzableCommandExecutionCall } from "./command-flow.js";
 import { findPasswordHandlingNodes, hasPasswordHashingCall } from "./password-ast.js";
-import { findRawSqlConcatNodes } from "./sql-ast.js";
+import { createRawSqlFlowCallbacks, findRawSqlConcatNodes } from "./sql-ast.js";
 import {
   ROUTE_HANDLER_NAMES,
   exportedRouteHandlerName,
@@ -92,8 +92,20 @@ export function findCommandExecutionMatches(file: SourceFile): AstMatch[] {
 }
 
 export function findRawSqlConcatMatches(file: SourceFile): AstMatch[] {
-  const { sourceFile } = getAnalysisFacts(file);
-  return dedupeMatches(findRawSqlConcatNodes(sourceFile).map((node) => matchFromNode(file, sourceFile, node)));
+  const { sourceFile, boundedFlow } = getAnalysisFacts(file);
+  const directMatches = findRawSqlConcatNodes(sourceFile);
+  const boundedMatches = boundedFlow.sinks
+    .filter((sink) => sink.kind === "raw-sql")
+    .map((sink) => sink.node);
+  const nodes = [...directMatches, ...boundedMatches];
+
+  return dedupeMatches(
+    nodes.map((node) => {
+      const match = matchFromNode(file, sourceFile, node);
+      const evidencePath = boundedFlow.evidencePaths.get(node);
+      return evidencePath ? { ...match, evidencePath } : match;
+    })
+  );
 }
 
 export function findDangerouslySetInnerHtmlMatches(file: SourceFile): DangerouslySetInnerHtmlMatch[] {
@@ -149,7 +161,8 @@ function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
   const commandFlow = collectCommandFlowFacts(
     sourceFile,
     commandDiscovery.commandIdentifiers,
-    commandDiscovery.childProcessNamespaces
+    commandDiscovery.childProcessNamespaces,
+    createRawSqlFlowCallbacks()
   );
   const routeHandlerNodes: ts.Node[] = [];
   let hasUploadHandling = false;

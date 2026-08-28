@@ -285,6 +285,7 @@ export const rawSqlConcatRule: Rule = {
           line: match.line,
           column: match.column,
           evidence: match.evidence,
+          evidencePath: match.evidencePath,
           description: "SQL built with string interpolation or concatenation can lead to SQL injection.",
           recommendation: "Use parameterized queries, prepared statements, or a safe ORM query builder."
         })

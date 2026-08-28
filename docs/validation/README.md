@@ -11,8 +11,10 @@ total: 469 tests
 ```
 
 The 323-package-test count above is the frozen #13 pre-implementation
-baseline. The current post-#14 validation count is 326 package tests, 146 web
-tests, and 472 total tests; see [phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
+baseline. The post-#14 validation count was 326 package tests, 146 web tests,
+and 472 total tests; see [phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
+The current #15 raw-SQL pilot count is 337 package tests, 146 web tests, and
+483 total tests; see [phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md).
 
 Historical v0.1 baseline:
 
@@ -44,6 +46,10 @@ and bounded-flow boundaries are documented in
 The shared `AnalysisFacts` foundation, bounded-flow fact vocabulary, and #14
 validation results are documented in
 [phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
+
+The #15 raw-SQL bounded source-to-sink pilot, route-parameter fact fix,
+fixture stability, and directional performance sample are documented in
+[phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md).
 
 ## Post-release Real-world Smoke Note
 
