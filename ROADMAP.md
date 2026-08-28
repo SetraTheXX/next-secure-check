@@ -7,7 +7,7 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-29 |
 | Current release | `v0.4.1` published |
 | Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 1 - Shared `AnalysisFacts` foundation (#14) |
+| Current next task | v0.5 Phase 2 - Raw SQL bounded source-to-sink pilot (#15) |
 | Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
 
 ## Progress Legend
@@ -24,7 +24,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 323 package tests, 146 web tests, 469 total tests.
+- [x] Current validation baseline: 326 package tests, 146 web tests, 472 total tests.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
@@ -44,6 +44,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 concise terminal summary validation](./docs/validation/phase-9-summary-output.md)
 - [x] [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
 - [x] [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
+- [x] [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [release history](./CHANGELOG.md)
 
@@ -159,7 +160,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 ### v0.5 issue map
 
 - [x] [#13 Baseline and bounded-flow contract](https://github.com/SetraTheXX/next-secure-check/issues/13)
-- [ ] [#14 Shared `AnalysisFacts` foundation](https://github.com/SetraTheXX/next-secure-check/issues/14)
+- [x] [#14 Shared `AnalysisFacts` foundation](https://github.com/SetraTheXX/next-secure-check/issues/14)
 - [ ] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
 - [ ] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
 - [ ] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
@@ -206,16 +207,16 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 1 - Shared bounded-flow foundation (#14)
 
-- [ ] **Phase status:** Planned
+- [x] **Phase status:** Complete; implementation and validation recorded in [phase-11-analysis-facts.md](./docs/validation/phase-11-analysis-facts.md)
 
 **Purpose:** Extend the existing parse-cache and `AnalysisFacts` layer without duplicating rule-specific AST walks.
 
-- [ ] Reuse the existing one-parse-per-source-file lifecycle.
-- [ ] Add source, sink, guard, alias, and evidence facts only where they have rule-specific meaning.
-- [ ] Avoid a universal `sanitized` or `safe` flag; SQL, HTML, and command guards must remain separate.
-- [ ] Add explicit facts for alias creation, reassignment, and function-boundary stop.
-- [ ] Add unit tests for direct expressions, one-to-two aliases, reassignment, mutation, closure, and malformed TS/TSX.
-- [ ] Keep the existing direct pattern matchers as a fallback when no source can be proven.
+- [x] Reuse the existing one-parse-per-source-file lifecycle.
+- [x] Add source, sink, guard, alias, and evidence facts only where they have rule-specific meaning.
+- [x] Avoid a universal `sanitized` or `safe` flag; SQL, HTML, and command guards must remain separate.
+- [x] Add explicit facts for alias creation, reassignment, and function-boundary stop.
+- [x] Add unit tests for direct expressions, one-to-two aliases, reassignment, mutation, closure, and malformed TS/TSX.
+- [x] Keep the existing direct pattern matchers as a fallback when no source can be proven.
 
 **Exit criteria:** The foundation is reusable, deterministic, and produces no behavior change until a rule opts into it.
 
@@ -347,7 +348,7 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 ## Recommended implementation order
 
 1. [x] v0.5 Phase 0 - baseline and analysis contract.
-2. [ ] v0.5 Phase 1 - shared bounded-flow foundation.
+2. [x] v0.5 Phase 1 - shared bounded-flow foundation.
 3. [ ] v0.5 Phase 2 - raw SQL bounded flow pilot.
 4. [ ] v0.5 Phase 6 - regression and performance gate for the SQL pilot.
 5. [ ] v0.5 Phase 3 - XSS source/sanitizer refinement.

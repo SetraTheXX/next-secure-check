@@ -1,6 +1,7 @@
 import type { Severity, SourceFile } from "@next-secure-check/core";
 import ts from "typescript";
 import { SourceAnalysisCache, type AnalysisCacheStats } from "./analysis-cache.js";
+import type { BoundedFlowFacts } from "./analysis-facts.js";
 import { collectCommandDiscovery } from "./command-discovery.js";
 import { collectCommandFlowFacts, isAnalyzableCommandExecutionCall } from "./command-flow.js";
 import { findPasswordHandlingNodes, hasPasswordHashingCall } from "./password-ast.js";
@@ -29,6 +30,7 @@ export type DangerouslySetInnerHtmlMatch = AstMatch & {
 
 export type AnalysisFacts = {
   sourceFile: ts.SourceFile;
+  boundedFlow: BoundedFlowFacts;
   commandIdentifiers: ReadonlySet<string>;
   childProcessNamespaces: ReadonlySet<string>;
   commandDeclarationNodes: readonly ts.Node[];
@@ -167,6 +169,7 @@ function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
 
   return {
     sourceFile,
+    boundedFlow: commandFlow.boundedFlow,
     commandIdentifiers: commandDiscovery.commandIdentifiers,
     childProcessNamespaces: commandDiscovery.childProcessNamespaces,
     commandDeclarationNodes: commandDiscovery.commandDeclarationNodes,
