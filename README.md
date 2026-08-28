@@ -393,9 +393,9 @@ pnpm test
 The current validation baseline is:
 
 ~~~txt
-packages: 323 tests
+packages: 326 tests
 apps/web: 146 tests
-total: 469 tests
+total: 472 tests
 ~~~
 
 Workspace layout:
@@ -418,6 +418,7 @@ Useful validation references:
 - [concise terminal summary validation](./docs/validation/phase-9-summary-output.md)
 - [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
 - [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
+- [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
 
 ## Learning Project and Development Philosophy
 

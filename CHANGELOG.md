@@ -11,13 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a root composite GitHub Action wrapper for `next-secure-check@0.4.1` with preset, fail-on, format, exclude, and output inputs.
 - Added a CI smoke step that exercises the local Action against the secure fixture.
 - Added an opt-in terminal-only `--summary` view for concise score, risk, finding-count, severity, confidence, context, and location output.
+- Added shared syntax-only bounded-flow facts for direct sources, command sinks, guards, short aliases, invalidations, function boundaries, and proven evidence paths.
 
 ### Documentation
 - Added the reproducible VHS README demo, simplified SVG wordmark, and v0.5 summary-output validation note.
 - Added the v0.5 baseline/finding-identity inventory and bounded-flow contract decision note for issue #13.
+- Added the shared `AnalysisFacts` foundation validation note for issue #14.
 
 ### Tests
-- Current validation baseline: 323 package tests, 146 web tests, 469 total tests.
+- Current validation baseline: 326 package tests, 146 web tests, 472 total tests.
 
 ## [0.4.1] - 2026-08-24
 

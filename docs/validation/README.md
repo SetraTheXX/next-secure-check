@@ -2,13 +2,17 @@
 
 This folder contains manual validation notes for project phases and milestone checks.
 
-Current validation baseline:
+Frozen #13 pre-implementation validation baseline:
 
 ```txt
 packages: 323 tests
 apps/web: 146 tests
 total: 469 tests
 ```
+
+The 323-package-test count above is the frozen #13 pre-implementation
+baseline. The current post-#14 validation count is 326 package tests, 146 web
+tests, and 472 total tests; see [phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
 
 Historical v0.1 baseline:
 
@@ -36,6 +40,10 @@ The v0.5 baseline, finding identity inventory, report compatibility contract,
 and bounded-flow boundaries are documented in
 [phase-10-v0.5-baseline.md](./phase-10-v0.5-baseline.md). The decision record is
 [0002-v0.5-bounded-flow-contract.md](../decisions/0002-v0.5-bounded-flow-contract.md).
+
+The shared `AnalysisFacts` foundation, bounded-flow fact vocabulary, and #14
+validation results are documented in
+[phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
 
 ## Post-release Real-world Smoke Note
 

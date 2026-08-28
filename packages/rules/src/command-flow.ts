@@ -12,11 +12,19 @@ import {
   isCommandExecutionCall,
   isCommandMutationOperator
 } from "./command-ast.js";
+import {
+  createBoundedFlowFactsBuilder,
+  finalizeBoundedFlowFacts,
+  type BoundedFlowFacts,
+  type BoundedFlowFactsBuilder,
+  type BoundedFlowInvalidationReason
+} from "./analysis-facts.js";
 import { hasCommandAllowlistGuard, isCommandAllowlistMembershipCall } from "./command-guards.js";
 
 export type CommandFlowFacts = {
   sourcePaths: ReadonlyMap<ts.CallExpression, string>;
   safeCommandCalls: ReadonlySet<ts.CallExpression>;
+  boundedFlow: BoundedFlowFacts;
 };
 
 export function isAnalyzableCommandExecutionCall(
@@ -40,9 +48,9 @@ export function collectCommandFlowFacts(
   commandIdentifiers: ReadonlySet<string>,
   childProcessNamespaces: ReadonlySet<string>
 ): CommandFlowFacts {
-  const sourcePaths = new Map<ts.CallExpression, string>();
-  const safeCommandCalls = new Set<ts.CallExpression>();
-  analyzeCommandScope(sourceFile, sourceFile, commandIdentifiers, childProcessNamespaces, sourcePaths, safeCommandCalls);
+  const factsBuilder = createBoundedFlowFactsBuilder();
+  collectFunctionBoundaryFacts(sourceFile, factsBuilder);
+  analyzeCommandScope(sourceFile, sourceFile, commandIdentifiers, childProcessNamespaces, factsBuilder);
 
   visitCommandNodes(sourceFile, (node) => {
     if (!isCommandFunctionLike(node)) {
@@ -51,11 +59,16 @@ export function collectCommandFlowFacts(
 
     const body = commandFunctionBody(node);
     if (body) {
-      analyzeCommandScope(body, body, commandIdentifiers, childProcessNamespaces, sourcePaths, safeCommandCalls);
+      analyzeCommandScope(body, body, commandIdentifiers, childProcessNamespaces, factsBuilder);
     }
   });
 
-  return { sourcePaths, safeCommandCalls };
+  const boundedFlow = finalizeBoundedFlowFacts(factsBuilder);
+  return {
+    sourcePaths: boundedFlow.evidencePaths,
+    safeCommandCalls: boundedFlow.guardedSinks,
+    boundedFlow
+  };
 }
 
 function isSafeStaticSpawnCall(node: ts.CallExpression): boolean {
@@ -111,6 +124,8 @@ type CommandFlowValue = {
 };
 
 type CommandFlowState = {
+  factsBuilder: BoundedFlowFactsBuilder;
+  scopeRoot: ts.Node;
   declared: Set<string>;
   initialized: Set<string>;
   invalidated: Set<string>;
@@ -131,9 +146,8 @@ function analyzeCommandScope(
   node: ts.Node,
   commandIdentifiers: ReadonlySet<string>,
   childProcessNamespaces: ReadonlySet<string>,
-  sourcePaths: Map<ts.CallExpression, string>,
-  safeCommandCalls: Set<ts.CallExpression>,
-  state: CommandFlowState = createCommandFlowState()
+  factsBuilder: BoundedFlowFactsBuilder,
+  state: CommandFlowState = createCommandFlowState(factsBuilder, scopeRoot)
 ): void {
   if (node !== scopeRoot && isCommandFunctionLike(node)) {
     return;
@@ -148,47 +162,57 @@ function analyzeCommandScope(
   }
 
   if (ts.isPrefixUnaryExpression(node) && isCommandMutationOperator(node.operator)) {
-    invalidateCommandTarget(node.operand, state);
+    invalidateCommandTarget(node.operand, state, "mutation");
   }
 
   if (ts.isPostfixUnaryExpression(node) && isCommandMutationOperator(node.operator)) {
-    invalidateCommandTarget(node.operand, state);
+    invalidateCommandTarget(node.operand, state, "mutation");
   }
 
   if (ts.isCallExpression(node)) {
     if (isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)) {
+      state.factsBuilder.sinkFacts.set(node, { node, scope: scopeRoot, kind: commandExecutionName(node.expression) });
       const sourcePath = findCommandSourcePathInArguments(node, state);
       if (sourcePath) {
-        if (isGuardedCommandSink(node, state)) {
-          safeCommandCalls.add(node);
+        const guardIdentifier = guardedCommandIdentifier(node, state);
+        if (guardIdentifier) {
+          state.factsBuilder.guardedSinks.add(node);
+          state.factsBuilder.guardFacts.set(node, {
+            node,
+            scope: scopeRoot,
+            kind: "command-allowlist",
+            identifier: guardIdentifier
+          });
         } else {
-          sourcePaths.set(node, sourcePath);
+          state.factsBuilder.evidencePaths.set(node, sourcePath);
         }
       } else {
-        invalidateTaintedReferences(node, state);
+        invalidateTaintedReferences(node, state, "call-escape");
       }
     } else if (!isCommandAllowlistMembershipCall(node) && !sourcePathForExpression(node, state)) {
-      invalidateTaintedReferences(node, state);
+      invalidateTaintedReferences(node, state, "call-escape");
     }
   }
 
   ts.forEachChild(node, (child) =>
-    analyzeCommandScope(scopeRoot, child, commandIdentifiers, childProcessNamespaces, sourcePaths, safeCommandCalls, state)
+    analyzeCommandScope(scopeRoot, child, commandIdentifiers, childProcessNamespaces, factsBuilder, state)
   );
 }
 
-function isGuardedCommandSink(node: ts.CallExpression, state: CommandFlowState): boolean {
+function guardedCommandIdentifier(node: ts.CallExpression, state: CommandFlowState): string | undefined {
   const [commandArgument] = node.arguments;
   if (!commandArgument) {
-    return false;
+    return undefined;
   }
 
   const normalized = unwrapCommandExpression(commandArgument);
   if (!ts.isIdentifier(normalized) || !sourcePathForExpression(normalized, state)) {
-    return false;
+    return undefined;
   }
 
-  return hasCommandAllowlistGuard(node, normalized.text) && !hasUntrustedSpawnArguments(node, state);
+  return hasCommandAllowlistGuard(node, normalized.text) && !hasUntrustedSpawnArguments(node, state)
+    ? normalized.text
+    : undefined;
 }
 
 function hasUntrustedSpawnArguments(node: ts.CallExpression, state: CommandFlowState): boolean {
@@ -200,8 +224,10 @@ function hasUntrustedSpawnArguments(node: ts.CallExpression, state: CommandFlowS
   return node.arguments.slice(1).some((argument) => Boolean(findCommandSourcePathInExpression(argument, state)));
 }
 
-function createCommandFlowState(): CommandFlowState {
+function createCommandFlowState(factsBuilder: BoundedFlowFactsBuilder, scopeRoot: ts.Node): CommandFlowState {
   return {
+    factsBuilder,
+    scopeRoot,
     declared: new Set<string>(),
     initialized: new Set<string>(),
     invalidated: new Set<string>(),
@@ -217,7 +243,9 @@ function recordCommandDeclaration(node: ts.VariableDeclaration, state: CommandFl
     }
 
     state.initialized.add(node.name.text);
-    trackCommandValue(node.name.text, sourcePathForAssignment(node.initializer, state, node.name.text), state);
+    const value = sourcePathForAssignment(node.initializer, state, node.name.text);
+    recordIdentifierAlias(node, node.name.text, node.initializer, value, state);
+    trackCommandValue(node.name.text, value, state);
     return;
   }
 
@@ -246,23 +274,47 @@ function recordCommandDeclaration(node: ts.VariableDeclaration, state: CommandFl
 function recordCommandAssignment(node: ts.BinaryExpression, state: CommandFlowState): void {
   const target = commandTargetIdentifier(node.left);
   if (!target) {
-    invalidateTaintedReferences(node.left, state);
+    invalidateTaintedReferences(node.left, state, "reassignment");
     return;
   }
 
   if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
-    invalidateCommandTarget(node.left, state);
+    invalidateCommandTarget(node.left, state, "mutation");
     return;
   }
 
   if (state.invalidated.has(target) || state.initialized.has(target)) {
-    invalidateCommandTarget(node.left, state);
+    invalidateCommandTarget(node.left, state, "reassignment");
     return;
   }
 
   state.declared.add(target);
   state.initialized.add(target);
-  trackCommandValue(target, sourcePathForAssignment(node.right, state, target), state);
+  const value = sourcePathForAssignment(node.right, state, target);
+  recordIdentifierAlias(node, target, node.right, value, state);
+  trackCommandValue(target, value, state);
+}
+
+function recordIdentifierAlias(
+  node: ts.VariableDeclaration | ts.BinaryExpression,
+  target: string,
+  expression: ts.Expression,
+  value: CommandFlowValue | undefined,
+  state: CommandFlowState
+): void {
+  const normalized = unwrapCommandExpression(expression);
+  if (!value || value.aliasDepth > COMMAND_ALIAS_LIMIT || !ts.isIdentifier(normalized) || normalized.text === target) {
+    return;
+  }
+
+  state.factsBuilder.aliasFacts.push({
+    node,
+    scope: state.scopeRoot,
+    from: normalized.text,
+    to: target,
+    depth: value.aliasDepth,
+    path: value.path
+  });
 }
 
 function trackCommandValue(name: string, value: CommandFlowValue | undefined, state: CommandFlowState): void {
@@ -354,13 +406,22 @@ function sourcePathForReference(expression: ts.Expression, state: CommandFlowSta
       return undefined;
     }
 
-    return state.tracked.get(normalized.text) ?? (ROUTE_PARAMS_NAMES.test(normalized.text) ? { path: normalized.text, aliasDepth: 0 } : undefined);
+    const tracked = state.tracked.get(normalized.text);
+    if (tracked) {
+      return tracked;
+    }
+
+    if (ROUTE_PARAMS_NAMES.test(normalized.text)) {
+      return recordDirectSource(normalized, { path: normalized.text, aliasDepth: 0 }, state);
+    }
+
+    return undefined;
   }
 
   if (ts.isPropertyAccessExpression(normalized)) {
     const directSource = directCommandPropertySource(normalized);
     if (directSource) {
-      return directSource;
+      return recordDirectSource(normalized, directSource, state);
     }
 
     const base = sourcePathForReference(normalized.expression, state);
@@ -375,7 +436,7 @@ function sourcePathForReference(expression: ts.Expression, state: CommandFlowSta
 
     const directSource = directCommandElementSource(normalized, propertyName);
     if (directSource) {
-      return directSource;
+      return recordDirectSource(normalized, directSource, state);
     }
 
     const base = sourcePathForReference(normalized.expression, state);
@@ -386,12 +447,20 @@ function sourcePathForReference(expression: ts.Expression, state: CommandFlowSta
     const methodName = normalized.expression.name.text;
     const receiver = normalized.expression.expression;
     if ((methodName === "json" || methodName === "formData") && isRequestSourceReceiver(receiver)) {
-      return { path: `${commandExpressionLabel(receiver)}.${methodName}()`, aliasDepth: 0 };
+      return recordDirectSource(
+        normalized,
+        { path: `${commandExpressionLabel(receiver)}.${methodName}()`, aliasDepth: 0 },
+        state
+      );
     }
 
     if (methodName === "get") {
       if (isSearchParamsReceiver(receiver)) {
-        return { path: `${commandExpressionLabel(receiver)}.get()`, aliasDepth: 0 };
+        return recordDirectSource(
+          normalized,
+          { path: `${commandExpressionLabel(receiver)}.get()`, aliasDepth: 0 },
+          state
+        );
       }
 
       const base = sourcePathForReference(receiver, state);
@@ -400,6 +469,15 @@ function sourcePathForReference(expression: ts.Expression, state: CommandFlowSta
   }
 
   return undefined;
+}
+
+function recordDirectSource(node: ts.Node, value: CommandFlowValue, state: CommandFlowState): CommandFlowValue {
+  state.factsBuilder.sourceFacts.set(node, {
+    node,
+    path: value.path,
+    scope: state.scopeRoot
+  });
+  return value;
 }
 
 function directCommandPropertySource(node: ts.PropertyAccessExpression): CommandFlowValue | undefined {
@@ -432,17 +510,22 @@ function commandAlias(value: CommandFlowValue, aliasName: string): CommandFlowVa
   };
 }
 
-function invalidateCommandTarget(node: ts.Node, state: CommandFlowState): void {
+function invalidateCommandTarget(
+  node: ts.Node,
+  state: CommandFlowState,
+  reason: BoundedFlowInvalidationReason
+): void {
   const target = commandTargetIdentifier(node);
   if (target) {
+    recordInvalidation(node, target, reason, state);
     state.tracked.delete(target);
     state.invalidated.add(target);
   }
 
-  invalidateTaintedReferences(node, state);
+  invalidateTaintedReferences(node, state, reason);
 }
 
-function invalidateTaintedReferences(node: ts.Node, state: CommandFlowState): void {
+function invalidateTaintedReferences(node: ts.Node, state: CommandFlowState, reason: BoundedFlowInvalidationReason): void {
   const identifiers = new Set<string>();
   visitCommandNodes(node, (child) => {
     if (!ts.isIdentifier(child) || !state.tracked.has(child.text)) {
@@ -457,9 +540,19 @@ function invalidateTaintedReferences(node: ts.Node, state: CommandFlowState): vo
   });
 
   for (const identifier of identifiers) {
+    recordInvalidation(node, identifier, reason, state);
     state.tracked.delete(identifier);
     state.invalidated.add(identifier);
   }
+}
+
+function recordInvalidation(
+  node: ts.Node,
+  identifier: string,
+  reason: BoundedFlowInvalidationReason,
+  state: CommandFlowState
+): void {
+  state.factsBuilder.invalidationFacts.push({ node, scope: state.scopeRoot, identifier, reason });
 }
 
 function commandTargetIdentifier(node: ts.Node): string | undefined {
@@ -527,6 +620,14 @@ function isCommandFunctionLike(node: ts.Node): node is CommandFunctionLike {
     ts.isMethodDeclaration(node) ||
     ts.isSetAccessorDeclaration(node)
   );
+}
+
+function collectFunctionBoundaryFacts(sourceFile: ts.SourceFile, factsBuilder: BoundedFlowFactsBuilder): void {
+  visitCommandNodes(sourceFile, (node) => {
+    if (isCommandFunctionLike(node)) {
+      factsBuilder.functionBoundaryFacts.push({ node });
+    }
+  });
 }
 
 function commandFunctionBody(node: CommandFunctionLike): ts.Node | undefined {
