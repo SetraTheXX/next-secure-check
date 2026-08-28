@@ -5,9 +5,9 @@ This folder contains manual validation notes for project phases and milestone ch
 Current validation baseline:
 
 ```txt
-packages: 320 tests
+packages: 323 tests
 apps/web: 146 tests
-total: 466 tests
+total: 469 tests
 ```
 
 Historical v0.1 baseline:
@@ -31,6 +31,11 @@ The isolated TypeChecker measurement and syntax fallback decision are documented
 The reproducible vulnerable-versus-secure terminal demo and current rule-level signal notes are documented in [phase-8-demo.md](./phase-8-demo.md).
 
 The v0.5 concise terminal summary contract and README demo validation are documented in [phase-9-summary-output.md](./phase-9-summary-output.md).
+
+The v0.5 baseline, finding identity inventory, report compatibility contract,
+and bounded-flow boundaries are documented in
+[phase-10-v0.5-baseline.md](./phase-10-v0.5-baseline.md). The decision record is
+[0002-v0.5-bounded-flow-contract.md](../decisions/0002-v0.5-bounded-flow-contract.md).
 
 ## Post-release Real-world Smoke Note
 

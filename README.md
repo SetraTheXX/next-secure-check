@@ -99,14 +99,15 @@ npx --yes next-secure-check@latest scan . --format github
 # SARIF for GitHub Code Scanning
 npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
 
-# Concise terminal summary
-npx --yes next-secure-check@latest scan . --preset app --summary
+# Concise terminal summary (v0.5 development line)
+pnpm build
+node packages/cli/dist/index.js scan . --preset app --summary
 
-# Scan command help
-npx --yes next-secure-check@latest scan --help
+# Scan command help (v0.5 development line)
+node packages/cli/dist/index.js scan --help
 ~~~
 
-`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output.
+`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output. This option is currently in the unreleased v0.5 development line; the published npm `latest` line remains `v0.4.1` until v0.5 is released.
 
 ### Failure gates
 
@@ -174,7 +175,7 @@ Supported fields in the current release:
 - `format`: `terminal`, `json`, `markdown`, or `github`
 - `preset`: `default`, `app`, `strict`, `ci`, `audit`, `library`, or `monorepo`
 
-`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output.
+`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output. It is available from the current repository build and is not part of published npm `v0.4.1` yet.
 
 Example:
 
@@ -392,9 +393,9 @@ pnpm test
 The current validation baseline is:
 
 ~~~txt
-packages: 320 tests
+packages: 323 tests
 apps/web: 146 tests
-total: 466 tests
+total: 469 tests
 ~~~
 
 Workspace layout:
@@ -415,6 +416,8 @@ Useful validation references:
 - [bounded-flow validation](./docs/validation/phase-6-bounded-flow.md)
 - [vulnerable/secure demo validation](./docs/validation/phase-8-demo.md)
 - [concise terminal summary validation](./docs/validation/phase-9-summary-output.md)
+- [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
+- [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
 
 ## Learning Project and Development Philosophy
 
