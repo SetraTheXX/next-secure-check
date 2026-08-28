@@ -27,6 +27,26 @@ export type CommandFlowFacts = {
   boundedFlow: BoundedFlowFacts;
 };
 
+export type BoundedFlowContext = {
+  readonly scopeRoot: ts.Node;
+  readonly findSourcePathInExpression: (node: ts.Node) => string | undefined;
+  readonly findSourcePathInArguments: (node: ts.CallExpression) => string | undefined;
+  readonly recordSink: (node: ts.CallExpression, kind?: string) => void;
+  readonly recordEvidencePath: (node: ts.Node, path: string) => void;
+};
+
+export type BoundedFlowCallbacks = {
+  readonly onVariableDeclaration?: (node: ts.VariableDeclaration, context: BoundedFlowContext) => void;
+  readonly onAssignment?: (node: ts.BinaryExpression, context: BoundedFlowContext) => void;
+  readonly onCall?: (node: ts.CallExpression, context: BoundedFlowContext) => void;
+  readonly onTaggedTemplate?: (node: ts.TaggedTemplateExpression, context: BoundedFlowContext) => void;
+  readonly onInvalidation?: (
+    identifier: string,
+    reason: BoundedFlowInvalidationReason,
+    context: BoundedFlowContext
+  ) => void;
+};
+
 export function isAnalyzableCommandExecutionCall(
   node: ts.CallExpression,
   commandIdentifiers: ReadonlySet<string>,
@@ -46,11 +66,12 @@ export function collectCommandSourcePaths(
 export function collectCommandFlowFacts(
   sourceFile: ts.SourceFile,
   commandIdentifiers: ReadonlySet<string>,
-  childProcessNamespaces: ReadonlySet<string>
+  childProcessNamespaces: ReadonlySet<string>,
+  callbacks: BoundedFlowCallbacks = {}
 ): CommandFlowFacts {
   const factsBuilder = createBoundedFlowFactsBuilder();
   collectFunctionBoundaryFacts(sourceFile, factsBuilder);
-  analyzeCommandScope(sourceFile, sourceFile, commandIdentifiers, childProcessNamespaces, factsBuilder);
+  analyzeCommandScope(sourceFile, sourceFile, commandIdentifiers, childProcessNamespaces, factsBuilder, callbacks);
 
   visitCommandNodes(sourceFile, (node) => {
     if (!isCommandFunctionLike(node)) {
@@ -59,13 +80,20 @@ export function collectCommandFlowFacts(
 
     const body = commandFunctionBody(node);
     if (body) {
-      analyzeCommandScope(body, body, commandIdentifiers, childProcessNamespaces, factsBuilder);
+      analyzeCommandScope(body, body, commandIdentifiers, childProcessNamespaces, factsBuilder, callbacks);
     }
   });
 
   const boundedFlow = finalizeBoundedFlowFacts(factsBuilder);
+  const sourcePaths = new Map<ts.CallExpression, string>();
+  for (const [node, path] of boundedFlow.evidencePaths) {
+    if (ts.isCallExpression(node)) {
+      sourcePaths.set(node, path);
+    }
+  }
+
   return {
-    sourcePaths: boundedFlow.evidencePaths,
+    sourcePaths,
     safeCommandCalls: boundedFlow.guardedSinks,
     boundedFlow
   };
@@ -126,6 +154,7 @@ type CommandFlowValue = {
 type CommandFlowState = {
   factsBuilder: BoundedFlowFactsBuilder;
   scopeRoot: ts.Node;
+  callbacks: BoundedFlowCallbacks;
   declared: Set<string>;
   initialized: Set<string>;
   invalidated: Set<string>;
@@ -147,7 +176,8 @@ function analyzeCommandScope(
   commandIdentifiers: ReadonlySet<string>,
   childProcessNamespaces: ReadonlySet<string>,
   factsBuilder: BoundedFlowFactsBuilder,
-  state: CommandFlowState = createCommandFlowState(factsBuilder, scopeRoot)
+  callbacks: BoundedFlowCallbacks,
+  state: CommandFlowState = createCommandFlowState(factsBuilder, scopeRoot, callbacks)
 ): void {
   if (node !== scopeRoot && isCommandFunctionLike(node)) {
     return;
@@ -155,10 +185,12 @@ function analyzeCommandScope(
 
   if (ts.isVariableDeclaration(node)) {
     recordCommandDeclaration(node, state);
+    state.callbacks.onVariableDeclaration?.(node, createBoundedFlowContext(state));
   }
 
   if (ts.isBinaryExpression(node) && isCommandAssignmentOperator(node.operatorToken.kind)) {
     recordCommandAssignment(node, state);
+    state.callbacks.onAssignment?.(node, createBoundedFlowContext(state));
   }
 
   if (ts.isPrefixUnaryExpression(node) && isCommandMutationOperator(node.operator)) {
@@ -169,7 +201,13 @@ function analyzeCommandScope(
     invalidateCommandTarget(node.operand, state, "mutation");
   }
 
+  if (ts.isTaggedTemplateExpression(node)) {
+    state.callbacks.onTaggedTemplate?.(node, createBoundedFlowContext(state));
+  }
+
   if (ts.isCallExpression(node)) {
+    state.callbacks.onCall?.(node, createBoundedFlowContext(state));
+
     if (isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)) {
       state.factsBuilder.sinkFacts.set(node, { node, scope: scopeRoot, kind: commandExecutionName(node.expression) });
       const sourcePath = findCommandSourcePathInArguments(node, state);
@@ -195,7 +233,7 @@ function analyzeCommandScope(
   }
 
   ts.forEachChild(node, (child) =>
-    analyzeCommandScope(scopeRoot, child, commandIdentifiers, childProcessNamespaces, factsBuilder, state)
+    analyzeCommandScope(scopeRoot, child, commandIdentifiers, childProcessNamespaces, factsBuilder, callbacks, state)
   );
 }
 
@@ -224,14 +262,33 @@ function hasUntrustedSpawnArguments(node: ts.CallExpression, state: CommandFlowS
   return node.arguments.slice(1).some((argument) => Boolean(findCommandSourcePathInExpression(argument, state)));
 }
 
-function createCommandFlowState(factsBuilder: BoundedFlowFactsBuilder, scopeRoot: ts.Node): CommandFlowState {
+function createCommandFlowState(
+  factsBuilder: BoundedFlowFactsBuilder,
+  scopeRoot: ts.Node,
+  callbacks: BoundedFlowCallbacks
+): CommandFlowState {
   return {
     factsBuilder,
     scopeRoot,
+    callbacks,
     declared: new Set<string>(),
     initialized: new Set<string>(),
     invalidated: new Set<string>(),
     tracked: new Map<string, CommandFlowValue>()
+  };
+}
+
+function createBoundedFlowContext(state: CommandFlowState): BoundedFlowContext {
+  return {
+    scopeRoot: state.scopeRoot,
+    findSourcePathInExpression: (node) => findCommandSourcePathInExpression(node, state),
+    findSourcePathInArguments: (node) => findCommandSourcePathInArguments(node, state),
+    recordSink: (node, kind) => {
+      state.factsBuilder.sinkFacts.set(node, { node, scope: state.scopeRoot, kind });
+    },
+    recordEvidencePath: (node, path) => {
+      state.factsBuilder.evidencePaths.set(node, path);
+    }
   };
 }
 
@@ -373,7 +430,7 @@ function sourcePathForExpression(expression: ts.Expression, state: CommandFlowSt
     }
 
     if (ROUTE_PARAMS_NAMES.test(normalized.text)) {
-      return { path: normalized.text, aliasDepth: 0 };
+      return recordDirectSource(normalized, { path: normalized.text, aliasDepth: 0 }, state);
     }
 
     return undefined;
@@ -553,6 +610,7 @@ function recordInvalidation(
   state: CommandFlowState
 ): void {
   state.factsBuilder.invalidationFacts.push({ node, scope: state.scopeRoot, identifier, reason });
+  state.callbacks.onInvalidation?.(identifier, reason, createBoundedFlowContext(state));
 }
 
 function commandTargetIdentifier(node: ts.Node): string | undefined {

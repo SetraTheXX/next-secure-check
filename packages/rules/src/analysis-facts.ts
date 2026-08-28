@@ -42,7 +42,7 @@ export type BoundedFlowFunctionBoundaryFact = {
 };
 
 export type BoundedFlowEvidencePathFact = {
-  readonly sink: ts.CallExpression;
+  readonly sink: ts.Node;
   readonly path: string;
 };
 
@@ -53,7 +53,7 @@ export type BoundedFlowFacts = {
   readonly aliases: readonly BoundedFlowAliasFact[];
   readonly invalidations: readonly BoundedFlowInvalidationFact[];
   readonly functionBoundaries: readonly BoundedFlowFunctionBoundaryFact[];
-  readonly evidencePaths: ReadonlyMap<ts.CallExpression, string>;
+  readonly evidencePaths: ReadonlyMap<ts.Node, string>;
   readonly guardedSinks: ReadonlySet<ts.CallExpression>;
 };
 
@@ -64,7 +64,7 @@ export type BoundedFlowFactsBuilder = {
   readonly aliasFacts: BoundedFlowAliasFact[];
   readonly invalidationFacts: BoundedFlowInvalidationFact[];
   readonly functionBoundaryFacts: BoundedFlowFunctionBoundaryFact[];
-  readonly evidencePaths: Map<ts.CallExpression, string>;
+  readonly evidencePaths: Map<ts.Node, string>;
   readonly guardedSinks: Set<ts.CallExpression>;
 };
 

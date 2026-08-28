@@ -475,6 +475,18 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(false);
   });
 
+  it("flags a raw SQL template after it reaches a query sink through a variable", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "const sql = `SELECT * FROM users WHERE id = ${id}`;",
+        "db.query(sql);"
+      ].join("\n")
+    });
+
+    const findings = result.findings.filter((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(findings).toHaveLength(1);
+  });
+
   it("detects raw SQL interpolation passed to query APIs", async () => {
     const result = await scanFixture({
       "app/api/users/route.ts": [
@@ -485,6 +497,125 @@ describe("built-in security rules", () => {
 
     const findings = result.findings.filter((finding) => finding.ruleId === "injection/raw-sql-concat");
     expect(findings).toHaveLength(2);
+  });
+
+  it("records a bounded request source path for a raw SQL query sink", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "export async function GET(request) {",
+        "  const body = await request.json();",
+        "  const email = body.email;",
+        "  db.query(`SELECT * FROM users WHERE email = ${email}`);",
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(finding?.evidencePath).toBe("request.json() -> email");
+  });
+
+  it("tracks a raw SQL query value through two same-function aliases", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "export async function GET(request) {",
+        "  const body = await request.json();",
+        "  const email = body.email;",
+        "  const query = `SELECT * FROM users WHERE email = ${email}`;",
+        "  const alias = query;",
+        "  const second = alias;",
+        "  db.query(second);",
+        "}"
+      ].join("\n")
+    });
+
+    const findings = result.findings.filter((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.evidencePath).toBe("request.json() -> email -> alias -> second");
+  });
+
+  it("detects SQL string concatenation at a recognized query sink", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "export async function GET(request) {",
+        "  const body = await request.json();",
+        "  const id = body.id;",
+        '  db.query("SELECT * FROM users WHERE id = " + id);',
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(finding?.evidencePath).toBe("request.json() -> id");
+  });
+
+  it("records the supported request-source paths for raw SQL sinks", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "export async function POST(request, { params }) {",
+        "  const formData = await request.formData();",
+        "  db.query(`SELECT * FROM users WHERE id = ${formData.get('id')}`);",
+        "  db.query(`SELECT * FROM users WHERE id = ${request.body.id}`);",
+        "  db.query(`SELECT * FROM users WHERE id = ${request.query.id}`);",
+        "  db.query(`SELECT * FROM users WHERE id = ${searchParams.get('id')}`);",
+        "  db.query(`SELECT * FROM users WHERE id = ${params.id}`);",
+        "}"
+      ].join("\n")
+    });
+
+    const findings = result.findings.filter((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(findings.map((finding) => finding.evidencePath)).toEqual([
+      "request.formData() -> get()",
+      "request.body -> id",
+      "request.query -> id",
+      "searchParams.get()",
+      "params -> id"
+    ]);
+  });
+
+  it("does not carry a raw SQL query value past reassignment or a function boundary", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "export async function GET(request) {",
+        "  const body = await request.json();",
+        "  const id = body.id;",
+        "  let query = `SELECT * FROM users WHERE id = ${id}`;",
+        '  query = "SELECT * FROM users";',
+        "  db.query(query);",
+        "  function execute(value) { db.query(value); }",
+        "  execute(`SELECT * FROM users WHERE id = ${id}`);",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((candidate) => candidate.ruleId === "injection/raw-sql-concat")).toBe(false);
+  });
+
+  it("does not carry a raw SQL query value through an unknown call escape", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "const query = `SELECT * FROM users WHERE id = ${id}`;",
+        "sendToLogger(query);",
+        "db.query(query);"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((candidate) => candidate.ruleId === "injection/raw-sql-concat")).toBe(false);
+  });
+
+  it("does not infer raw SQL flow beyond two aliases or across a function boundary", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "const query = `SELECT * FROM users WHERE id = ${id}`;",
+        "const first = query;",
+        "const second = first;",
+        "const third = second;",
+        "db.query(third);",
+        "function execute() { db.query(query); }",
+        "execute();"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((candidate) => candidate.ruleId === "injection/raw-sql-concat")).toBe(false);
   });
 
   it("detects raw SQL interpolation passed to common query sink names", async () => {
@@ -537,12 +668,40 @@ describe("built-in security rules", () => {
     expect(findings).toHaveLength(4);
   });
 
+  it("adds a bounded source path to a raw SQL tagged template when it is proven", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "export async function GET(request) {",
+        "  await prisma.$queryRaw`SELECT * FROM users WHERE id = ${request.json()}`;",
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(finding?.evidencePath).toBe("request.json()");
+  });
+
+  it("detects raw SQL passed to query-style raw APIs", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "prisma.$queryRaw(`SELECT * FROM users WHERE id = ${id}`);",
+        "prisma.$executeRaw(`DELETE FROM users WHERE id = ${id}`);"
+      ].join("\n")
+    });
+
+    const findings = result.findings.filter((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(findings).toHaveLength(2);
+  });
+
   it("does not flag static or parameterized query calls", async () => {
     const result = await scanFixture({
       "app/api/users/route.ts": [
         'db.query("SELECT * FROM users");',
+        'db.query("SELECT * " + "FROM users");',
         'db.query("SELECT * FROM users WHERE id = ?", [id]);',
-        'db.query("SELECT * FROM users WHERE id = $1", [id]);'
+        'db.query("SELECT * FROM users WHERE id = $1", [id]);',
+        'const query = "SELECT * FROM users WHERE id = $1";',
+        'db.query(query, [id]);'
       ].join("\n")
     });
 

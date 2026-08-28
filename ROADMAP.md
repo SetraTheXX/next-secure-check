@@ -7,7 +7,7 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-29 |
 | Current release | `v0.4.1` published |
 | Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 2 - Raw SQL bounded source-to-sink pilot (#15) |
+| Current next task | v0.5 Phase 6 - Regression and performance release gate (#19) |
 | Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
 
 ## Progress Legend
@@ -24,7 +24,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 326 package tests, 146 web tests, 472 total tests.
+- [x] Current validation baseline: 337 package tests, 146 web tests, 483 total tests.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
@@ -45,6 +45,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
 - [x] [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
 - [x] [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
+- [x] [v0.5 raw SQL bounded-flow validation](./docs/validation/phase-12-raw-sql-bounded-flow.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [release history](./CHANGELOG.md)
 
@@ -161,7 +162,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 - [x] [#13 Baseline and bounded-flow contract](https://github.com/SetraTheXX/next-secure-check/issues/13)
 - [x] [#14 Shared `AnalysisFacts` foundation](https://github.com/SetraTheXX/next-secure-check/issues/14)
-- [ ] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
+- [x] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
 - [ ] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
 - [ ] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
 - [ ] [#18 Evidence and reporter explanations](https://github.com/SetraTheXX/next-secure-check/issues/18)
@@ -224,18 +225,18 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 2 - Raw SQL bounded flow pilot (#15)
 
-- [ ] **Phase status:** Planned; first implementation target
+- [x] **Phase status:** Complete; implementation and validation recorded in [phase-12-raw-sql-bounded-flow.md](./docs/validation/phase-12-raw-sql-bounded-flow.md)
 
 **Purpose:** Distinguish a value that reaches a recognized SQL sink from a SQL-looking string that never reaches one.
 
-- [ ] Recognize direct request-derived sources: `request.json()`, `request.formData()`, `req.body`, `req.query`, and `searchParams.get(...)`.
-- [ ] Recognize direct sinks: `db.query`, `connection.query`, `connection.execute`, `pool.query`, `client.query`, `$queryRaw`, and `$executeRaw`.
-- [ ] Track direct expressions and a short same-function alias chain into a query sink.
-- [ ] Do not report a plain SQL-like template assigned to a variable when no direct sink is visible.
-- [ ] Do not report clearly parameterized query calls with placeholder parameters.
-- [ ] Stop tracking on reassignment, mutation, function boundary, and cross-file flow.
-- [ ] Preserve app/api severity and context tuning; strict/audit must keep their current behavior.
-- [ ] Add a concise evidence path when a source-to-sink path is proven.
+- [x] Recognize direct request-derived sources: `request.json()`, `request.formData()`, `req.body`, `req.query`, and `searchParams.get(...)`.
+- [x] Recognize direct sinks: `db.query`, `connection.query`, `connection.execute`, `pool.query`, `client.query`, `$queryRaw`, and `$executeRaw`.
+- [x] Track direct expressions and a short same-function alias chain into a query sink.
+- [x] Do not report a plain SQL-like template assigned to a variable when no direct sink is visible.
+- [x] Do not report clearly parameterized query calls with placeholder parameters.
+- [x] Stop tracking on reassignment, mutation, function boundary, and cross-file flow.
+- [x] Preserve app/api severity and context tuning; strict/audit must keep their current behavior.
+- [x] Add a concise evidence path when a source-to-sink path is proven.
 
 **Exit criteria:** The pilot demonstrates measured noise reduction or measured additional true findings, preserves safe parameterized-query fixtures, keeps report formats compatible, and documents intentional false negatives such as variable flow across functions.
 
@@ -349,7 +350,7 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 
 1. [x] v0.5 Phase 0 - baseline and analysis contract.
 2. [x] v0.5 Phase 1 - shared bounded-flow foundation.
-3. [ ] v0.5 Phase 2 - raw SQL bounded flow pilot.
+3. [x] v0.5 Phase 2 - raw SQL bounded flow pilot.
 4. [ ] v0.5 Phase 6 - regression and performance gate for the SQL pilot.
 5. [ ] v0.5 Phase 3 - XSS source/sanitizer refinement.
 6. [ ] v0.5 Phase 4 - auth and middleware intent.
