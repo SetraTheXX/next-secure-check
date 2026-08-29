@@ -81,7 +81,9 @@ export function createRawSqlFlowCallbacks(): BoundedFlowCallbacks {
         }
       }
 
-      invalidateRawSqlReferences(node, state);
+      if (!isSqlQuerySinkCall(node)) {
+        invalidateRawSqlReferences(node, state);
+      }
     },
     onTaggedTemplate: (node, context) => {
       if (!isRawSqlTaggedTemplate(node)) {
@@ -197,7 +199,14 @@ function hasStringConcatenation(node: ts.BinaryExpression): boolean {
 
 function isStaticStringExpression(node: ts.Expression): boolean {
   const normalized = unwrapRawSqlExpression(node);
-  if (ts.isStringLiteralLike(normalized)) {
+  if (
+    ts.isStringLiteralLike(normalized) ||
+    ts.isNumericLiteral(normalized) ||
+    ts.isBigIntLiteral(normalized) ||
+    normalized.kind === ts.SyntaxKind.TrueKeyword ||
+    normalized.kind === ts.SyntaxKind.FalseKeyword ||
+    normalized.kind === ts.SyntaxKind.NullKeyword
+  ) {
     return true;
   }
 
