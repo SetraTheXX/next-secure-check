@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an opt-in terminal-only `--summary` view for concise score, risk, finding-count, severity, confidence, context, and location output.
 - Added shared syntax-only bounded-flow facts for direct sources, command sinks, guards, short aliases, invalidations, function boundaries, and proven evidence paths.
 - Added the first raw SQL bounded source-to-sink slice for recognized query sinks, SQL-valued local aliases, dynamic string concatenation, and optional source evidence paths.
+- Added structural auth, route-handler, and rate-limit intent signals for App Router, Pages Router, and same-app middleware checks.
 - Added the v0.5 regression/performance release gate for fixture inventories, deterministic reports, concise summaries, public-output privacy, benchmarks, and CLI pack dry-runs.
 
 ### Changed
 - Refined `xss/dangerously-set-inner-html` with a documented sanitizer allowlist and bounded evidence paths for direct request-derived values.
+- Refined authentication and validation rules so UI paths, comments, strings, unused helpers, and unknown local wrappers do not silently suppress endpoint findings.
 
 ### Documentation
 - Added the reproducible VHS README demo, simplified SVG wordmark, and v0.5 summary-output validation note.
@@ -25,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the raw SQL bounded-flow validation note for issue #15, including intentional stop conditions and a directional performance sample.
 - Added the Phase 13 validation note with the repeatable 100/1,000-file cold/warm benchmark protocol and release-gate evidence.
 - Added the Phase 14 XSS source/sanitizer refinement validation note for issue #16.
+- Added the Phase 15 auth/middleware intent validation note for issue #17.
 
 ### Fixed
 - Fixed direct route-parameter command sources so they populate the shared bounded-flow source facts as well as the existing evidence path.
@@ -32,9 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed static raw SQL concatenation with primitive literals being classified as dynamic interpolation.
 - Fixed secret finding evidence leaking through CLI JSON, terminal, and Markdown reports; public reporter output now uses `[REDACTED]`.
 - Fixed unknown XSS sanitizer wrappers being silently treated as safe.
+- Fixed login/register rules treating UI filenames and rate-limit-looking text as endpoint protection.
+- Fixed API/upload rules missing route-root and Pages Router variants, and API helper files being treated as endpoints.
+- Fixed auth/rate-limit intent from unrelated helpers, generic role-property reads, unbound or incorrectly aliased `auth` imports, and partially protected multi-handler route files.
 
 ### Tests
-- Current validation baseline: 342 package tests, 146 web tests, 488 total tests.
+- Current validation baseline: 362 package tests, 146 web tests, 508 total tests.
+- Dependency audit is clean after pinning the test-only Vite peer to patched `8.0.16`.
 
 ## [0.4.1] - 2026-08-24
 

@@ -10,6 +10,7 @@ import {
   ROUTE_HANDLER_NAMES,
   exportedRouteHandlerName,
   hasAuthIntentInSource,
+  hasRateLimitIntentInSource,
   hasValidationIntentInSource,
   isApiRouteFilePath,
   isUploadHandlingNode
@@ -42,6 +43,7 @@ export type AnalysisFacts = {
   safeHtmlIdentifiers: ReadonlySet<string>;
   hasPasswordHashing: boolean;
   hasAuthIntent: boolean;
+  hasRateLimitIntent: boolean;
   hasValidationIntent: boolean;
   hasUploadHandling: boolean;
 };
@@ -144,6 +146,10 @@ export function hasAuthIntentSignal(file: SourceFile): boolean {
   return getAnalysisFacts(file).hasAuthIntent;
 }
 
+export function hasRateLimitIntentSignal(file: SourceFile): boolean {
+  return getAnalysisFacts(file).hasRateLimitIntent;
+}
+
 export function hasValidationIntentSignal(file: SourceFile): boolean {
   return getAnalysisFacts(file).hasValidationIntent;
 }
@@ -202,6 +208,7 @@ function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
     safeHtmlIdentifiers: xssFacts.safeHtmlIdentifiers,
     hasPasswordHashing: hasPasswordHashingCall(sourceFile),
     hasAuthIntent: hasAuthIntentInSource(sourceFile),
+    hasRateLimitIntent: hasRateLimitIntentInSource(sourceFile),
     hasValidationIntent: hasValidationIntentInSource(sourceFile),
     hasUploadHandling
   };

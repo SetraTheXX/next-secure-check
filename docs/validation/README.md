@@ -15,10 +15,13 @@ baseline. The post-#14 validation count was 326 package tests, 146 web tests,
 and 472 total tests; see [phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
 The #15 raw-SQL pilot recorded 337 package tests, 146 web tests, and 483 total
 tests; subsequent review hardening, the #19 reporter gate, and the #16 XSS
-refinement bring the current count to 342 package tests, 146 web tests, and
-488 total tests. See
+refinement bring the count to 342 package tests, 146 web tests, and 488 total
+ tests. The #17 auth/middleware intent work adds the current 20 regression
+ checks, bringing the working-line count to 362 package tests, 146 web tests,
+ and 508 total tests. See
 [phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md) and
-[phase-13-v05-release-gate.md](./phase-13-v05-release-gate.md).
+[phase-13-v05-release-gate.md](./phase-13-v05-release-gate.md) and
+[phase-15-auth-middleware.md](./phase-15-auth-middleware.md).
 
 Historical v0.1 baseline:
 
@@ -62,6 +65,11 @@ release gate are documented in
 The #16 XSS source/sanitizer refinement, documented sanitizer allowlist,
 bounded request-source evidence, and unknown-wrapper regression cases are
 documented in [phase-14-xss-refinement.md](./phase-14-xss-refinement.md).
+
+The #17 auth/middleware intent refinement, route-handler gating, structural
+rate-limit signals, known-provider imports, unknown-wrapper behavior, and
+same-app middleware scope are documented in
+[phase-15-auth-middleware.md](./phase-15-auth-middleware.md).
 
 ## Post-release Real-world Smoke Note
 

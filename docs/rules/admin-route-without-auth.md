@@ -16,9 +16,13 @@ Admin and dashboard routes typically provide access to sensitive functionality: 
 
 ## Detection Logic
 
-The rule first requires an API route path with an exported route handler, such as `app/api/admin/**/route.ts` or `pages/api/admin/**`. It then looks for a small set of structural auth-intent signals: recognized calls such as `auth()`, `getServerSession()`, `requireAuth()`, `isAdmin()`, `currentUser()`, `withAuth()`, or `middleware()`, plus access checks such as `session.role`, `session.permission`, `user.role`, or `user.permission`. Comments, string literals, and unrelated identifiers such as `const role = "admin"` do not count as auth protection.
+The rule first requires an API route path with an exported route handler, such as `app/api/admin/**/route.ts` or `pages/api/admin/**`. It then inspects every exported handler for a small set of structural auth-intent signals: recognized calls such as `auth()` from a known provider module, `getServerSession()`, `requireAuth()`, `isAdmin()`, `currentUser()`, `withAuth()`, or `clerkMiddleware()`, plus role/permission access checks when they participate in a control condition. Comments, string literals, unused helper functions, unrelated role-property reads, and identifiers such as `const role = "admin"` do not count as auth protection.
 
-Middleware matchers that cover the route are evaluated separately. Unknown custom wrappers remain conservative and may still be reported until they are made visible through a recognized signal.
+Middleware matchers that cover the route are evaluated separately and are
+scoped to the same app/package root. An `auth`/`clerk`/`getUser` binding from a
+known provider module is recognized; an unknown local wrapper remains
+conservative and may still be reported. The scanner does not resolve a full
+auth graph or prove middleware reachability.
 
 ## Common False Positives
 

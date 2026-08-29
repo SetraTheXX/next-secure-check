@@ -28,7 +28,7 @@ It is a lightweight pre-release review signal, not a penetration test or a repla
   <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
 </p>
 
-The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows a review signal, not proof of exploitability or a universal security score.
+The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). Each scan uses the concise `--summary` flag; the full finding report is intentionally omitted for readability. It shows a review signal, not proof of exploitability or a universal security score.
 
 ## Quick Start
 
@@ -81,6 +81,12 @@ See [`docs/rules`](./docs/rules) for the complete rule documentation, examples, 
 
 The XSS rule documents its intentionally small sanitizer allowlist and bounded
 request-source evidence in [`dangerously-set-inner-html.md`](./docs/rules/dangerously-set-inner-html.md).
+
+Authentication and validation rules use structural route-handler signals. UI
+pages, comments, strings, unused helpers, and unknown local auth/limiter
+wrappers remain reviewable instead of being silently treated as protected.
+See the [Phase 15 validation note](./docs/validation/phase-15-auth-middleware.md)
+for the App Router, Pages Router, and same-app middleware contract.
 
 ## CLI Usage
 
@@ -407,9 +413,9 @@ pnpm release:gate
 The current validation baseline is:
 
 ~~~txt
-packages: 342 tests
+packages: 362 tests
 apps/web: 146 tests
-total: 488 tests
+total: 508 tests
 ~~~
 
 Workspace layout:
@@ -434,6 +440,7 @@ Useful validation references:
 - [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
 - [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
 - [v0.5 XSS source and sanitizer refinement](./docs/validation/phase-14-xss-refinement.md)
+- [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
 - [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 
 ## Learning Project and Development Philosophy
