@@ -4,7 +4,7 @@ Deterministic, Next.js-focused static security checks for pre-deploy review and 
 
 next-secure-check scans a local project and reports common security mistakes before they become production surprises. It uses rule-based pattern matching, syntax-level AST analysis, and file context. It does not execute repository code and does not use AI at runtime.
 
-> **Stable npm release:** `v0.4.1` is published on npm. The [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0) and tag target the validated release commit; npm publication remains a manual follow-up. v0.5 adds bounded source-to-sink evidence, structural auth intent, explainable reports, and a concise terminal summary.
+> **Stable npm release:** `v0.5.0` is published on npm and is the `latest` line. The [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0) targets the validated release commit, and the reusable [`v1.1.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0) runs the same CLI line through the floating `@v1` tag. v0.5 adds bounded source-to-sink evidence, structural auth intent, explainable reports, and a concise terminal summary.
 
 [![npm](https://img.shields.io/npm/v/next-secure-check?logo=npm)](https://www.npmjs.com/package/next-secure-check)
 [![CI](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml/badge.svg)](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml)
@@ -39,13 +39,6 @@ npx --yes next-secure-check@latest scan . --preset app
 ~~~
 
 For reproducible CI on the stable npm line, pin the CLI version:
-
-~~~bash
-npx --yes next-secure-check@0.4.1 scan . --preset app
-~~~
-
-After the manual v0.5.0 npm publication, the release can be pinned
-with:
 
 ~~~bash
 npx --yes next-secure-check@0.5.0 scan . --preset app
@@ -123,7 +116,7 @@ node packages/cli/dist/index.js scan . --preset app --summary
 node packages/cli/dist/index.js scan --help
 ~~~
 
-`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output. It is part of v0.5.0; the published npm `latest` line remains `v0.4.1` until the manual v0.5 publication is complete.
+`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output. It is part of the published npm `v0.5.0` line.
 
 ### Failure gates
 
@@ -196,7 +189,7 @@ Supported fields in the current release:
 - `format`: `terminal`, `json`, `markdown`, or `github`
 - `preset`: `default`, `app`, `strict`, `ci`, `audit`, `library`, or `monorepo`
 
-`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output. It is available in v0.5.0 and is not part of published npm `v0.4.1`.
+`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output. It is available in the published npm `v0.5.0` line.
 
 Example:
 
@@ -314,14 +307,14 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.4.1 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.5.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ~~~
 
 This fails the job when a `HIGH` or more severe finding is reported. Use `--fail-on critical` when the job should fail only for a `critical` scan risk level.
 
 ### Reusable GitHub Action
 
-After the first `v1` Action release, projects can use the reusable composite Action as a single workflow step:
+Projects can use the reusable composite Action as a single workflow step:
 
 ~~~yaml
 - uses: SetraTheXX/next-secure-check@v1
@@ -331,13 +324,12 @@ After the first `v1` Action release, projects can use the reusable composite Act
     format: github
 ~~~
 
-The published `v1` Action currently runs the stable `next-secure-check@0.4.1`
+The published `v1` Action currently runs the stable `next-secure-check@0.5.0`
 CLI against the checked-out workspace. It does not install or execute scripts
 from the scanned repository. The default `github` format is written to the job
 Step Summary; use `format: sarif` and `output: next-secure-check.sarif` when a
-separate SARIF upload step is desired. A coordinated Action update to the
-v0.5.0 CLI follows the manual npm publication so the existing `v1` tag never
-points at an unavailable package.
+separate SARIF upload step is desired. Existing `@v1` consumers receive the
+coordinated `v1.1.0` Action release without changing their workflow reference.
 
 The Action runs only when the consuming repository adds it to a workflow triggered by events such as `pull_request` or `push`. It does not monitor repositories on its own.
 
@@ -367,7 +359,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.4.1 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.5.0 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -425,12 +417,16 @@ The scanner is designed to provide fast, explainable review signals. It is not a
 
 ## Project Status and Roadmap
 
-The current stable published line is `v0.4.1`; the [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
-is tagged on the validated release commit. It awaits manual npm publication,
-coordinated Action availability, and post-release feedback. The detailed, checklist-based plan lives in
+The current stable published line is `v0.5.0` on npm; the [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
+is tagged on the validated release commit, and the coordinated [`v1.1.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0)
+is available through `@v1`. Post-release feedback and the next request-boundary
+coverage are tracked in the detailed, checklist-based plan in
 [`ROADMAP.md`](./ROADMAP.md).
 
-The current direction is deliberately narrow: improve evidence quality and reduce guesses with bounded, explainable analysis before considering default type-aware analysis or an unrestricted plugin system.
+The next direction is deliberately narrow: extend bounded, explainable coverage
+to Next.js request boundaries such as Proxy, Server Actions, redirects, and
+server-side URL flows before considering default type-aware analysis or an
+unrestricted plugin system.
 
 For release history, see [`CHANGELOG.md`](./CHANGELOG.md). Historical validation notes remain under [`docs/validation`](./docs/validation).
 
@@ -477,7 +473,7 @@ Useful validation references:
 - [v0.5 XSS source and sanitizer refinement](./docs/validation/phase-14-xss-refinement.md)
 - [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
 - [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
-- [v0.5 release audit and npm publish handoff](./docs/validation/phase-17-v05-release.md)
+- [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
 
 ## Learning Project and Development Philosophy
 

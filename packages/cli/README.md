@@ -6,9 +6,9 @@ Run a quick static security sanity check before deploying a Next.js app.
 
 Requires Node.js 20 or newer.
 
-The stable npm line is `v0.4.1`. The `v0.5.0` GitHub release is tagged on the
-validated repository commit with aligned CLI and internal package versions;
-manual npm publication is still pending.
+The stable npm line is `v0.5.0`, published with aligned CLI and internal
+package versions. The reusable GitHub Action `@v1` is coordinated with this
+CLI line.
 
 ## Usage
 
@@ -19,12 +19,6 @@ npx --yes next-secure-check@latest scan . --preset app
 ```
 
 For reproducible CI runs on the stable npm line, pin the release version:
-
-```bash
-npx --yes next-secure-check@0.4.1 scan . --preset app
-```
-
-After the manual v0.5.0 npm publication, the release can be pinned with:
 
 ```bash
 npx --yes next-secure-check@0.5.0 scan . --preset app
@@ -69,7 +63,7 @@ npx --yes next-secure-check@latest scan . --preset ci
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
 Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin
-`next-secure-check@0.4.1` in CI until the manual v0.5.0 publication is done.
+`next-secure-check@0.5.0` in CI for reproducible v0.5 runs.
 
 ## CLI Helpers
 
@@ -151,7 +145,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.4.1 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.5.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 SARIF / GitHub Code Scanning workflow:
@@ -180,7 +174,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.4.1 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.5.0 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -215,10 +209,10 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 ## Release Status
 
-The v0.5.0 GitHub release contains the bounded-analysis, intent, reporter, and
-summary changes described above. The CLI, core, rules, and reporter manifests
-are all aligned at `0.5.0`; npm publication remains a manual release step and
-the published stable line remains `0.4.1` until then.
+The v0.5.0 GitHub and npm releases contain the bounded-analysis, intent,
+reporter, and summary changes described above. The CLI, core, rules, and
+reporter manifests are all aligned and published at `0.5.0`; the reusable
+Action `@v1` runs this stable line.
 
 To try the local build from a clone:
 

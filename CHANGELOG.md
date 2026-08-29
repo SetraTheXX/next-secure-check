@@ -11,10 +11,10 @@ No unreleased changes are recorded yet.
 
 ## [0.5.0] - 2026-08-29
 
-> GitHub release and tag: [v0.5.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0), targeting the validated release commit. npm publication, coordinated Action availability, and post-release feedback are manual follow-up steps.
+> GitHub release and tag: [v0.5.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0), targeting the validated release commit. The four npm packages are published at `0.5.0`, and the reusable Action is coordinated through [v1.1.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0) and `@v1`; post-release feedback remains follow-up work.
 
 ### Added
-- Prepared the v0.5 release line while keeping the published root composite GitHub Action pinned to `next-secure-check@0.4.1` until the manual npm publication and coordinated Action update.
+- Published the v0.5 release line with the root composite GitHub Action pinned to the available `next-secure-check@0.5.0` package.
 - Added a CI smoke step that exercises the local Action against the secure fixture.
 - Added an opt-in terminal-only `--summary` view for concise score, risk, finding-count, severity, confidence, context, and location output.
 - Added shared syntax-only bounded-flow facts for direct sources, command sinks, guards, short aliases, invalidations, function boundaries, and proven evidence paths.

@@ -2,8 +2,8 @@
 
 Date: 2026-08-29
 
-Status: Implemented and included in the prepared `v0.5.0` release candidate;
-the stable npm line remains `v0.4.1` until manual publication.
+Status: Implemented and included in the published `v0.5.0` release; the
+stable npm line is `v0.5.0`.
 
 ## Purpose
 

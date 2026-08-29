@@ -5,10 +5,10 @@ Public progress board for `next-secure-check`. It records completed release work
 | Field | Value |
 | --- | --- |
 | Last reviewed | 2026-08-29 |
-| Current release | `v0.4.1` stable on npm; `v0.5.0` GitHub release/tag created on the validated commit |
-| Next release focus | `v0.5.0` - manual npm publication, Action coordination, and feedback loop |
-| Current next task | Complete the manual v0.5 publication handoff and collect feedback (#20) |
-| Release blocker | No code blocker; npm publication, Action coordination, and post-release feedback remain manual follow-up |
+| Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
+| Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
+| Current next task | [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.6 baseline and request-boundary contract |
+| Release blocker | No v0.5 release blocker; v0.6 implementation and real-world feedback are the active follow-up |
 
 ## Progress Legend
 
@@ -25,14 +25,15 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
 - [x] Current validation baseline: 366 package tests, 147 web tests, 513 total tests.
-- [x] `v0.5.0` release package metadata, documentation, demo, and exact GitHub release/tag prepared; npm publication is pending.
+- [x] `v0.5.0` package metadata, documentation, demo, npm publication, and exact GitHub release/tag completed.
+- [x] Reusable GitHub Action `v1.1.0` released and floating `@v1` tag coordinated with the published `0.5.0` CLI.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
 
 ### Open post-release work
 
-- [ ] Publish the prepared `v0.5.0` packages and update the Action only after npm is available.
+- [x] Publish the aligned `v0.5.0` packages and update the reusable Action after npm availability was verified.
 - [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - finalize the optional demo edit, Turkish voice-over, English subtitles, and final privacy review.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
@@ -51,7 +52,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 - [x] [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
 - [x] [v0.5 evidence and reporter explanations](./docs/validation/phase-16-evidence-reporter.md)
-- [x] [v0.5 release audit and npm publish handoff](./docs/validation/phase-17-v05-release.md)
+- [x] [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)
@@ -326,24 +327,56 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 7 - Release and feedback loop (#20)
 
-- [ ] **Phase status:** GitHub release/tag recorded on 2026-08-29; manual npm publication, Action coordination, and post-release feedback remain.
+- [x] **Phase status:** Complete; v0.5.0 npm/GitHub publication and Action coordination were verified on 2026-08-29. Real-user feedback remains post-release follow-up.
 
 - [x] Review open feedback; no repeated new report was present, and #12 remains an optional media follow-up.
 - [x] Confirm the v0.5 release gate passes before the manual publication handoff.
 - [x] Keep npm package versions and internal workspace dependency versions consistent.
 - [x] Run npm pack and recursive publish dry-run before any real publish.
+- [x] Publish all four `0.5.0` packages and verify npm `latest`.
+- [x] Update the reusable Action to `next-secure-check@0.5.0`, release `v1.1.0`, and coordinate the floating `@v1` tag.
 - [x] Record the release commit `051c3d8db65722b266ff864906a5e863fa4abe7c` and [GitHub tag/release `v0.5.0`](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0).
 - [x] Publish a short demo/validation note with honest boundaries in the repository.
 - [ ] Re-measure user-facing noise on a small, reviewed corpus after release.
 
-The phase intentionally remains open until the package is published, the Action
-is coordinated with the available npm version, and real-user feedback is recorded.
+The phase is complete. Real-user feedback and the optional demo/video follow-up
+remain separate post-release work and must be recorded as reproducible issues.
 
 **Exit criteria:** v0.5 can be installed, reproduced, reviewed, and rolled back without changing the no-repo-code-execution boundary.
 
 **Expected size:** Small/medium release work.
 
-## Deferred to v0.6+
+## v0.6.0 - Next.js Request-Boundary Coverage
+
+The v0.6 line extends the same syntax-first, bounded-analysis model to request
+boundaries that are important in current Next.js applications. It is a quality
+release, not a pivot to full taint analysis: every new signal must have a
+documented source/sink/guard boundary, honest evidence, deterministic output,
+and a reviewed fixture contract.
+
+### Implementation order
+
+1. [ ] [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.5 baseline and v0.6 request-boundary contract.
+2. [ ] [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent.
+3. [ ] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
+4. [ ] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
+5. [ ] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
+6. [ ] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
+7. [ ] [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop.
+
+### v0.6 compatibility guardrails
+
+- [ ] Preserve existing rule IDs, CLI flags, output formats, and deterministic SARIF fingerprints unless a separately documented compatibility decision is accepted.
+- [ ] Keep the default path syntax-first, bounded, and fast; TypeChecker remains opt-in research rather than the default engine.
+- [ ] Keep cross-file/cross-function taint, full CFG, heap aliasing, dynamic resolution, full route graphs, and unrestricted plugins out of scope.
+- [ ] Never execute code from a scanned repository.
+- [ ] Treat each finding as an explainable review signal, not proof of exploitability.
+
+**v0.6 success metric:** better request-boundary evidence and fewer unsupported
+guesses, measured by reviewed fixture changes, noise/false-positive notes,
+determinism, privacy, and performance—not by rule count alone.
+
+## Deferred beyond the first v0.6 slices
 
 These are valuable, but should not block the v0.5 bounded-analysis quality work:
 
@@ -365,7 +398,7 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 5. [x] v0.5 Phase 3 - XSS source/sanitizer refinement.
 6. [x] v0.5 Phase 4 - auth and middleware intent.
 7. [x] v0.5 Phase 5 - evidence/reporting polish.
-8. [ ] v0.5 Phase 7 - release and feedback loop (manual publication/Action coordination/feedback pending).
+8. [x] v0.5 Phase 7 - release and feedback loop (npm/GitHub/Action publication complete; feedback remains follow-up).
 
 This order deliberately puts measurement before deeper analysis. It also keeps TypeChecker and plugins out of the default path until real corpus evidence shows that their accuracy value justifies their cost.
 

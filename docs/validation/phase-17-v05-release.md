@@ -1,19 +1,22 @@
-# Phase 17: v0.5 Release-Candidate Audit and Feedback Handoff
+# Phase 17: v0.5 Release Audit and Feedback Handoff
 
 Date: 2026-08-29
 
 Issue: [#20](https://github.com/SetraTheXX/next-secure-check/issues/20)
 
-Status: The `v0.5.0` GitHub release and tag are recorded on the validated
-release commit. The package publication, coordinated Action update, and
-post-release feedback remain manual follow-up steps.
+Status: Complete. The `v0.5.0` packages are published on npm, the GitHub
+release and tag are recorded on the validated release commit, and the
+reusable Action is coordinated through `v1.1.0` and the floating `v1` tag.
+Post-release feedback remains an intentionally separate follow-up.
 
 ## Scope
 
 This phase turns the completed v0.5 implementation work into a reviewable
-release. It covers version alignment, public documentation, the reproducible
-terminal demo, packaging checks, and a final local audit. It does not publish
-to npm or claim that the stable npm `latest` channel has moved.
+published release. It covers version alignment, public documentation, the
+reproducible terminal demo, packaging checks, npm registry verification, the
+coordinated Action release, and a final local audit. It does not make a
+real-world accuracy claim or treat the release as a replacement for manual
+security review.
 
 The GitHub [`v0.5.0` release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 and tag target commit `051c3d8db65722b266ff864906a5e863fa4abe7c`, the commit
@@ -22,29 +25,28 @@ validated by the release gate and CI run `33258034052`.
 The scanner continues to read repository files as input and never executes
 code from the scanned repository.
 
-## Release-candidate package matrix
+## Published package matrix
 
-| Package | Candidate version | Publication status |
+| Package | Release version | Publication status |
 | --- | ---: | --- |
-| `next-secure-check` | `0.5.0` | Manual npm publication pending |
-| `@next-secure-check/core` | `0.5.0` | Manual npm publication pending |
-| `@next-secure-check/rules` | `0.5.0` | Manual npm publication pending |
-| `@next-secure-check/reporter` | `0.5.0` | Manual npm publication pending |
+| `next-secure-check` | `0.5.0` | Published on npm; `latest` points to `0.5.0` |
+| `@next-secure-check/core` | `0.5.0` | Published on npm |
+| `@next-secure-check/rules` | `0.5.0` | Published on npm |
+| `@next-secure-check/reporter` | `0.5.0` | Published on npm |
 
 The private workspace and local web application remain `0.0.0`; they are not
 published npm packages. Internal package references remain `workspace:*` and
 are resolved by the workspace publish flow.
 
-The published `v1` GitHub Action remains pinned to the available npm
-`next-secure-check@0.4.1` package. It is deliberately not changed to an
-unpublished `0.5.0` version. A coordinated Action release can follow after
-the manual npm publication.
+The reusable `v1` GitHub Action is now released as `v1.1.0` and runs the
+available npm `next-secure-check@0.5.0` package. The floating `@v1` consumer
+tag was updated only after the npm registry and Action smoke checks passed.
 
 ## Feedback review
 
-The open issue review found:
+The issue review found:
 
-- #20, this release and feedback handoff;
+- #20, this release and feedback handoff, now complete;
 - #12, the optional demo/video editing follow-up.
 
 No repeated new user report was available to convert into a separate issue.
@@ -53,7 +55,7 @@ repositories, not unverified benchmark or accuracy claims.
 
 ## Verification protocol
 
-The release-candidate audit runs:
+The release audit runs:
 
 ```bash
 pnpm build
@@ -91,7 +93,7 @@ exploitability guarantees.
 
 ## Audit evidence
 
-The final local candidate run passed:
+The final local release run passed:
 
 ```text
 pnpm build       PASS
@@ -118,18 +120,24 @@ disposable directory; `npm ls` resolved the CLI, core, rules, and reporter at
 reproduced the secure fixture result of `99/100`, `excellent`, and one LOW
 finding.
 
+The live npm registry check on 2026-08-29 reported `0.5.0` for all four
+published packages, with `next-secure-check` dist-tag `latest` also at
+`0.5.0`. `npx --yes next-secure-check@0.5.0 --version` reported `0.5.0`.
+The GitHub Action release `v1.1.0` and the floating `v1` tag were verified to
+resolve to the commit containing the `0.5.0` Action pin, and the reusable
+Action smoke workflow passed.
+
 The bug audit found and corrected three release-quality issues: a stale README
 validation count (`362/146/508` instead of the current `366/147/513`), release
 line package version drift (`0.4.1` CLI versus `0.4.0` internal packages), and
 a Windows `shell: true` invocation in the release gate that emitted Node's
-shell-spawn deprecation warning. The existing Action pin was intentionally
-retained at published `0.4.1` and documented as a post-publication coordination
-step.
+shell-spawn deprecation warning. The Action pin was then updated from
+`0.4.1` to the published `0.5.0` line and released through `v1.1.0`.
 
 ## Demo contract
 
 The checked-in [`next-secure-check.tape`](../demo/next-secure-check.tape)
-records the prepared `v0.5.0` CLI version and three labeled concise
+records the published `v0.5.0` CLI version and three labeled concise
 `--summary` scans: vulnerable/strict, secure/app, and self-scan/app. The
 summary keeps score, risk, severity counts, confidence, context, and a small
 representative finding set visible while omitting long evidence and fix
@@ -142,16 +150,15 @@ token. The regenerated asset was visually sampled at the intro and each final
 scan state and measured at `1280x640`, `461` frames, `18.44` seconds, and
 approximately `776 KB`.
 
-## Manual handoff after the GitHub release
+## Post-release follow-up
 
-The maintainer can now publish the aligned packages through the authenticated
-workspace release process. Once npm availability is confirmed, the Action can
-be updated and released separately. Finally, record real-user feedback as
-small, reproducible issues before expanding the rule surface.
+The v0.5.0 release is complete and can be installed from npm or consumed
+through the reusable `@v1` Action. The remaining follow-up is to record
+real-user feedback as small, reproducible issues before expanding the rule
+surface. The optional demo/video work remains tracked in #12.
 
-Until those steps are complete, documentation must continue to describe
-`v0.4.1` as the stable npm line and `v0.5.0` as the GitHub release whose npm
-publication is pending.
+The next planned release line is v0.6. Its scope and implementation order are
+tracked in `ROADMAP.md` and the linked GitHub issues.
 
 ## Boundaries
 
