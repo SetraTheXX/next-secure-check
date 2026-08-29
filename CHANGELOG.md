@@ -22,9 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed direct route-parameter command sources so they populate the shared bounded-flow source facts as well as the existing evidence path.
+- Fixed raw SQL bounded-flow aliases being dropped after a recognized query sink, so repeated sink uses remain visible.
+- Fixed static raw SQL concatenation with primitive literals being classified as dynamic interpolation.
 
 ### Tests
-- Current validation baseline: 337 package tests, 146 web tests, 483 total tests.
+- Current validation baseline: 339 package tests, 146 web tests, 485 total tests.
 
 ## [0.4.1] - 2026-08-24
 

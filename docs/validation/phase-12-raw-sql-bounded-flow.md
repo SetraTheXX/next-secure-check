@@ -54,6 +54,8 @@ Focused rule tests cover:
 - all supported request/query/search/route source labels;
 - reassignment, mutation, unknown call escape, function-boundary,
   cross-function, and over-limit alias stops;
+- repeated use of a SQL-valued alias across recognized query sinks;
+- static SQL concatenation with fixed primitive literals;
 - SQL templates without a sink;
 - static and placeholder-parameterized queries;
 - query-style `$queryRaw`/`$executeRaw` calls and tagged templates;
@@ -63,6 +65,19 @@ Focused rule tests cover:
 The existing direct sink matcher remains the fallback for unproven source
 paths, so the rule continues to provide a review signal without presenting an
 unproven flow as exploit evidence.
+
+## Post-merge review follow-up
+
+The review of PR #23 found two bounded-flow edge cases that did not change the
+checked-in fixture counts but could affect individual SQL expressions:
+
+- A recognized query sink no longer invalidates the SQL-valued alias it
+  consumes, so a later recognized sink can still report the same tracked value.
+- Fixed primitive literals such as numeric values are treated as static parts of
+  a SQL expression, avoiding a dynamic-concatenation false positive.
+
+Unknown call escapes, reassignment, mutation, and function-boundary invalidation
+remain unchanged.
 
 ## Fixture and compatibility result
 

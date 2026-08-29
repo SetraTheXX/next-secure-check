@@ -487,6 +487,19 @@ describe("built-in security rules", () => {
     expect(findings).toHaveLength(1);
   });
 
+  it("keeps tracking a raw SQL alias after a recognized sink", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": [
+        "const sql = `SELECT * FROM users WHERE id = ${id}`;",
+        "db.query(sql);",
+        "db.execute(sql);"
+      ].join("\n")
+    });
+
+    const findings = result.findings.filter((candidate) => candidate.ruleId === "injection/raw-sql-concat");
+    expect(findings).toHaveLength(2);
+  });
+
   it("detects raw SQL interpolation passed to query APIs", async () => {
     const result = await scanFixture({
       "app/api/users/route.ts": [
@@ -703,6 +716,14 @@ describe("built-in security rules", () => {
         'const query = "SELECT * FROM users WHERE id = $1";',
         'db.query(query, [id]);'
       ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(false);
+  });
+
+  it("does not flag static SQL concatenated with a numeric literal", async () => {
+    const result = await scanFixture({
+      "app/api/users/route.ts": 'db.query("SELECT * FROM users LIMIT " + 10);'
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "injection/raw-sql-concat")).toBe(false);
