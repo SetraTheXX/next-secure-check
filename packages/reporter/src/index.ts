@@ -50,6 +50,11 @@ export function formatTerminal(result: ScanResult): string {
       const location = `${finding.filePath}${finding.line ? `:${finding.line}` : ""}`;
       lines.push(`- ${location}`);
       lines.push(`  ${finding.title} [${finding.ruleId}, confidence: ${finding.confidence}, context: ${formatContext(finding)}]`);
+      lines.push(`  Why: ${formatInlineText(finding.description)}`);
+      lines.push(`  Context reason: ${formatInlineText(formatContextReason(finding))}`);
+      if (finding.evidencePath) {
+        lines.push(`  Evidence path: ${formatInlineText(finding.evidencePath)}`);
+      }
       const evidence = redactFindingEvidence(finding);
       if (evidence) {
         lines.push(`  Evidence: ${evidence}`);
@@ -125,9 +130,14 @@ export function formatMarkdown(result: ScanResult): string {
       lines.push(`- Rule: \`${finding.ruleId}\``);
       lines.push(`- Confidence: \`${finding.confidence}\``);
       lines.push(`- Context: \`${formatContext(finding)}\``);
+      lines.push(`- Why: ${formatInlineText(finding.description)}`);
+      lines.push(`- Context reason: ${formatInlineText(formatContextReason(finding))}`);
+      if (finding.evidencePath) {
+        lines.push(`- Evidence path: \`${escapeBackticks(formatInlineText(finding.evidencePath))}\``);
+      }
       const evidence = redactFindingEvidence(finding);
       if (evidence) {
-        lines.push(`- Evidence: \`${evidence.replaceAll("`", "'")}\``);
+        lines.push(`- Evidence: \`${escapeBackticks(evidence)}\``);
       }
       lines.push(`- Recommendation: ${finding.recommendation}`);
     }
@@ -177,6 +187,11 @@ export function formatGithub(result: ScanResult): string {
     const findings = result.findings.filter((finding) => finding.severity === severity);
     for (const finding of findings) {
       lines.push(`- **${finding.severity}** \`${escapeBackticks(finding.ruleId)}\` at \`${escapeBackticks(formatLocation(finding))}\`: ${finding.recommendation}`);
+      lines.push(`  - Why: ${formatInlineText(finding.description)}`);
+      lines.push(`  - Context reason: ${formatInlineText(formatContextReason(finding))}`);
+      if (finding.evidencePath) {
+        lines.push(`  - Evidence path: \`${escapeBackticks(formatInlineText(finding.evidencePath))}\``);
+      }
     }
   }
 
@@ -233,8 +248,9 @@ export function formatSarif(result: ScanResult): string {
             category: finding.category,
             confidence: finding.confidence,
             context: finding.context ?? "unknown",
-            contextReason: finding.contextReason ?? "no context metadata available",
+            contextReason: formatContextReason(finding),
             nextSecureCheckFindingId: finding.id,
+            whyReported: formatInlineText(finding.description),
             evidenceRedacted: isSecretFinding(finding),
             ...(finding.evidencePath ? { evidencePath: finding.evidencePath } : {})
           }
@@ -485,6 +501,14 @@ function compareText(left: string, right: string): number {
 
 function formatContext(finding: ScanResult["findings"][number]): string {
   return finding.context ?? "unknown";
+}
+
+function formatContextReason(finding: ScanResult["findings"][number]): string {
+  return finding.contextReason ?? "no context metadata available";
+}
+
+function formatInlineText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 function escapeBackticks(value: string): string {

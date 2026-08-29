@@ -7,7 +7,7 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-29 |
 | Current release | `v0.4.1` published |
 | Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 5 - Evidence and reporter explanations (#18) |
+| Current next task | v0.5 Phase 7 - Release and feedback loop (#20) |
 | Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
 
 ## Progress Legend
@@ -24,7 +24,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 362 package tests, 146 web tests, 508 total tests.
+- [x] Current validation baseline: 366 package tests, 147 web tests, 513 total tests.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
@@ -48,6 +48,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 raw SQL bounded-flow validation](./docs/validation/phase-12-raw-sql-bounded-flow.md)
 - [x] [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 - [x] [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
+- [x] [v0.5 evidence and reporter explanations](./docs/validation/phase-16-evidence-reporter.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [release history](./CHANGELOG.md)
 
@@ -167,7 +168,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 - [x] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
 - [x] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
 - [x] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
-- [ ] [#18 Evidence and reporter explanations](https://github.com/SetraTheXX/next-secure-check/issues/18)
+- [x] [#18 Evidence and reporter explanations](https://github.com/SetraTheXX/next-secure-check/issues/18)
 - [x] [#19 Regression and performance release gate](https://github.com/SetraTheXX/next-secure-check/issues/19)
 - [ ] [#20 v0.5 release and feedback loop](https://github.com/SetraTheXX/next-secure-check/issues/20)
 
@@ -283,17 +284,17 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 5 - Evidence and reporter UX (#18)
 
-- [ ] **Phase status:** Planned
+- [x] **Phase status:** Complete; implementation and validation recorded in [phase-16-evidence-reporter.md](./docs/validation/phase-16-evidence-reporter.md)
 
 **Purpose:** Make a finding easier to review without changing its rule identity or report contract.
 
-- [ ] Show a concise source-to-sink evidence path when one is proven.
-- [ ] Keep context and context reason visible in JSON, terminal, Markdown, GitHub, and SARIF outputs.
-- [ ] Keep raw secrets, tokens, local paths, and stack traces out of user-facing output.
-- [ ] Improve `explain` guidance for common false-positive and false-negative boundaries.
+- [x] Show a concise source-to-sink evidence path when one is proven.
+- [x] Keep context and context reason visible in JSON, terminal, Markdown, GitHub, and SARIF outputs.
+- [x] Keep raw secrets, tokens, local paths, and stack traces out of user-facing output.
+- [x] Improve `explain` guidance for common false-positive and false-negative boundaries.
 - [x] Provide an opt-in concise terminal summary for quick reviews and README demos while preserving the detailed default report.
-- [ ] Add deterministic reporter tests for evidence paths, empty findings, SARIF fingerprints, and secret redaction.
-- [ ] Avoid adding a new output format when existing formats can carry the information.
+- [x] Add deterministic reporter tests for evidence paths, empty findings, SARIF fingerprints, and secret redaction.
+- [x] Avoid adding a new output format when existing formats can carry the information.
 
 **Exit criteria:** A reviewer can answer “why was this reported?” from the result itself without mistaking the evidence for proof of exploitation.
 
@@ -356,7 +357,7 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 4. [x] v0.5 Phase 6 - regression and performance gate for the SQL pilot.
 5. [x] v0.5 Phase 3 - XSS source/sanitizer refinement.
 6. [x] v0.5 Phase 4 - auth and middleware intent.
-7. [ ] v0.5 Phase 5 - evidence/reporting polish.
+7. [x] v0.5 Phase 5 - evidence/reporting polish.
 8. [ ] v0.5 Phase 7 - release and feedback loop.
 
 This order deliberately puts measurement before deeper analysis. It also keeps TypeChecker and plugins out of the default path until real corpus evidence shows that their accuracy value justifies their cost.

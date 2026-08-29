@@ -1,3 +1,4 @@
+import type { FindingContext } from "@next-secure-check/core";
 import { parseGitHubRepoUrl } from "./github-url";
 
 export type ScanStatus = "idle" | "loading" | "success" | "error";
@@ -10,9 +11,12 @@ export type ScanApiFinding = {
   confidence: "HIGH" | "MEDIUM" | "LOW";
   category: string;
   filePath: string;
+  context?: FindingContext;
+  contextReason?: string;
   line?: number;
   column?: number;
   evidence?: string;
+  evidencePath?: string;
   description: string;
   recommendation: string;
   references?: string[];
@@ -119,7 +123,11 @@ export function createResultTextIndex(result: ScanApiSuccess): string[] {
       finding.ruleId,
       finding.severity,
       finding.confidence,
+      finding.context ?? "unknown",
+      finding.contextReason ?? "",
       formatFindingLocation(finding),
+      finding.evidencePath ?? "",
+      finding.description,
       finding.evidence ?? "",
       finding.recommendation
     ]),
@@ -160,8 +168,16 @@ export function createScanMarkdownExport(result: ScanApiSuccess): string {
       `- Severity: ${finding.severity}`,
       `- Confidence: ${finding.confidence}`,
       `- Location: ${formatFindingLocation(finding)}`,
-      `- Recommendation: ${finding.recommendation}`
+      `- Context: \`${formatInlineText(finding.context ?? "unknown")}\``,
+      `- Why: ${formatInlineText(finding.description)}`,
+      `- Context reason: ${formatInlineText(finding.contextReason ?? "no context metadata available")}`
     );
+
+    if (finding.evidencePath) {
+      lines.push(`- Evidence path: \`${escapeBackticks(formatInlineText(finding.evidencePath))}\``);
+    }
+
+    lines.push(`- Recommendation: ${finding.recommendation}`);
 
     if (finding.evidence) {
       lines.push("", "```text", finding.evidence, "```");
@@ -171,4 +187,12 @@ export function createScanMarkdownExport(result: ScanApiSuccess): string {
   });
 
   return lines.join("\n").trimEnd();
+}
+
+function formatInlineText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function escapeBackticks(value: string): string {
+  return value.replaceAll("`", "'");
 }

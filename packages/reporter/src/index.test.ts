@@ -39,7 +39,9 @@ describe("formatSummary", () => {
       "- MEDIUM validation/api-route-without-validation [confidence: MEDIUM, context: api-code] app/api/users/route.ts:12"
     );
     expect(summary).not.toContain("Evidence:");
+    expect(summary).not.toContain("Evidence path:");
     expect(summary).not.toContain("Fix:");
+    expect(summary).not.toContain("Why:");
   });
 
   it("limits the overview to deterministic top findings", () => {
@@ -78,6 +80,23 @@ describe("formatSummary", () => {
     expect(terminal).toContain("Fix: Add input validation.");
   });
 
+  it("explains bounded findings in the detailed terminal report", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [
+      {
+        ...createContextFinding(),
+        evidence: "db.query(sql)",
+        evidencePath: "request.json() -> query"
+      }
+    ];
+
+    const terminal = formatTerminal(result);
+
+    expect(terminal).toContain("Why: API routes that consume user input should validate the input.");
+    expect(terminal).toContain("Context reason: matched Next.js API route path");
+    expect(terminal).toContain("Evidence path: request.json() -> query");
+  });
+
   it("renders json reports", () => {
     const result = createScanResultSkeleton("demo-app");
 
@@ -102,7 +121,26 @@ describe("formatSummary", () => {
     expect(formatReport(result, "json")).not.toContain(secretEvidence);
     expect(formatTerminal(result)).not.toContain(secretEvidence);
     expect(formatMarkdown(result)).not.toContain(secretEvidence);
+    expect(formatGithub(result)).not.toContain(secretEvidence);
+    expect(formatSarif(result)).not.toContain(secretEvidence);
     expect(result.findings[0].evidence).toBe(secretEvidence);
+  });
+
+  it("preserves finding explanation metadata in JSON reports", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [
+      {
+        ...createContextFinding(),
+        evidencePath: "request.json() -> query"
+      }
+    ];
+
+    expect(JSON.parse(formatReport(result, "json")).findings[0]).toMatchObject({
+      context: "api-code",
+      contextReason: "matched Next.js API route path",
+      description: "API routes that consume user input should validate the input.",
+      evidencePath: "request.json() -> query"
+    });
   });
 
   it("renders markdown reports", () => {
@@ -191,6 +229,30 @@ describe("formatSummary", () => {
     const markdownReport = formatMarkdown(result);
 
     expect(markdownReport).toContain("- Context: `api-code`");
+  });
+
+  it("renders finding explanations and bounded evidence in markdown and GitHub reports", () => {
+    const result = createScanResultSkeleton("demo-app");
+    result.findings = [
+      {
+        ...createContextFinding(),
+        evidence: "db.query(sql)",
+        evidencePath: "request.json() -> query"
+      }
+    ];
+
+    const markdownReport = formatMarkdown(result);
+    const githubReport = formatGithub(result);
+
+    for (const report of [markdownReport, githubReport]) {
+      expect(report).toContain("Why: API routes that consume user input should validate the input.");
+      expect(report).toContain("Context reason: matched Next.js API route path");
+      expect(report).toContain("Evidence path: ");
+      expect(report).toContain("request.json() -> query");
+    }
+
+    expect(markdownReport).toContain("db.query(sql)");
+    expect(githubReport).not.toContain("db.query(sql)");
   });
 
   it("renders SARIF reports with the minimum top-level structure", () => {
@@ -318,6 +380,7 @@ describe("formatSummary", () => {
         context: "api-code",
         contextReason: "matched Next.js API route path",
         nextSecureCheckFindingId: "finding-1",
+        whyReported: "A secret-like value appears in source code.",
         evidenceRedacted: true,
         evidencePath: "request.json() -> apiKey"
       }

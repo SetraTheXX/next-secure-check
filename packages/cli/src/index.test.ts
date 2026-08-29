@@ -90,6 +90,14 @@ describe("rules CLI helpers", () => {
     expect(output).toContain("Public client identifiers or browser-safe tokens can be intentional");
   });
 
+  it("explains bounded-flow false-negative boundaries", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "injection/raw-sql-concat");
+
+    expect(output).toContain("False negative boundary:");
+    expect(output).toContain("same function");
+    expect(output).toContain("cross-file");
+  });
+
   it("returns undefined and formats a helpful message for unknown rule ids", () => {
     const rules = getBuiltInRules();
 

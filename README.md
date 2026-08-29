@@ -17,7 +17,7 @@ next-secure-check scans a local project and reports common security mistakes bef
 ## Why use it?
 
 - Run a quick security sanity check with one `npx` command.
-- Get deterministic findings with severity, confidence, location, context, evidence, and recommendations.
+- Get deterministic findings with severity, confidence, location, context, bounded evidence paths, and recommendations.
 - Use the same scanner locally, in GitHub Actions, or through SARIF-compatible Code Scanning workflows.
 
 It is a lightweight pre-release review signal, not a penetration test or a replacement for a full security audit.
@@ -139,6 +139,11 @@ npx --yes next-secure-check@latest init
 
 `init` creates `.next-secure-check.json` and `.github/workflows/next-secure-check.yml`. Existing files are skipped by default; use `--force` only when you intentionally want to overwrite them.
 
+`explain` also documents the review boundary for each built-in rule. Its output
+includes false-positive notes and false-negative boundaries, including the
+intentional limits of same-function bounded flow, short alias chains, dynamic
+resolution, and external middleware or infrastructure controls.
+
 ## Presets
 
 Presets choose a practical coverage and noise tradeoff. They do not replace manual review.
@@ -208,7 +213,11 @@ The web demo does not read config files from scanned repositories. Its public-re
 
 ## Findings and SARIF
 
-Findings include a rule ID, title, severity, confidence, file location, context, recommendation, and safe evidence when available. Context values such as `api-code`, `test-code`, or `release-tooling` explain how the scanner classified a path.
+Findings include a rule ID, title, severity, confidence, file location, context,
+an explanation of why the pattern was reported, and a recommendation. When the
+syntax proves a bounded source-to-sink path, the finding also carries a concise
+`evidencePath` such as `request.json() -> query`. That path is evidence of the
+recognized syntax only; it is not proof that an exploit exists.
 
 SARIF 2.1.0 output includes:
 
@@ -218,9 +227,17 @@ SARIF 2.1.0 output includes:
 - `security-severity` and precision metadata
 - deterministic `partialFingerprints`
 - context and context-reason properties
+- `whyReported` and optional `evidencePath` result properties
 - concise messages built from the title, description, and recommendation
 
-Raw secret evidence is replaced with `[REDACTED]` in JSON, terminal, and Markdown output and is not embedded in SARIF; GitHub output also omits evidence details. Findings are review signals, not proof that an exploit exists; review the confidence, evidence, and recommendation before treating one as a confirmed vulnerability.
+Detailed terminal and Markdown reports show `Why`, `Context reason`, and an
+optional `Evidence path`. GitHub keeps its findings table compact and places
+the same explanation metadata in its recommendations details; it intentionally
+omits raw evidence. The web Markdown export follows the same explanation
+contract. Raw secret evidence is replaced with `[REDACTED]` in JSON, terminal,
+and Markdown output and is not embedded in SARIF. Findings are review signals,
+not proof that an exploit exists; review the confidence, evidence path, and
+recommendation before treating one as a confirmed vulnerability.
 
 ## Reproducible Demo
 
