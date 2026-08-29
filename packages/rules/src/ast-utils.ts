@@ -38,6 +38,7 @@ export type AnalysisFacts = {
   safeCommandCalls: ReadonlySet<ts.CallExpression>;
   routeHandlerNodes: readonly ts.Node[];
   sanitizerIdentifiers: ReadonlySet<string>;
+  untrustedSanitizerIdentifiers: ReadonlySet<string>;
   safeHtmlIdentifiers: ReadonlySet<string>;
   hasPasswordHashing: boolean;
   hasAuthIntent: boolean;
@@ -109,11 +110,18 @@ export function findRawSqlConcatMatches(file: SourceFile): AstMatch[] {
 }
 
 export function findDangerouslySetInnerHtmlMatches(file: SourceFile): DangerouslySetInnerHtmlMatch[] {
-  const { sourceFile, sanitizerIdentifiers, safeHtmlIdentifiers } = getAnalysisFacts(file);
+  const { sourceFile, boundedFlow, sanitizerIdentifiers, untrustedSanitizerIdentifiers, safeHtmlIdentifiers } = getAnalysisFacts(file);
   return dedupeMatches(
-    findDangerouslySetInnerHtmlNodes(sourceFile, sanitizerIdentifiers, safeHtmlIdentifiers).map(({ node, severity }) => ({
+    findDangerouslySetInnerHtmlNodes(
+      sourceFile,
+      sanitizerIdentifiers,
+      safeHtmlIdentifiers,
+      boundedFlow,
+      untrustedSanitizerIdentifiers
+    ).map(({ node, severity, evidencePath }) => ({
       ...matchFromNode(file, sourceFile, node),
-      severity
+      severity,
+      ...(evidencePath ? { evidencePath } : {})
     }))
   );
 }
@@ -190,6 +198,7 @@ function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
     safeCommandCalls: commandFlow.safeCommandCalls,
     routeHandlerNodes,
     sanitizerIdentifiers: xssFacts.sanitizerIdentifiers,
+    untrustedSanitizerIdentifiers: xssFacts.untrustedSanitizerIdentifiers,
     safeHtmlIdentifiers: xssFacts.safeHtmlIdentifiers,
     hasPasswordHashing: hasPasswordHashingCall(sourceFile),
     hasAuthIntent: hasAuthIntentInSource(sourceFile),

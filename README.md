@@ -79,6 +79,9 @@ The scanner currently contains 20 built-in rules across secrets, injection, XSS,
 
 See [`docs/rules`](./docs/rules) for the complete rule documentation, examples, and known limitations.
 
+The XSS rule documents its intentionally small sanitizer allowlist and bounded
+request-source evidence in [`dangerously-set-inner-html.md`](./docs/rules/dangerously-set-inner-html.md).
+
 ## CLI Usage
 
 ### Scan and report formats
@@ -404,9 +407,9 @@ pnpm release:gate
 The current validation baseline is:
 
 ~~~txt
-packages: 340 tests
+packages: 342 tests
 apps/web: 146 tests
-total: 486 tests
+total: 488 tests
 ~~~
 
 Workspace layout:
@@ -430,6 +433,7 @@ Useful validation references:
 - [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
 - [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
 - [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
+- [v0.5 XSS source and sanitizer refinement](./docs/validation/phase-14-xss-refinement.md)
 - [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 
 ## Learning Project and Development Philosophy

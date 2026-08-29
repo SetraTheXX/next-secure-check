@@ -15,21 +15,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the first raw SQL bounded source-to-sink slice for recognized query sinks, SQL-valued local aliases, dynamic string concatenation, and optional source evidence paths.
 - Added the v0.5 regression/performance release gate for fixture inventories, deterministic reports, concise summaries, public-output privacy, benchmarks, and CLI pack dry-runs.
 
+### Changed
+- Refined `xss/dangerously-set-inner-html` with a documented sanitizer allowlist and bounded evidence paths for direct request-derived values.
+
 ### Documentation
 - Added the reproducible VHS README demo, simplified SVG wordmark, and v0.5 summary-output validation note.
 - Added the v0.5 baseline/finding-identity inventory and bounded-flow contract decision note for issue #13.
 - Added the shared `AnalysisFacts` foundation validation note for issue #14.
 - Added the raw SQL bounded-flow validation note for issue #15, including intentional stop conditions and a directional performance sample.
 - Added the Phase 13 validation note with the repeatable 100/1,000-file cold/warm benchmark protocol and release-gate evidence.
+- Added the Phase 14 XSS source/sanitizer refinement validation note for issue #16.
 
 ### Fixed
 - Fixed direct route-parameter command sources so they populate the shared bounded-flow source facts as well as the existing evidence path.
 - Fixed raw SQL bounded-flow aliases being dropped after a recognized query sink, so repeated sink uses remain visible.
 - Fixed static raw SQL concatenation with primitive literals being classified as dynamic interpolation.
 - Fixed secret finding evidence leaking through CLI JSON, terminal, and Markdown reports; public reporter output now uses `[REDACTED]`.
+- Fixed unknown XSS sanitizer wrappers being silently treated as safe.
 
 ### Tests
-- Current validation baseline: 340 package tests, 146 web tests, 486 total tests.
+- Current validation baseline: 342 package tests, 146 web tests, 488 total tests.
 
 ## [0.4.1] - 2026-08-24
 

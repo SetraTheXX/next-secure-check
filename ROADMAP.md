@@ -7,7 +7,7 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-29 |
 | Current release | `v0.4.1` published |
 | Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 3 - XSS source and sanitizer refinement (#16) |
+| Current next task | v0.5 Phase 4 - Auth and middleware intent (#17) |
 | Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
 
 ## Progress Legend
@@ -24,7 +24,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 340 package tests, 146 web tests, 486 total tests.
+- [x] Current validation baseline: 342 package tests, 146 web tests, 488 total tests.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
@@ -164,10 +164,10 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 - [x] [#13 Baseline and bounded-flow contract](https://github.com/SetraTheXX/next-secure-check/issues/13)
 - [x] [#14 Shared `AnalysisFacts` foundation](https://github.com/SetraTheXX/next-secure-check/issues/14)
 - [x] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
-- [ ] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
+- [x] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
 - [ ] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
 - [ ] [#18 Evidence and reporter explanations](https://github.com/SetraTheXX/next-secure-check/issues/18)
-- [ ] [#19 Regression and performance release gate](https://github.com/SetraTheXX/next-secure-check/issues/19)
+- [x] [#19 Regression and performance release gate](https://github.com/SetraTheXX/next-secure-check/issues/19)
 - [ ] [#20 v0.5 release and feedback loop](https://github.com/SetraTheXX/next-secure-check/issues/20)
 
 ### v0.5 compatibility rules
@@ -245,18 +245,18 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 3 - XSS source and sanitizer refinement (#16)
 
-- [ ] **Phase status:** Planned
+- [x] **Phase status:** Complete; implementation and validation recorded in [phase-14-xss-refinement.md](./docs/validation/phase-14-xss-refinement.md)
 
 **Purpose:** Improve the distinction between static HTML, sanitized content, and values that may carry untrusted input into `dangerouslySetInnerHTML`.
 
-- [ ] Keep JSX attribute syntax as the first boundary.
-- [ ] Recognize direct variable and member-expression values as review signals.
-- [ ] Recognize a small, documented sanitizer allowlist such as `DOMPurify.sanitize`, `sanitizeHtml`, and `sanitizeMarkdown`.
-- [ ] Do not assume an unknown custom wrapper is safe.
-- [ ] Keep static literal HTML out of the default finding path.
-- [ ] Add negative fixtures for normal JSX text, unrelated props, static literals, and sanitized values.
-- [ ] Add positive fixtures for request-derived, member-expression, and unsanitized values.
-- [ ] Keep context tuning and strict/audit behavior explicit in tests.
+- [x] Keep JSX attribute syntax as the first boundary.
+- [x] Recognize direct variable and member-expression values as review signals.
+- [x] Recognize a small, documented sanitizer allowlist such as `DOMPurify.sanitize`, `sanitizeHtml`, and `sanitizeMarkdown`.
+- [x] Do not assume an unknown custom wrapper is safe.
+- [x] Keep static literal HTML out of the default finding path.
+- [x] Add negative fixtures for normal JSX text, unrelated props, static literals, and sanitized values.
+- [x] Add positive fixtures for request-derived, member-expression, and unsanitized values.
+- [x] Keep context tuning and strict/audit behavior explicit in tests.
 
 **Exit criteria:** XSS findings explain whether the value is literal, sanitized, or variable-based without claiming source reachability that the analyzer cannot prove.
 
@@ -352,8 +352,8 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 1. [x] v0.5 Phase 0 - baseline and analysis contract.
 2. [x] v0.5 Phase 1 - shared bounded-flow foundation.
 3. [x] v0.5 Phase 2 - raw SQL bounded flow pilot.
-4. [ ] v0.5 Phase 6 - regression and performance gate for the SQL pilot.
-5. [ ] v0.5 Phase 3 - XSS source/sanitizer refinement.
+4. [x] v0.5 Phase 6 - regression and performance gate for the SQL pilot.
+5. [x] v0.5 Phase 3 - XSS source/sanitizer refinement.
 6. [ ] v0.5 Phase 4 - auth and middleware intent.
 7. [ ] v0.5 Phase 5 - evidence/reporting polish.
 8. [ ] v0.5 Phase 7 - release and feedback loop.

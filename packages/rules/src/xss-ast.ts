@@ -1,32 +1,40 @@
 import ts from "typescript";
+import type { BoundedFlowFacts } from "./analysis-facts.js";
 
 const SANITIZER_MODULE_PATTERN = /^(?:dompurify|sanitize-html)$/i;
+const SANITIZER_FUNCTION_PATTERN = /^(?:sanitizeHtml|sanitizeMarkdown)$/i;
+const SANITIZER_METHOD_NAME = "sanitize";
 
 export type XssSeverity = "LOW" | "MEDIUM";
 
 export type XssAnalysisFacts = {
   sanitizerIdentifiers: ReadonlySet<string>;
+  untrustedSanitizerIdentifiers: ReadonlySet<string>;
   safeHtmlIdentifiers: ReadonlySet<string>;
 };
 
 export type DangerouslySetInnerHtmlNode = {
   node: ts.JsxAttribute;
   severity: XssSeverity;
+  evidencePath?: string;
 };
 
 export function createXssAnalysisFacts(sourceFile: ts.SourceFile): XssAnalysisFacts {
-  const sanitizerIdentifiers = collectSanitizerIdentifiers(sourceFile);
+  const { sanitizerIdentifiers, untrustedSanitizerIdentifiers } = collectSanitizerIdentifiers(sourceFile);
 
   return {
     sanitizerIdentifiers,
-    safeHtmlIdentifiers: collectSafeHtmlIdentifiers(sourceFile, sanitizerIdentifiers)
+    untrustedSanitizerIdentifiers,
+    safeHtmlIdentifiers: collectSafeHtmlIdentifiers(sourceFile, sanitizerIdentifiers, untrustedSanitizerIdentifiers)
   };
 }
 
 export function findDangerouslySetInnerHtmlNodes(
   sourceFile: ts.SourceFile,
   sanitizerIdentifiers: ReadonlySet<string>,
-  safeHtmlIdentifiers: ReadonlySet<string>
+  safeHtmlIdentifiers: ReadonlySet<string>,
+  boundedFlow: BoundedFlowFacts,
+  untrustedSanitizerIdentifiers: ReadonlySet<string>
 ): DangerouslySetInnerHtmlNode[] {
   const matches: DangerouslySetInnerHtmlNode[] = [];
 
@@ -35,9 +43,16 @@ export function findDangerouslySetInnerHtmlNodes(
       return;
     }
 
-    const severity = dangerouslySetInnerHtmlSeverity(node.initializer, sanitizerIdentifiers, safeHtmlIdentifiers);
+    const severity = dangerouslySetInnerHtmlSeverity(
+      node.initializer,
+      sanitizerIdentifiers,
+      safeHtmlIdentifiers,
+      untrustedSanitizerIdentifiers
+    );
     if (severity) {
-      matches.push({ node, severity });
+      const valueExpression = dangerouslySetInnerHtmlValueExpression(node.initializer);
+      const evidencePath = valueExpression ? findBoundedSourcePath(valueExpression, boundedFlow) : undefined;
+      matches.push({ node, severity, ...(evidencePath ? { evidencePath } : {}) });
     }
   });
 
@@ -47,7 +62,8 @@ export function findDangerouslySetInnerHtmlNodes(
 function dangerouslySetInnerHtmlSeverity(
   initializer: ts.JsxAttribute["initializer"],
   sanitizerIdentifiers: ReadonlySet<string>,
-  safeHtmlIdentifiers: ReadonlySet<string>
+  safeHtmlIdentifiers: ReadonlySet<string>,
+  untrustedSanitizerIdentifiers: ReadonlySet<string>
 ): XssSeverity | undefined {
   if (!initializer || ts.isStringLiteral(initializer)) {
     return undefined;
@@ -66,15 +82,23 @@ function dangerouslySetInnerHtmlSeverity(
     .filter(ts.isPropertyAssignment)
     .find((property) => propertyNameText(property.name) === "__html")?.initializer;
 
-  if (!htmlExpression || isStaticHtmlExpression(htmlExpression, safeHtmlIdentifiers) || isSanitizedHtmlExpression(htmlExpression, sanitizerIdentifiers)) {
+  if (
+    !htmlExpression ||
+    isStaticHtmlExpression(htmlExpression, safeHtmlIdentifiers) ||
+    isSanitizedHtmlExpression(htmlExpression, sanitizerIdentifiers, untrustedSanitizerIdentifiers)
+  ) {
     return undefined;
   }
 
   return "MEDIUM";
 }
 
-function collectSanitizerIdentifiers(sourceFile: ts.SourceFile): Set<string> {
+function collectSanitizerIdentifiers(sourceFile: ts.SourceFile): {
+  sanitizerIdentifiers: Set<string>;
+  untrustedSanitizerIdentifiers: Set<string>;
+} {
   const sanitizerIdentifiers = new Set<string>();
+  const untrustedSanitizerIdentifiers = new Set<string>();
 
   visitXssNodes(sourceFile, (node) => {
     if (!ts.isImportDeclaration(node) || !ts.isStringLiteralLike(node.moduleSpecifier)) {
@@ -82,13 +106,16 @@ function collectSanitizerIdentifiers(sourceFile: ts.SourceFile): Set<string> {
     }
 
     const moduleName = node.moduleSpecifier.text;
+    const isKnownSanitizerModule = SANITIZER_MODULE_PATTERN.test(moduleName);
     const importClause = node.importClause;
     if (!importClause) {
       return;
     }
 
-    if (importClause.name && SANITIZER_MODULE_PATTERN.test(moduleName)) {
+    if (importClause.name && isKnownSanitizerModule) {
       sanitizerIdentifiers.add(importClause.name.text);
+    } else if (importClause.name && isSanitizerFunctionName(importClause.name.text)) {
+      untrustedSanitizerIdentifiers.add(importClause.name.text);
     }
 
     const namedBindings = importClause.namedBindings;
@@ -97,17 +124,24 @@ function collectSanitizerIdentifiers(sourceFile: ts.SourceFile): Set<string> {
     }
 
     for (const importSpecifier of namedBindings.elements) {
+      const localName = importSpecifier.name.text;
       const importedName = importSpecifier.propertyName?.text ?? importSpecifier.name.text;
-      if (isSanitizerFunctionName(importedName)) {
-        sanitizerIdentifiers.add(importSpecifier.name.text);
+      if (isKnownSanitizerModule && isSanitizerFunctionName(importedName)) {
+        sanitizerIdentifiers.add(localName);
+      } else if (!isKnownSanitizerModule && isSanitizerFunctionName(localName)) {
+        untrustedSanitizerIdentifiers.add(localName);
       }
     }
   });
 
-  return sanitizerIdentifiers;
+  return { sanitizerIdentifiers, untrustedSanitizerIdentifiers };
 }
 
-function collectSafeHtmlIdentifiers(sourceFile: ts.SourceFile, sanitizerIdentifiers: Set<string>): Set<string> {
+function collectSafeHtmlIdentifiers(
+  sourceFile: ts.SourceFile,
+  sanitizerIdentifiers: Set<string>,
+  untrustedSanitizerIdentifiers: Set<string>
+): Set<string> {
   const safeHtmlIdentifiers = new Set<string>();
 
   visitXssNodes(sourceFile, (node) => {
@@ -120,7 +154,10 @@ function collectSafeHtmlIdentifiers(sourceFile: ts.SourceFile, sanitizerIdentifi
         continue;
       }
 
-      if (isStaticHtmlExpression(declaration.initializer, safeHtmlIdentifiers) || isSanitizedHtmlExpression(declaration.initializer, sanitizerIdentifiers)) {
+      if (
+        isStaticHtmlExpression(declaration.initializer, safeHtmlIdentifiers) ||
+        isSanitizedHtmlExpression(declaration.initializer, sanitizerIdentifiers, untrustedSanitizerIdentifiers)
+      ) {
         safeHtmlIdentifiers.add(declaration.name.text);
       }
     }
@@ -141,24 +178,70 @@ function isStaticHtmlExpression(expression: ts.Expression, safeHtmlIdentifiers: 
   return ts.isStringLiteralLike(expression) || ts.isNoSubstitutionTemplateLiteral(expression) || (ts.isIdentifier(expression) && safeHtmlIdentifiers.has(expression.text));
 }
 
-function isSanitizedHtmlExpression(expression: ts.Expression, sanitizerIdentifiers: ReadonlySet<string>): boolean {
+function isSanitizedHtmlExpression(
+  expression: ts.Expression,
+  sanitizerIdentifiers: ReadonlySet<string>,
+  untrustedSanitizerIdentifiers: ReadonlySet<string>
+): boolean {
   if (!ts.isCallExpression(expression)) {
     return false;
   }
 
   if (ts.isIdentifier(expression.expression)) {
-    return sanitizerIdentifiers.has(expression.expression.text) || isSanitizerFunctionName(expression.expression.text);
+    return (
+      sanitizerIdentifiers.has(expression.expression.text) ||
+      (!untrustedSanitizerIdentifiers.has(expression.expression.text) && isSanitizerFunctionName(expression.expression.text))
+    );
   }
 
   if (ts.isPropertyAccessExpression(expression.expression)) {
-    return isSanitizerFunctionName(expression.expression.name.text);
+    const receiver = expression.expression.expression;
+    return (
+      expression.expression.name.text === SANITIZER_METHOD_NAME &&
+      ts.isIdentifier(receiver) &&
+      (receiver.text === "DOMPurify" || sanitizerIdentifiers.has(receiver.text))
+    );
   }
 
   return false;
 }
 
 function isSanitizerFunctionName(name: string): boolean {
-  return /^(?:sanitize|sanitizeHtml|sanitizeMarkdown|sanitizeContent|toSafeHtml)$/i.test(name);
+  return SANITIZER_FUNCTION_PATTERN.test(name);
+}
+
+function dangerouslySetInnerHtmlValueExpression(initializer: ts.JsxAttribute["initializer"]): ts.Expression | undefined {
+  if (!initializer || !ts.isJsxExpression(initializer) || !initializer.expression) {
+    return undefined;
+  }
+
+  if (!ts.isObjectLiteralExpression(initializer.expression)) {
+    return initializer.expression;
+  }
+
+  return initializer.expression.properties
+    .filter(ts.isPropertyAssignment)
+    .find((property) => propertyNameText(property.name) === "__html")?.initializer;
+}
+
+function findBoundedSourcePath(expression: ts.Node, boundedFlow: BoundedFlowFacts): string | undefined {
+  const directSource = boundedFlow.sources.find((source) => source.node === expression);
+  if (directSource) {
+    return directSource.path;
+  }
+
+  if (ts.isFunctionLike(expression)) {
+    return undefined;
+  }
+
+  let evidencePath: string | undefined;
+  ts.forEachChild(expression, (child) => {
+    if (!evidencePath) {
+      evidencePath = findBoundedSourcePath(child, boundedFlow);
+    }
+  });
+
+  return evidencePath;
 }
 
 function visitXssNodes(node: ts.Node, callback: (node: ts.Node) => void): void {
