@@ -1,4 +1,5 @@
-# Reproducible README demo. Run from the repository root after `pnpm build`.
+# Reproducible README demo for the v0.5.0 release candidate.
+# Run from the repository root after `pnpm build`.
 Require node
 Require ffmpeg
 Require ttyd
@@ -7,13 +8,13 @@ Output docs/assets/readme-security-demo.gif
 
 Set Shell cmd
 Set FontFamily "Consolas"
-Set FontSize 17
+Set FontSize 18
 Set Width 1280
-Set Height 620
-Set Padding 28
+Set Height 640
+Set Padding 30
 Set Theme "Catppuccin Mocha"
 Set CursorBlink false
-Set TypingSpeed 18ms
+Set TypingSpeed 16ms
 
 # Keep the public recording free of the local checkout path.
 Hide
@@ -23,6 +24,13 @@ Type "cls"
 Enter
 Show
 
+Type "echo next-secure-check v0.5.0 / deterministic review signal"
+Enter
+Type "echo mode: --summary keeps the demo compact and readable"
+Enter
+Type "node packages/cli/dist/index.js --version"
+Enter
+Sleep 1s
 Type "echo === 1/3: VULNERABLE FIXTURE / STRICT ==="
 Enter
 Type "node packages/cli/dist/index.js scan examples/vulnerable-next-app --preset strict --summary"

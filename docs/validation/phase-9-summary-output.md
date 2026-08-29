@@ -2,7 +2,8 @@
 
 Date: 2026-08-29
 
-Status: Implemented and validated on `main` at commit `ca2ad1d`; v0.5.0 is not published yet.
+Status: Implemented and included in the prepared `v0.5.0` release candidate;
+the stable npm line remains `v0.4.1` until manual publication.
 
 ## Purpose
 
@@ -43,7 +44,7 @@ The expected score/risk/finding values remain the established fixture baseline:
 - `pnpm build`, `pnpm typecheck`, `pnpm lint`, and `pnpm test` pass.
 - Package tests: `323`; web tests: `146`; total: `469`.
 - CLI summary smoke, `scan --help`, non-terminal format rejection, JSON parsing, and SARIF parsing pass.
-- The current README GIF is `1280x620`, `14.60` seconds, approximately `305 KB`, and contains no checked-out local paths or secret/token patterns.
+- The prepared v0.5.0 README GIF is `1280x640`, `18.44` seconds, approximately `776 KB`, and contains no checked-out local paths or secret/token patterns.
 
 The README VHS recording uses the same summary commands, labels each fixture, and clears the terminal between scans. This keeps the comparison legible without exposing local checkout paths or raw secret evidence.
 

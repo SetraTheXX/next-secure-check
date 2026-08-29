@@ -8,7 +8,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const scriptPath = fileURLToPath(import.meta.url);
 const cliPath = path.join(repoRoot, "packages", "cli", "dist", "index.js");
-const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const pnpmCommand = process.platform === "win32" ? process.env.ComSpec || "cmd.exe" : "pnpm";
+const pnpmPrefixArgs = process.platform === "win32" ? ["/d", "/s", "/c", "pnpm.cmd"] : [];
 
 const FIXTURES = [
   {
@@ -260,9 +261,15 @@ async function checkPrivacyContract() {
 }
 
 async function checkPackContract() {
-  const result = runCommand(pnpmCommand, ["-C", "packages/cli", "exec", "npm", "pack", "--dry-run"], {
-    shell: process.platform === "win32"
-  });
+  const result = runCommand(pnpmCommand, [
+    ...pnpmPrefixArgs,
+    "-C",
+    "packages/cli",
+    "exec",
+    "npm",
+    "pack",
+    "--dry-run"
+  ]);
   requireSuccess(result, "CLI npm pack dry-run");
   assert(result.stdout.includes("next-secure-check"), "CLI npm pack dry-run did not report the package");
 }

@@ -5,10 +5,10 @@ Public progress board for `next-secure-check`. It records completed release work
 | Field | Value |
 | --- | --- |
 | Last reviewed | 2026-08-29 |
-| Current release | `v0.4.1` published |
-| Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 7 - Release and feedback loop (#20) |
-| Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
+| Current release | `v0.4.1` stable on npm; `v0.5.0` release candidate prepared on `main` |
+| Next release focus | `v0.5.0` - manual npm publication, exact tag, and feedback loop |
+| Current next task | Complete the manual v0.5 publication/tag handoff and collect feedback (#20) |
+| Release blocker | No code blocker; npm publication, exact GitHub tag/release, and post-release feedback remain manual follow-up |
 
 ## Progress Legend
 
@@ -25,12 +25,14 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
 - [x] Current validation baseline: 366 package tests, 147 web tests, 513 total tests.
+- [x] `v0.5.0` release candidate package metadata, documentation, and demo prepared on `main`; npm publication is pending.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
 
 ### Open post-release work
 
+- [ ] Publish the prepared `v0.5.0` packages, create the exact GitHub tag/release, and update the Action only after npm is available.
 - [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - finalize the optional demo edit, Turkish voice-over, English subtitles, and final privacy review.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
@@ -174,22 +176,22 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ### v0.5 compatibility rules
 
-- [ ] Keep `default` syntax-first and fast.
-- [ ] Keep `--preset app` as the recommended application-focused scan.
-- [ ] Keep `strict` and `audit` broad, with tuning disabled.
-- [ ] Preserve rule IDs, CLI flags, report formats, SARIF locations, and deterministic fingerprints unless a change is explicitly reviewed.
-- [ ] Do not execute scanned repository code.
-- [ ] Do not add unrestricted JS/TS plugin loading.
-- [ ] Do not make TypeChecker or project graph loading the default path.
-- [ ] Treat exact fixture counts as regression alarms, not immutable product requirements. Any changed result must be intentional, reviewed, and documented.
+- [x] Keep `default` syntax-first and fast.
+- [x] Keep `--preset app` as the recommended application-focused scan.
+- [x] Keep `strict` and `audit` broad, with tuning disabled.
+- [x] Preserve rule IDs, CLI flags, report formats, SARIF locations, and deterministic fingerprints unless a change is explicitly reviewed.
+- [x] Do not execute scanned repository code.
+- [x] Do not add unrestricted JS/TS plugin loading.
+- [x] Do not make TypeChecker or project graph loading the default path.
+- [x] Treat exact fixture counts as regression alarms, not immutable product requirements. Any changed result must be intentional, reviewed, and documented.
 
 ### Metrics for v0.5
 
-- [ ] Measure confirmed false-positive reductions and confirmed additional findings separately.
-- [ ] Track fixture matrix coverage, safe-case preservation, determinism, and report compatibility.
-- [ ] Record Node version, OS, CPU, repository size, cold/warm state, median, p95, and syntax-to-flow runtime ratio for performance measurements.
-- [ ] Keep test count as a health signal, not as the primary release KPI.
-- [ ] Require a validation note for behavior changes that affect vulnerable or secure fixture output.
+- [ ] Measure confirmed false-positive reductions and confirmed additional findings separately on a reviewed real-world corpus after release.
+- [x] Track fixture matrix coverage, safe-case preservation, determinism, and report compatibility.
+- [x] Record Node version, OS, CPU, repository size, cold/warm state, median, p95, and analysis-overhead ratio for performance measurements.
+- [x] Keep test count as a health signal, not as the primary release KPI.
+- [x] Require a validation note for behavior changes that affect vulnerable or secure fixture output.
 
 ## v0.5 Phase 0 - Baseline and analysis contract (#13)
 
@@ -322,15 +324,18 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 7 - Release and feedback loop (#20)
 
-- [ ] **Phase status:** Planned
+- [ ] **Phase status:** Release candidate prepared on `main` on 2026-08-29; manual npm publication, exact GitHub tag/release, Action coordination, and post-release feedback remain.
 
-- [ ] Review open feedback and convert repeated reports into small issues.
-- [ ] Publish only after the v0.5 release gate passes.
-- [ ] Keep npm package versions and internal workspace dependency versions consistent.
-- [ ] Run npm pack and recursive publish dry-run before any real publish.
+- [x] Review open feedback; no repeated new report was present, and #12 remains an optional media follow-up.
+- [x] Confirm the v0.5 release gate passes before the manual publication handoff.
+- [x] Keep npm package versions and internal workspace dependency versions consistent.
+- [x] Run npm pack and recursive publish dry-run before any real publish.
 - [ ] Record the release commit and GitHub tag.
-- [ ] Publish a short demo/validation note with honest boundaries.
+- [x] Publish a short demo/validation note with honest boundaries in the repository.
 - [ ] Re-measure user-facing noise on a small, reviewed corpus after release.
+
+The phase intentionally remains open until the package is published, the exact
+GitHub tag/release is confirmed, and real-user feedback is recorded.
 
 **Exit criteria:** v0.5 can be installed, reproduced, reviewed, and rolled back without changing the no-repo-code-execution boundary.
 
@@ -358,7 +363,7 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 5. [x] v0.5 Phase 3 - XSS source/sanitizer refinement.
 6. [x] v0.5 Phase 4 - auth and middleware intent.
 7. [x] v0.5 Phase 5 - evidence/reporting polish.
-8. [ ] v0.5 Phase 7 - release and feedback loop.
+8. [ ] v0.5 Phase 7 - release and feedback loop (manual publication/tag/feedback pending).
 
 This order deliberately puts measurement before deeper analysis. It also keeps TypeChecker and plugins out of the default path until real corpus evidence shows that their accuracy value justifies their cost.
 

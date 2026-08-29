@@ -6,6 +6,10 @@ Run a quick static security sanity check before deploying a Next.js app.
 
 Requires Node.js 20 or newer.
 
+The stable npm line is `v0.4.1`. The `v0.5.0` release candidate is prepared
+in the repository with aligned CLI and internal package versions; manual npm
+publication is still pending.
+
 ## Usage
 
 Recommended one-off usage:
@@ -14,10 +18,16 @@ Recommended one-off usage:
 npx --yes next-secure-check@latest scan . --preset app
 ```
 
-For reproducible CI runs, pin the release version:
+For reproducible CI runs on the stable npm line, pin the release version:
 
 ```bash
 npx --yes next-secure-check@0.4.1 scan . --preset app
+```
+
+After the manual v0.5.0 npm publication, the candidate can be pinned with:
+
+```bash
+npx --yes next-secure-check@0.5.0 scan . --preset app
 ```
 
 Or run without installing:
@@ -33,7 +43,7 @@ npm install -g next-secure-check
 next-secure-check scan .
 ```
 
-If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on v0.4 options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
+If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on current options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
 
 ```bash
 next-secure-check --version
@@ -58,7 +68,8 @@ npx --yes next-secure-check@latest scan . --preset ci
 
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
-Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin `next-secure-check@0.4.1` in CI for reproducible CLI usage.
+Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin
+`next-secure-check@0.4.1` in CI until the manual v0.5.0 publication is done.
 
 ## CLI Helpers
 
@@ -97,6 +108,7 @@ npx --yes next-secure-check@latest init --force
 
 ```bash
 npx --yes next-secure-check@latest scan .
+npx --yes next-secure-check@latest scan . --summary
 npx --yes next-secure-check@latest scan . --format json
 npx --yes next-secure-check@latest scan . --format markdown --output report.md
 npx --yes next-secure-check@latest scan . --format github
@@ -104,6 +116,11 @@ npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
 ```
 
 `github` output is designed for GitHub Actions Step Summary usage. SARIF output can be uploaded to GitHub Code Scanning.
+
+`--summary` is a terminal-only compact view for demos and quick reviews. It
+keeps score, risk, counts, confidence, context, and representative locations;
+the default terminal report remains detailed. The flag cannot be combined
+with JSON, Markdown, GitHub, or SARIF output.
 
 ## GitHub Actions
 
@@ -180,8 +197,12 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.
 
-## v0.4.0 Highlights
+## v0.5.0 Release-Candidate Highlights
 
+- Bounded same-function source-to-sink evidence for command execution and raw SQL
+- Structural auth, route-handler, validation, and middleware intent signals
+- Explainable findings with context reason and optional proven evidence paths
+- Concise terminal summaries for readable reviews and demos
 - Context-aware scanning with finding context metadata
 - Preset system for app, strict, CI, audit, library, and monorepo scans
 - AST-assisted checks for command execution, raw SQL, dangerous HTML rendering, and password handling
@@ -194,7 +215,11 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 ## Release Status
 
-The v0.4.0 release contains bounded same-function source-to-sink analysis, rule-intent signals, and evidence-driven noise reduction. This package is published as v0.4.1 with documentation-only corrections; its runtime dependencies remain on the v0.4.0 analysis packages.
+The v0.5.0 release candidate contains the bounded-analysis, intent, reporter,
+and summary changes described above. The CLI, core, rules, and reporter
+candidate manifests are all aligned at `0.5.0`; npm publication and the exact
+GitHub tag remain manual release steps. The published stable line remains
+`0.4.1` until then.
 
 To try the local build from a clone:
 

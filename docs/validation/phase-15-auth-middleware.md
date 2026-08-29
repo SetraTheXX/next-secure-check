@@ -4,8 +4,8 @@ Date: 2026-08-29
 
 Issue: [#17](https://github.com/SetraTheXX/next-secure-check/issues/17)
 
-Status: Implemented on the v0.5 development line; the published npm line
-remains v0.4.1 until issue #20 is completed.
+Status: Implemented in the prepared `v0.5.0` release candidate; the stable
+published npm line remains `v0.4.1` until manual publication.
 
 ## Purpose
 
@@ -70,9 +70,9 @@ JSON/SARIF, public-output privacy, CLI help/rejection behavior, package
 dry-run, and the 100/1,000-file benchmark. The fixture inventory did not
 change as a side effect of this phase.
 
-The README demo was re-recorded after this phase at `1280x620`, `14.60` seconds,
-and approximately `305 KB`; it uses the same three concise `--summary` scans
-shown above.
+The README demo was refreshed for the v0.5.0 release candidate at `1280x640`,
+`18.44` seconds, and approximately `776 KB`; it uses the same three concise
+`--summary` scans shown above.
 
 ## Intentional boundaries
 

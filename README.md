@@ -4,7 +4,7 @@ Deterministic, Next.js-focused static security checks for pre-deploy review and 
 
 next-secure-check scans a local project and reports common security mistakes before they become production surprises. It uses rule-based pattern matching, syntax-level AST analysis, and file context. It does not execute repository code and does not use AI at runtime.
 
-> **Current release:** `v0.4.1` is published on npm. The `v0.4.0` feature release added bounded same-function analysis and evidence-driven noise reduction; `v0.4.1` is a CLI documentation patch.
+> **Stable release:** `v0.4.1` is published on npm. The `v0.5.0` release candidate is prepared on `main`; its npm publication is a manual follow-up. v0.5 adds bounded source-to-sink evidence, structural auth intent, explainable reports, and a concise terminal summary.
 
 [![npm](https://img.shields.io/npm/v/next-secure-check?logo=npm)](https://www.npmjs.com/package/next-secure-check)
 [![CI](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml/badge.svg)](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml)
@@ -28,7 +28,7 @@ It is a lightweight pre-release review signal, not a penetration test or a repla
   <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
 </p>
 
-The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). Each scan uses the concise `--summary` flag; the full finding report is intentionally omitted for readability. It shows a review signal, not proof of exploitability or a universal security score.
+The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the prepared `v0.5.0` CLI and three concise `--summary` scans; the full finding report is intentionally omitted for readability. It shows a review signal, not proof of exploitability or a universal security score.
 
 ## Quick Start
 
@@ -38,10 +38,17 @@ Run the recommended application-focused scan without a global install:
 npx --yes next-secure-check@latest scan . --preset app
 ~~~
 
-For reproducible CI, pin the CLI version:
+For reproducible CI on the stable npm line, pin the CLI version:
 
 ~~~bash
 npx --yes next-secure-check@0.4.1 scan . --preset app
+~~~
+
+After the manual v0.5.0 npm publication, the prepared release can be pinned
+with:
+
+~~~bash
+npx --yes next-secure-check@0.5.0 scan . --preset app
 ~~~
 
 The CLI requires Node.js 20 or newer.
@@ -108,15 +115,15 @@ npx --yes next-secure-check@latest scan . --format github
 # SARIF for GitHub Code Scanning
 npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
 
-# Concise terminal summary (v0.5 development line)
+# Concise terminal summary (v0.5.0 release candidate)
 pnpm build
 node packages/cli/dist/index.js scan . --preset app --summary
 
-# Scan command help (v0.5 development line)
+# Scan command help (v0.5.0 release candidate)
 node packages/cli/dist/index.js scan --help
 ~~~
 
-`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output. This option is currently in the unreleased v0.5 development line; the published npm `latest` line remains `v0.4.1` until v0.5 is released.
+`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output. It is part of the prepared v0.5.0 release candidate; the published npm `latest` line remains `v0.4.1` until the manual v0.5 publication is complete.
 
 ### Failure gates
 
@@ -189,7 +196,7 @@ Supported fields in the current release:
 - `format`: `terminal`, `json`, `markdown`, or `github`
 - `preset`: `default`, `app`, `strict`, `ci`, `audit`, `library`, or `monorepo`
 
-`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output. It is available from the current repository build and is not part of published npm `v0.4.1` yet.
+`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output. It is available in the prepared v0.5.0 release candidate and is not part of published npm `v0.4.1`.
 
 Example:
 
@@ -269,7 +276,9 @@ pnpm release:gate
 
 The gate checks fixture inventories, deterministic JSON/SARIF output, concise
 summary length, public-output privacy, CLI packaging, and disposable 100/1,000
-file benchmark corpora. See the [Phase 13 validation note](./docs/validation/phase-13-v05-release-gate.md) for the protocol and local measurements.
+file benchmark corpora. See the [Phase 13 validation note](./docs/validation/phase-13-v05-release-gate.md)
+for the protocol and the [Phase 17 release validation note](./docs/validation/phase-17-v05-release.md)
+for the current release-candidate audit.
 
 ## GitHub Actions
 
@@ -322,7 +331,13 @@ After the first `v1` Action release, projects can use the reusable composite Act
     format: github
 ~~~
 
-The Action runs the published `next-secure-check@0.4.1` CLI against the checked-out workspace. It does not install or execute scripts from the scanned repository. The default `github` format is written to the job Step Summary; use `format: sarif` and `output: next-secure-check.sarif` when a separate SARIF upload step is desired.
+The published `v1` Action currently runs the stable `next-secure-check@0.4.1`
+CLI against the checked-out workspace. It does not install or execute scripts
+from the scanned repository. The default `github` format is written to the job
+Step Summary; use `format: sarif` and `output: next-secure-check.sarif` when a
+separate SARIF upload step is desired. A coordinated Action update to the
+v0.5.0 CLI follows the manual npm publication so the existing `v1` tag never
+points at an unavailable package.
 
 The Action runs only when the consuming repository adds it to a workflow triggered by events such as `pull_request` or `push`. It does not monitor repositories on its own.
 
@@ -410,7 +425,10 @@ The scanner is designed to provide fast, explainable review signals. It is not a
 
 ## Project Status and Roadmap
 
-The current published line is `v0.4.1`. The detailed, checklist-based plan for the next iteration lives in [`ROADMAP.md`](./ROADMAP.md).
+The current stable published line is `v0.4.1`; the `v0.5.0` release candidate
+is prepared on `main` and awaits manual npm publication, an exact GitHub tag,
+and post-release feedback. The detailed, checklist-based plan lives in
+[`ROADMAP.md`](./ROADMAP.md).
 
 The current direction is deliberately narrow: improve evidence quality and reduce guesses with bounded, explainable analysis before considering default type-aware analysis or an unrestricted plugin system.
 
@@ -430,9 +448,9 @@ pnpm release:gate
 The current validation baseline is:
 
 ~~~txt
-packages: 362 tests
-apps/web: 146 tests
-total: 508 tests
+packages: 366 tests
+apps/web: 147 tests
+total: 513 tests
 ~~~
 
 Workspace layout:
@@ -459,6 +477,7 @@ Useful validation references:
 - [v0.5 XSS source and sanitizer refinement](./docs/validation/phase-14-xss-refinement.md)
 - [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
 - [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
+- [v0.5 release-candidate audit and manual publish handoff](./docs/validation/phase-17-v05-release.md)
 
 ## Learning Project and Development Philosophy
 

@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+No unreleased changes are recorded yet.
+
+## [0.5.0] - 2026-08-29
+
+> Release candidate prepared on `main`. npm publication, the exact GitHub tag,
+> and post-release feedback are manual follow-up steps.
+
 ### Added
-- Added a root composite GitHub Action wrapper for `next-secure-check@0.4.1` with preset, fail-on, format, exclude, and output inputs.
+- Prepared the v0.5 release line while keeping the published root composite GitHub Action pinned to `next-secure-check@0.4.1` until the manual npm publication and coordinated Action update.
 - Added a CI smoke step that exercises the local Action against the secure fixture.
 - Added an opt-in terminal-only `--summary` view for concise score, risk, finding-count, severity, confidence, context, and location output.
 - Added shared syntax-only bounded-flow facts for direct sources, command sinks, guards, short aliases, invalidations, function boundaries, and proven evidence paths.
@@ -33,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the Phase 16 evidence and reporter explanation validation note for issue #18.
 
 ### Fixed
+- Removed the Windows `shell: true` release-gate invocation so package dry-runs no longer emit Node's shell-spawn deprecation warning.
 - Fixed direct route-parameter command sources so they populate the shared bounded-flow source facts as well as the existing evidence path.
 - Fixed raw SQL bounded-flow aliases being dropped after a recognized query sink, so repeated sink uses remain visible.
 - Fixed static raw SQL concatenation with primitive literals being classified as dynamic interpolation.

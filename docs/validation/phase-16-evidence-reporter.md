@@ -4,8 +4,8 @@ Date: 2026-08-29
 
 Issue: [#18](https://github.com/SetraTheXX/next-secure-check/issues/18)
 
-Status: Implemented on the v0.5 development line; the published npm line
-remains v0.4.1 until issue #20 is completed.
+Status: Implemented in the prepared `v0.5.0` release candidate; the stable
+published npm line remains `v0.4.1` until manual publication.
 
 ## Purpose
 
@@ -83,8 +83,10 @@ warm scaling ratio: 9.50x
 The release gate also passed fixture inventories, public-output privacy, SARIF
 determinism, CLI packaging dry-run, and concise-summary checks. Release
 publication/tagging and final GitHub CI validation remain part of issue #20.
-The README demo GIF remains the v0.5 development baseline and will be
-re-recorded after the final release feature set is frozen.
+The README demo GIF is refreshed for the prepared v0.5.0 release candidate.
+Its compact `--summary` contract intentionally does not replace the detailed
+reporter output. The release-candidate audit and manual publication boundary
+are recorded in [phase-17-v05-release.md](./phase-17-v05-release.md).
 
 ## Intentional boundaries
 
