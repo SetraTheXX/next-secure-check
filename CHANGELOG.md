@@ -11,8 +11,7 @@ No unreleased changes are recorded yet.
 
 ## [0.5.0] - 2026-08-29
 
-> Release candidate prepared on `main`. npm publication, the exact GitHub tag,
-> and post-release feedback are manual follow-up steps.
+> GitHub release and tag: [v0.5.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0), targeting the validated release commit. npm publication, coordinated Action availability, and post-release feedback are manual follow-up steps.
 
 ### Added
 - Prepared the v0.5 release line while keeping the published root composite GitHub Action pinned to `next-secure-check@0.4.1` until the manual npm publication and coordinated Action update.

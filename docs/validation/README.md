@@ -28,8 +28,8 @@ The #18 evidence/reporter explanation contract, privacy behavior, bounded-path
 presentation, and CLI false-negative guidance are documented in
 [phase-16-evidence-reporter.md](./phase-16-evidence-reporter.md).
 
-The #20 v0.5 release-candidate audit, package-version handoff, demo contract,
-feedback review, and manual npm publication boundary are documented in
+The #20 v0.5 release audit, package-version handoff, demo contract, feedback
+review, and manual npm publication boundary are documented in
 [phase-17-v05-release.md](./phase-17-v05-release.md).
 
 Historical v0.1 baseline:

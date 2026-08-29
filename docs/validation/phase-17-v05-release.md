@@ -4,17 +4,20 @@ Date: 2026-08-29
 
 Issue: [#20](https://github.com/SetraTheXX/next-secure-check/issues/20)
 
-Status: The `v0.5.0` release candidate is prepared on `main`. The package
-publication, exact GitHub tag/release, coordinated Action update, and
+Status: The `v0.5.0` GitHub release and tag are recorded on the validated
+release commit. The package publication, coordinated Action update, and
 post-release feedback remain manual follow-up steps.
 
 ## Scope
 
 This phase turns the completed v0.5 implementation work into a reviewable
-release candidate. It covers version alignment, public documentation, the
-reproducible terminal demo, packaging checks, and a final local audit. It does
-not publish to npm, create a GitHub release, or claim that the stable npm
-`latest` channel has moved.
+release. It covers version alignment, public documentation, the reproducible
+terminal demo, packaging checks, and a final local audit. It does not publish
+to npm or claim that the stable npm `latest` channel has moved.
+
+The GitHub [`v0.5.0` release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
+and tag target commit `051c3d8db65722b266ff864906a5e863fa4abe7c`, the commit
+validated by the release gate and CI run `33258034052`.
 
 The scanner continues to read repository files as input and never executes
 code from the scanned repository.
@@ -139,17 +142,16 @@ token. The regenerated asset was visually sampled at the intro and each final
 scan state and measured at `1280x640`, `461` frames, `18.44` seconds, and
 approximately `776 KB`.
 
-## Manual handoff after this commit is pushed
+## Manual handoff after the GitHub release
 
-After reviewing the pushed commit, the maintainer can publish the aligned
-packages through the authenticated workspace release process, then create the
-exact `v0.5.0` tag and GitHub release. Once npm availability is confirmed, the
-Action can be updated and released separately. Finally, record real-user
-feedback as small, reproducible issues before expanding the rule surface.
+The maintainer can now publish the aligned packages through the authenticated
+workspace release process. Once npm availability is confirmed, the Action can
+be updated and released separately. Finally, record real-user feedback as
+small, reproducible issues before expanding the rule surface.
 
 Until those steps are complete, documentation must continue to describe
-`v0.4.1` as the stable npm line and `v0.5.0` as the prepared release
-candidate.
+`v0.4.1` as the stable npm line and `v0.5.0` as the GitHub release whose npm
+publication is pending.
 
 ## Boundaries
 

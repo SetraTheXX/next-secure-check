@@ -6,9 +6,9 @@ Run a quick static security sanity check before deploying a Next.js app.
 
 Requires Node.js 20 or newer.
 
-The stable npm line is `v0.4.1`. The `v0.5.0` release candidate is prepared
-in the repository with aligned CLI and internal package versions; manual npm
-publication is still pending.
+The stable npm line is `v0.4.1`. The `v0.5.0` GitHub release is tagged on the
+validated repository commit with aligned CLI and internal package versions;
+manual npm publication is still pending.
 
 ## Usage
 
@@ -24,7 +24,7 @@ For reproducible CI runs on the stable npm line, pin the release version:
 npx --yes next-secure-check@0.4.1 scan . --preset app
 ```
 
-After the manual v0.5.0 npm publication, the candidate can be pinned with:
+After the manual v0.5.0 npm publication, the release can be pinned with:
 
 ```bash
 npx --yes next-secure-check@0.5.0 scan . --preset app
@@ -197,7 +197,7 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.
 
-## v0.5.0 Release-Candidate Highlights
+## v0.5.0 Highlights
 
 - Bounded same-function source-to-sink evidence for command execution and raw SQL
 - Structural auth, route-handler, validation, and middleware intent signals
@@ -215,11 +215,10 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 ## Release Status
 
-The v0.5.0 release candidate contains the bounded-analysis, intent, reporter,
-and summary changes described above. The CLI, core, rules, and reporter
-candidate manifests are all aligned at `0.5.0`; npm publication and the exact
-GitHub tag remain manual release steps. The published stable line remains
-`0.4.1` until then.
+The v0.5.0 GitHub release contains the bounded-analysis, intent, reporter, and
+summary changes described above. The CLI, core, rules, and reporter manifests
+are all aligned at `0.5.0`; npm publication remains a manual release step and
+the published stable line remains `0.4.1` until then.
 
 To try the local build from a clone:
 
