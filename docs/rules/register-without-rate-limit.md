@@ -6,22 +6,27 @@
 
 ## What it detects
 
-This rule identifies registration or signup endpoints that do not appear to implement rate limiting or abuse protection.
+This rule identifies App Router and Pages Router registration or signup route
+handlers that do not appear to implement rate limiting or abuse protection.
 
-It looks for files with paths containing:
+Only files with an exported route handler are considered. A registration page,
+form component, comment, string, or helper file is not an endpoint for this
+rule.
+
+It looks for exact route-handler path segments named:
 - `register`
 - `signup`
 - `sign-up`
 - `create-account`
 
-And checks if the file or project contains rate limiting signals like:
-- `rateLimit`
-- `rate-limit`
-- `ratelimit`
-- `limiter`
-- `upstash`
-- `slowDown`
-- `throttle`
+And checks for structural route-local signals such as:
+- calls to `rateLimit()`, `checkRateLimit()`, `applyRateLimit()`, or `withRateLimit()`
+- limiter methods such as `limiter.limit(...)` or `ratelimit.limit(...)`
+- explicit 429 responses such as `Response.json(..., { status: 429 })`, `new Response(..., { status: 429 })`, or `res.status(429)`
+- a conservative same-app middleware matcher with a structural limiter signal
+
+Names in comments, strings, unused assignments, or unknown wrappers are not
+treated as proof of rate limiting.
 
 ## Why it matters
 

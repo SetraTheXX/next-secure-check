@@ -7,7 +7,7 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-29 |
 | Current release | `v0.4.1` published |
 | Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 4 - Auth and middleware intent (#17) |
+| Current next task | v0.5 Phase 5 - Evidence and reporter explanations (#18) |
 | Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
 
 ## Progress Legend
@@ -24,7 +24,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 342 package tests, 146 web tests, 488 total tests.
+- [x] Current validation baseline: 362 package tests, 146 web tests, 508 total tests.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
@@ -47,6 +47,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
 - [x] [v0.5 raw SQL bounded-flow validation](./docs/validation/phase-12-raw-sql-bounded-flow.md)
 - [x] [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
+- [x] [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [release history](./CHANGELOG.md)
 
@@ -165,7 +166,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 - [x] [#14 Shared `AnalysisFacts` foundation](https://github.com/SetraTheXX/next-secure-check/issues/14)
 - [x] [#15 Raw SQL bounded source-to-sink pilot](https://github.com/SetraTheXX/next-secure-check/issues/15)
 - [x] [#16 XSS source and sanitizer refinement](https://github.com/SetraTheXX/next-secure-check/issues/16)
-- [ ] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
+- [x] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
 - [ ] [#18 Evidence and reporter explanations](https://github.com/SetraTheXX/next-secure-check/issues/18)
 - [x] [#19 Regression and performance release gate](https://github.com/SetraTheXX/next-secure-check/issues/19)
 - [ ] [#20 v0.5 release and feedback loop](https://github.com/SetraTheXX/next-secure-check/issues/20)
@@ -264,17 +265,17 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 4 - Auth and middleware intent (#17)
 
-- [ ] **Phase status:** Planned
+- [x] **Phase status:** Complete; implementation and validation recorded in [phase-15-auth-middleware.md](./docs/validation/phase-15-auth-middleware.md)
 
 **Purpose:** Reduce keyword-only assumptions around authentication, authorization, route protection, and rate limiting.
 
-- [ ] Keep route-handler detection separate from UI/component names.
-- [ ] Track only a small allowlist of recognizable session/auth wrappers and role checks.
-- [ ] Model same-app middleware signals conservatively; do not build a full route graph in this phase.
-- [ ] Distinguish a route-local auth check from a generic identifier such as `role`, `admin`, or `permission`.
-- [ ] Add positive and negative fixtures for App Router, Pages Router, middleware, wrappers, and unknown custom helpers.
-- [ ] Preserve unknown-wrapper findings as review signals instead of assuming safety.
-- [ ] Measure false-positive changes on admin, login, register, and validation rules separately.
+- [x] Keep route-handler detection separate from UI/component names.
+- [x] Track only a small allowlist of recognizable session/auth wrappers and role checks.
+- [x] Model same-app middleware signals conservatively; do not build a full route graph in this phase.
+- [x] Distinguish a route-local auth check from a generic identifier such as `role`, `admin`, or `permission`.
+- [x] Add positive and negative fixtures for App Router, Pages Router, middleware, wrappers, and unknown custom helpers.
+- [x] Preserve unknown-wrapper findings as review signals instead of assuming safety.
+- [x] Measure false-positive changes on admin, login, register, and validation rules separately.
 
 **Exit criteria:** Admin/auth findings use structural intent evidence and do not treat component/sidebar/demo paths as protected API routes or unprotected API routes without route evidence.
 
@@ -354,7 +355,7 @@ These are valuable, but should not block the v0.5 bounded-analysis quality work:
 3. [x] v0.5 Phase 2 - raw SQL bounded flow pilot.
 4. [x] v0.5 Phase 6 - regression and performance gate for the SQL pilot.
 5. [x] v0.5 Phase 3 - XSS source/sanitizer refinement.
-6. [ ] v0.5 Phase 4 - auth and middleware intent.
+6. [x] v0.5 Phase 4 - auth and middleware intent.
 7. [ ] v0.5 Phase 5 - evidence/reporting polish.
 8. [ ] v0.5 Phase 7 - release and feedback loop.
 

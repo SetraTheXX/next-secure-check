@@ -43,7 +43,7 @@ The expected score/risk/finding values remain the established fixture baseline:
 - `pnpm build`, `pnpm typecheck`, `pnpm lint`, and `pnpm test` pass.
 - Package tests: `323`; web tests: `146`; total: `469`.
 - CLI summary smoke, `scan --help`, non-terminal format rejection, JSON parsing, and SARIF parsing pass.
-- The README GIF is `1100x620`, `13.84` seconds, approximately `296 KB`, and contains no checked-out local paths or secret/token patterns.
+- The current README GIF is `1280x620`, `14.60` seconds, approximately `305 KB`, and contains no checked-out local paths or secret/token patterns.
 
 The README VHS recording uses the same summary commands, labels each fixture, and clears the terminal between scans. This keeps the comparison legible without exposing local checkout paths or raw secret evidence.
 

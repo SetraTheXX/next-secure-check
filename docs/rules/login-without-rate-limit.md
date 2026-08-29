@@ -1,7 +1,19 @@
 # auth/login-without-rate-limit
 
 ## Description
-Detects authentication endpoints (like `/api/login`, `/api/auth`) that do not appear to implement rate limiting.
+Detects App Router and Pages Router authentication route handlers (for example
+`/api/login`, `/api/signin`, or `/api/auth/*`) whose path contains an exact
+authentication segment and that do not show a bounded rate-limit signal.
+
+UI pages, forms, components, comments, strings, and helper files without an
+exported route handler are not treated as authentication endpoints.
+
+The rule recognizes route-local limiter calls such as `checkRateLimit()` or
+`rateLimit()`, limiter methods such as `limiter.limit(...)`, and explicit 429
+responses such as `Response.json(..., { status: 429 })`, `new Response(...,
+{ status: 429 })`, or `res.status(429)`. A matching same-app `middleware.ts`
+matcher can also provide a conservative signal. Unknown local wrappers remain
+review signals because the scanner does not resolve their implementations.
 
 ## Why is this a problem?
 Authentication endpoints are prime targets for brute-force and credential stuffing attacks. If an attacker can submit thousands of login requests per minute without being blocked, they have a high chance of guessing weak passwords or using leaked credentials from other breaches to compromise user accounts.

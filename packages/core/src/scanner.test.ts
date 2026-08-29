@@ -75,6 +75,7 @@ describe("scanProject", () => {
       root,
       "middleware.ts",
       [
+        "import { auth } from '@clerk/nextjs/server';",
         "export function middleware() {",
         "  const session = auth();",
         "  const allowed = rateLimit();",
@@ -114,7 +115,7 @@ describe("scanProject", () => {
     await writeProjectFile(
       root,
       "apps/web/middleware.ts",
-      "export function middleware() { return auth(); }\nexport const config = { matcher: '/api/admin/:path*' };"
+      "import { auth } from '@clerk/nextjs/server';\nexport function middleware() { return auth(); }\nexport const config = { matcher: '/api/admin/:path*' };"
     );
     let middlewareSignals: MiddlewareSignal[] | undefined;
     const rule: Rule = {
@@ -139,6 +140,175 @@ describe("scanProject", () => {
         scopeRoot: "apps/web"
       }
     ]);
+  });
+
+  it("ignores middleware comments, strings, and generic role words", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "middleware.ts",
+      [
+        "// auth(), rateLimit(), role, permission, and status 429 are examples only.",
+        "export function middleware() {",
+        "  const label = 'auth rateLimit too many requests';",
+        "  const role = 'admin';",
+        "  const metadata = { role: user.role };",
+        "  return Response.next();",
+        "}",
+        "export const config = { matcher: '/api/admin/:path*' };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/middleware-noise",
+      title: "Middleware noise",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals).toEqual([
+      {
+        filePath: "middleware.ts",
+        hasAuthSignal: false,
+        hasRateLimitSignal: false,
+        matchers: ["/api/admin/:path*"],
+        scopeRoot: ""
+      }
+    ]);
+  });
+
+  it("does not trust an auth wrapper imported from an unknown local module", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "middleware.ts",
+      [
+        "import { auth } from '@/lib/auth';",
+        "export function middleware() {",
+        "  const session = auth();",
+        "  return Response.next({ session });",
+        "}",
+        "export const config = { matcher: '/api/admin/:path*' };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/middleware-unknown-auth",
+      title: "Unknown middleware auth",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals?.[0]).toMatchObject({
+      hasAuthSignal: false,
+      hasRateLimitSignal: false
+    });
+  });
+
+  it("recognizes auth imported from a known provider module", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "middleware.ts",
+      [
+        "import { auth } from '@clerk/nextjs/server';",
+        "export function middleware() { return auth(); }",
+        "export const config = { matcher: '/api/admin/:path*' };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/middleware-known-auth",
+      title: "Known middleware auth",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals?.[0]).toMatchObject({
+      hasAuthSignal: true,
+      hasRateLimitSignal: false
+    });
+  });
+
+  it("does not trust an unrelated named export aliased to auth", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "middleware.ts",
+      [
+        "import { unrelated as auth } from '@clerk/nextjs/server';",
+        "export function middleware() { return auth(); }",
+        "export const config = { matcher: '/api/admin/:path*' };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/middleware-aliased-auth",
+      title: "Aliased middleware auth",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals?.[0]).toMatchObject({
+      hasAuthSignal: false,
+      hasRateLimitSignal: false
+    });
+  });
+
+  it("ignores auth and rate-limit helpers that are outside the middleware body", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "middleware.ts",
+      [
+        "function unusedAuthHelper() { return requireAuth(); }",
+        "function unusedRateLimitHelper() { return rateLimit(); }",
+        "export function middleware() { return Response.next(); }",
+        "export const config = { matcher: '/api/admin/:path*' };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/middleware-unused-helpers",
+      title: "Unused middleware helpers",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals?.[0]).toMatchObject({
+      hasAuthSignal: false,
+      hasRateLimitSignal: false
+    });
   });
 
   it("passes all files to rules when excludePaths is not set", async () => {

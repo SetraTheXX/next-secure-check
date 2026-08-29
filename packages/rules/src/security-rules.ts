@@ -7,12 +7,11 @@ import {
   findRouteHandlerExports,
   findUploadRouteHandlerMatches,
   hasAuthIntentSignal,
+  hasRateLimitIntentSignal,
   hasValidationIntentSignal
 } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches } from "./rule-utils.js";
-
-const RATE_LIMIT_SIGNAL_PATTERN =
-  /\b(rateLimit|rate-limit|ratelimit|limiter|checkRateLimit|applyRateLimit|upstash|redis|slowDown|throttle)\b|\b429\b|too many requests/i;
+import { isApiRouteFilePath } from "./route-ast.js";
 
 export const envFileCommittedRule: Rule = {
   id: "secrets/env-file-committed",
@@ -211,8 +210,10 @@ export const loginWithoutRateLimitRule: Rule = {
   confidence: "MEDIUM",
   scan(context) {
     return codeFiles(context)
-      .filter((file) => /(login|signin|sign-in|auth)/i.test(file.path))
-      .filter((file) => !hasRateLimitSignal(file.content))
+      .filter((file) => isApiRouteFilePath(file.path))
+      .filter((file) => findRouteHandlerExports(file).length > 0)
+      .filter((file) => hasRouteNameSegment(file.path, /^(?:login|signin|sign-in|auth)$/i))
+      .filter((file) => !hasRateLimitIntentSignal(file))
       .filter((file) => !isRouteProtectedByMiddleware(context.middleware, file.path, "rate-limit"))
       .map((file) =>
         createFinding({
@@ -233,8 +234,10 @@ export const registerWithoutRateLimitRule: Rule = {
   confidence: "MEDIUM",
   scan(context) {
     return codeFiles(context)
-      .filter((file) => /(register|signup|sign-up|create-account)/i.test(file.path))
-      .filter((file) => !hasRateLimitSignal(file.content))
+      .filter((file) => isApiRouteFilePath(file.path))
+      .filter((file) => findRouteHandlerExports(file).length > 0)
+      .filter((file) => hasRouteNameSegment(file.path, /^(?:register|signup|sign-up|create-account)$/i))
+      .filter((file) => !hasRateLimitIntentSignal(file))
       .filter((file) => !isRouteProtectedByMiddleware(context.middleware, file.path, "rate-limit"))
       .map((file) =>
         createFinding({
@@ -467,11 +470,11 @@ export const apiRouteWithoutValidationRule: Rule = {
   category: "validation",
   confidence: "MEDIUM",
   scan(context) {
-    const pathSignals = /\b(app\/api|pages\/api)\b/i;
     const contentSignals = /(\breq\.body\b|\breq\.query\b|\breq\.json\(|request\.json\(|request\.formData\(|searchParams|nextUrl\.searchParams)/i;
 
     return codeFiles(context)
-      .filter((file) => pathSignals.test(file.path))
+      .filter((file) => isApiRouteFilePath(file.path))
+      .filter((file) => findRouteHandlerExports(file).length > 0)
       .filter((file) => contentSignals.test(file.content))
       .filter((file) => !hasValidationIntentSignal(file))
       .map((file) =>
@@ -764,12 +767,8 @@ function isLowSignalSecretSample(value: string): boolean {
 function isAdminApiRoutePath(filePath: string): boolean {
   const normalizedPath = filePath.replace(/\\/g, "/");
   return (
-    /^app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
-    /^src\/app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
-    /^pages\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/|$).*\.([tj]s)$/i.test(normalizedPath) ||
-    /^apps\/[^/]+\/app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
-    /^apps\/[^/]+\/src\/app\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/.*)?\/route\.[tj]s$/i.test(normalizedPath) ||
-    /^apps\/[^/]+\/pages\/api\/(?:.*\/)?(?:admin|dashboard|manage)(?:\/|$).*\.([tj]s)$/i.test(normalizedPath)
+    /^(?:(?:apps|packages)\/[^/]+\/)?(?:src\/)?app\/api\/(?:[^/]+\/)*(?:admin|dashboard|manage)(?:\/[^/]+)*\/route\.[tj]s$/i.test(normalizedPath) ||
+    /^(?:(?:apps|packages)\/[^/]+\/)?(?:src\/)?pages\/api\/(?:[^/]+\/)*(?:admin|dashboard|manage)(?:\/[^/]+)*\.[tj]s$/i.test(normalizedPath)
   );
 }
 
@@ -796,12 +795,12 @@ function isRouteProtectedByMiddleware(
 
 function routePathFromFilePath(filePath: string): string | undefined {
   const normalizedPath = filePath.replace(/\\/g, "/");
-  const appRouteMatch = /^(?:(?:apps|packages)\/[^/]+\/)?(?:src\/)?app\/api\/(.+)\/route\.[tj]s$/i.exec(normalizedPath);
-  if (appRouteMatch?.[1]) {
-    return `/api/${appRouteMatch[1]}`;
+  const appRouteMatch = /^(?:(?:apps|packages)\/[^/]+\/)?(?:src\/)?app\/api(?:\/(.+))?\/route\.[tj]s$/i.exec(normalizedPath);
+  if (appRouteMatch) {
+    return appRouteMatch[1] ? `/api/${appRouteMatch[1]}` : "/api";
   }
 
-  const pagesRouteMatch = /^(?:(?:apps|packages)\/[^/]+\/)?pages\/api\/(.+)\.[tj]s$/i.exec(normalizedPath);
+  const pagesRouteMatch = /^(?:(?:apps|packages)\/[^/]+\/)?(?:src\/)?pages\/api\/(.+)\.[tj]s$/i.exec(normalizedPath);
   if (pagesRouteMatch?.[1]) {
     return `/api/${pagesRouteMatch[1]}`;
   }
@@ -811,6 +810,13 @@ function routePathFromFilePath(filePath: string): string | undefined {
 
 function scopeRootFromRoutePath(filePath: string): string {
   return /^((?:apps|packages)\/[^/]+)\//.exec(filePath.replace(/\\/g, "/"))?.[1] ?? "";
+}
+
+function hasRouteNameSegment(filePath: string, segmentPattern: RegExp): boolean {
+  return filePath
+    .replace(/\\/g, "/")
+    .split("/")
+    .some((segment) => segmentPattern.test(segment.replace(/\.[cm]?[jt]sx?$/i, "")));
 }
 
 function middlewareMatcherCoversRoute(matcher: string, routePath: string): boolean {
@@ -825,10 +831,6 @@ function middlewareMatcherCoversRoute(matcher: string, routePath: string): boole
 
 function normalizeMiddlewareMatcher(matcher: string): string {
   return matcher.trim().replace(/\/+$/, "") || "/";
-}
-
-function hasRateLimitSignal(content: string): boolean {
-  return RATE_LIMIT_SIGNAL_PATTERN.test(content);
 }
 
 function hasFileTypeValidationSignal(content: string): boolean {
