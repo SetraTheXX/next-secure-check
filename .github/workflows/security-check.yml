@@ -44,6 +44,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Run v0.5 release gate
+        run: pnpm release:gate
+
       - name: Run security check
         shell: bash
         run: |

@@ -13,8 +13,11 @@ total: 469 tests
 The 323-package-test count above is the frozen #13 pre-implementation
 baseline. The post-#14 validation count was 326 package tests, 146 web tests,
 and 472 total tests; see [phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
-The current #15 raw-SQL pilot count is 337 package tests, 146 web tests, and
-483 total tests; see [phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md).
+The #15 raw-SQL pilot recorded 337 package tests, 146 web tests, and 483 total
+tests; subsequent review hardening and the #19 reporter gate bring the current
+count to 340 package tests, 146 web tests, and 486 total tests. See
+[phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md) and
+[phase-13-v05-release-gate.md](./phase-13-v05-release-gate.md).
 
 Historical v0.1 baseline:
 
@@ -50,6 +53,10 @@ validation results are documented in
 The #15 raw-SQL bounded source-to-sink pilot, route-parameter fact fix,
 fixture stability, and directional performance sample are documented in
 [phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md).
+
+The #19 regression, benchmark, deterministic-output, public-privacy, and pack
+release gate are documented in
+[phase-13-v05-release-gate.md](./phase-13-v05-release-gate.md).
 
 ## Post-release Real-world Smoke Note
 

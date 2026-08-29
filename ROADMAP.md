@@ -7,7 +7,7 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-29 |
 | Current release | `v0.4.1` published |
 | Next release focus | `v0.5.0` - explainable bounded analysis |
-| Current next task | v0.5 Phase 6 - Regression and performance release gate (#19) |
+| Current next task | v0.5 Phase 3 - XSS source and sanitizer refinement (#16) |
 | Release blocker | None for the published line; issue #12 is optional demo/media follow-up |
 
 ## Progress Legend
@@ -24,7 +24,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 337 package tests, 146 web tests, 483 total tests.
+- [x] Current validation baseline: 340 package tests, 146 web tests, 486 total tests.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
@@ -46,6 +46,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
 - [x] [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
 - [x] [v0.5 raw SQL bounded-flow validation](./docs/validation/phase-12-raw-sql-bounded-flow.md)
+- [x] [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [release history](./CHANGELOG.md)
 
@@ -299,19 +300,19 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 
 ## v0.5 Phase 6 - Regression, benchmark, and release gate (#19)
 
-- [ ] **Phase status:** Planned
+- [x] **Phase status:** Complete; implementation and validation recorded in [phase-13-v05-release-gate.md](./docs/validation/phase-13-v05-release-gate.md)
 
 **Purpose:** Turn the quality claim into repeatable evidence before publishing.
 
-- [ ] Expand the synthetic fixture suite for SQL, XSS, auth, middleware, safe wrappers, aliases, reassignment, and malformed input.
-- [ ] Keep external repositories as opt-in smoke tests, not required CI dependencies.
-- [ ] Add or document a benchmark command for small fixtures and a medium monorepo corpus.
-- [ ] Record cold/warm median and p95 measurements with environment details.
-- [ ] Compare before/after findings by rule, context, severity, confidence, and reviewed FP/FN outcome.
-- [ ] Run build, typecheck, lint, package/web tests, CLI smoke, JSON/SARIF parse, and pack dry-run.
-- [ ] Include concise-summary CLI smoke, determinism, line-count, and public-output privacy checks in the release gate.
-- [ ] Require a release note when fixture counts change intentionally.
-- [ ] Update README, CHANGELOG, validation notes, and GitHub release notes.
+- [x] Expand and freeze the synthetic/regression fixture coverage for SQL, XSS, auth, middleware, safe wrappers, aliases, reassignment, and malformed input.
+- [x] Keep external repositories as opt-in smoke tests, not required CI dependencies.
+- [x] Add and document a benchmark command for small fixtures and a medium monorepo corpus.
+- [x] Record cold/warm median and p95 measurements with environment details.
+- [x] Compare fixture results by rule, context, severity, confidence, and reviewed signal inventory.
+- [x] Run build, typecheck, lint, package/web tests, CLI smoke, JSON/SARIF parse, and pack dry-run.
+- [x] Include concise-summary CLI smoke, determinism, line-count, and public-output privacy checks in the release gate.
+- [x] Require a release note when fixture counts change intentionally.
+- [x] Update README, CHANGELOG, and validation notes; GitHub release-page notes remain part of the v0.5 publication in #20.
 
 **Exit criteria:** No critical regression, deterministic outputs, reviewed fixture changes, compatible reports, and performance within the documented budget.
 

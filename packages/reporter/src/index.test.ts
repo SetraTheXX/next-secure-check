@@ -84,6 +84,27 @@ describe("formatSummary", () => {
     expect(JSON.parse(formatReport(result, "json")).summary.score).toBe(100);
   });
 
+  it("redacts secret evidence in public report formats without mutating the finding", () => {
+    const result = createScanResultSkeleton("demo-app");
+    const secretEvidence = 'const STRIPE_KEY = "sk_live_demo_secret"';
+    result.findings = [
+      {
+        ...createContextFinding(),
+        ruleId: "secrets/hardcoded-secret",
+        category: "secrets",
+        evidence: secretEvidence
+      }
+    ];
+
+    expect(JSON.parse(formatReport(result, "json")).findings[0].evidence).toBe("[REDACTED]");
+    expect(formatTerminal(result)).toContain("Evidence: [REDACTED]");
+    expect(formatMarkdown(result)).toContain("- Evidence: `[REDACTED]`");
+    expect(formatReport(result, "json")).not.toContain(secretEvidence);
+    expect(formatTerminal(result)).not.toContain(secretEvidence);
+    expect(formatMarkdown(result)).not.toContain(secretEvidence);
+    expect(result.findings[0].evidence).toBe(secretEvidence);
+  });
+
   it("renders markdown reports", () => {
     const result = createScanResultSkeleton("demo-app");
 
