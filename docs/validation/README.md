@@ -18,10 +18,15 @@ tests; subsequent review hardening, the #19 reporter gate, and the #16 XSS
 refinement bring the count to 342 package tests, 146 web tests, and 488 total
  tests. The #17 auth/middleware intent work adds the current 20 regression
  checks, bringing the working-line count to 362 package tests, 146 web tests,
- and 508 total tests. See
+ and 508 total tests. Issue #18 reporter and web-export coverage brings the
+ current count to 366 package tests, 147 web tests, and 513 total tests. See
 [phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md) and
 [phase-13-v05-release-gate.md](./phase-13-v05-release-gate.md) and
 [phase-15-auth-middleware.md](./phase-15-auth-middleware.md).
+
+The #18 evidence/reporter explanation contract, privacy behavior, bounded-path
+presentation, and CLI false-negative guidance are documented in
+[phase-16-evidence-reporter.md](./phase-16-evidence-reporter.md).
 
 Historical v0.1 baseline:
 

@@ -96,6 +96,29 @@ describe("Home scan UI helpers", () => {
     expect(exported).toContain("secrets/hardcoded");
   });
 
+  it("includes finding explanations and bounded evidence in Markdown exports", () => {
+    const result = createSuccessResult([
+      createFinding({
+        category: "injection",
+        context: "api-code",
+        contextReason: "matched Next.js API route path",
+        description: "SQL query uses request input.",
+        evidence: "db.query(sql)",
+        evidencePath: "request.json() -> query",
+        ruleId: "injection/raw-sql-concat"
+      })
+    ]);
+    const exported = createScanMarkdownExport(result);
+    const indexed = createResultTextIndex(result).join(" ");
+
+    expect(exported).toContain("- Why: SQL query uses request input.");
+    expect(exported).toContain("- Context: `api-code`");
+    expect(exported).toContain("- Context reason: matched Next.js API route path");
+    expect(exported).toContain("- Evidence path: `request.json() -> query`");
+    expect(indexed).toContain("matched Next.js API route path");
+    expect(indexed).toContain("request.json() -> query");
+  });
+
   it("does not include raw secret evidence in exports", () => {
     const result = createSuccessResult();
 

@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the first raw SQL bounded source-to-sink slice for recognized query sinks, SQL-valued local aliases, dynamic string concatenation, and optional source evidence paths.
 - Added structural auth, route-handler, and rate-limit intent signals for App Router, Pages Router, and same-app middleware checks.
 - Added the v0.5 regression/performance release gate for fixture inventories, deterministic reports, concise summaries, public-output privacy, benchmarks, and CLI pack dry-runs.
+- Added bounded finding explanations to detailed terminal, Markdown, GitHub, and web exports, including `Why`, context reason, and proven `evidencePath` metadata.
 
 ### Changed
 - Refined `xss/dangerously-set-inner-html` with a documented sanitizer allowlist and bounded evidence paths for direct request-derived values.
 - Refined authentication and validation rules so UI paths, comments, strings, unused helpers, and unknown local wrappers do not silently suppress endpoint findings.
+- Extended `explain <rule-id>` with explicit false-negative boundaries for bounded flow, dynamic resolution, and external controls; SARIF now exposes the normalized `whyReported` property while preserving existing identities and fingerprints.
 
 ### Documentation
 - Added the reproducible VHS README demo, simplified SVG wordmark, and v0.5 summary-output validation note.
@@ -28,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the Phase 13 validation note with the repeatable 100/1,000-file cold/warm benchmark protocol and release-gate evidence.
 - Added the Phase 14 XSS source/sanitizer refinement validation note for issue #16.
 - Added the Phase 15 auth/middleware intent validation note for issue #17.
+- Added the Phase 16 evidence and reporter explanation validation note for issue #18.
 
 ### Fixed
 - Fixed direct route-parameter command sources so they populate the shared bounded-flow source facts as well as the existing evidence path.
@@ -40,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed auth/rate-limit intent from unrelated helpers, generic role-property reads, unbound or incorrectly aliased `auth` imports, and partially protected multi-handler route files.
 
 ### Tests
-- Current validation baseline: 362 package tests, 146 web tests, 508 total tests.
+- Current validation baseline: 366 package tests, 147 web tests, 513 total tests.
 - Dependency audit is clean after pinning the test-only Vite peer to patched `8.0.16`.
 
 ## [0.4.1] - 2026-08-24

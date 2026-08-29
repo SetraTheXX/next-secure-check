@@ -6,63 +6,75 @@ type RuleExplanation = {
   checks: string;
   why: string;
   falsePositiveNote: string;
+  falseNegativeNote: string;
 };
 
 const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
   "xss/dangerously-set-inner-html": {
     checks: "Flags dangerouslySetInnerHTML usage when the HTML source is not clearly static or sanitized.",
     why: "Rendering user-controlled HTML can lead to cross-site scripting in Next.js pages and components.",
-    falsePositiveNote: "Static HTML strings, sanitizer calls, and component/template contexts may be lower risk."
+    falsePositiveNote: "Static HTML strings, sanitizer calls, and component/template contexts may be lower risk.",
+    falseNegativeNote: "Cross-file values, dynamic component resolution, and custom sanitizer wrappers are not fully proven; a clean result does not prove every rendered HTML value is safe."
   },
   "auth/admin-route-without-auth": {
     checks: "Looks for admin-like API route handlers without local or middleware auth signals.",
     why: "Admin endpoints usually expose privileged data or actions and should require authentication and authorization.",
-    falsePositiveNote: "Middleware, framework conventions, or external gateways can protect a route even when the handler is minimal."
+    falsePositiveNote: "Middleware, framework conventions, or external gateways can protect a route even when the handler is minimal.",
+    falseNegativeNote: "The check does not build a full cross-file middleware or authorization graph; custom wrappers and external gateways may be missed."
   },
   "auth/login-without-rate-limit": {
     checks: "Looks for login/auth routes without route-level or matching middleware rate-limit signals.",
     why: "Authentication endpoints are common brute-force and credential-stuffing targets.",
-    falsePositiveNote: "Infrastructure-level rate limiting may not be visible to a static source scan."
+    falsePositiveNote: "Infrastructure-level rate limiting may not be visible to a static source scan.",
+    falseNegativeNote: "The check does not build a full cross-file middleware or infrastructure graph; custom rate-limit wrappers and external controls may be missed."
   },
   "auth/register-without-rate-limit": {
     checks: "Looks for register/signup routes without route-level or matching middleware rate-limit signals.",
     why: "Registration endpoints can be abused for spam accounts or resource exhaustion.",
-    falsePositiveNote: "Infrastructure-level abuse controls may not be visible to a static source scan."
+    falsePositiveNote: "Infrastructure-level abuse controls may not be visible to a static source scan.",
+    falseNegativeNote: "The check does not build a full cross-file middleware or infrastructure graph; custom abuse-control wrappers and external controls may be missed."
   },
   "injection/command-exec": {
     checks: "Flags child_process imports and calls such as exec, execSync, spawn, and spawnSync.",
     why: "Shell command execution can become command injection when arguments are user-controlled.",
-    falsePositiveNote: "CLI/release tooling can legitimately execute commands; presets/context tuning reduce that noise."
+    falsePositiveNote: "CLI/release tooling can legitimately execute commands; presets/context tuning reduce that noise.",
+    falseNegativeNote: "Bounded source-to-sink flow is limited to the same function and a small alias chain; cross-file, cross-function, and dynamically resolved execution paths may be missed."
   },
   "injection/raw-sql-concat": {
     checks: "Flags interpolated SQL templates passed to common query sinks.",
     why: "Interpolated SQL can expose applications to SQL injection.",
-    falsePositiveNote: "Static or parameterized queries are intentionally ignored."
+    falsePositiveNote: "Static or parameterized queries are intentionally ignored.",
+    falseNegativeNote: "Bounded source-to-sink flow is limited to the same function and at most two alias hops; cross-file, cross-function, and dynamically constructed query paths may be missed."
   },
   "secrets/hardcoded-secret": {
     checks: "Looks for high-signal hardcoded API keys, tokens, passwords, and provider token patterns.",
     why: "Committed secrets can be copied, leaked, and abused after publication.",
-    falsePositiveNote: "Obvious sample values are filtered, but rotate any real token that was committed."
+    falsePositiveNote: "Obvious sample values are filtered, but rotate any real token that was committed.",
+    falseNegativeNote: "Pattern matching does not cover every dynamically assembled or externally injected credential; a clean result is not a complete secret inventory."
   },
   "secrets/next-public-secret": {
     checks: "Flags NEXT_PUBLIC_ variable names containing secret-like terms; it does not prove that the assigned value is a credential.",
     why: "NEXT_PUBLIC_ values are exposed to browser-side code in Next.js, so credential-like values deserve review before shipping.",
-    falsePositiveNote: "Public client identifiers or browser-safe tokens can be intentional. Review the assigned value and audience, and rename the variable when practical."
+    falsePositiveNote: "Public client identifiers or browser-safe tokens can be intentional. Review the assigned value and audience, and rename the variable when practical.",
+    falseNegativeNote: "The rule is name- and context-based; secrets hidden behind computed names or other configuration channels may be missed."
   },
   "headers/missing-security-headers": {
     checks: "Looks for missing common security header configuration in Next.js apps.",
     why: "Security headers help reduce XSS, clickjacking, content sniffing, and referrer leakage risks.",
-    falsePositiveNote: "Headers configured outside the app, for example at a reverse proxy, may not be visible."
+    falsePositiveNote: "Headers configured outside the app, for example at a reverse proxy, may not be visible.",
+    falseNegativeNote: "Headers configured by reverse proxies, hosting, or dynamic runtime code may be missed."
   },
   "upload/missing-file-type-validation": {
     checks: "Looks for upload route handlers without file type validation signals.",
     why: "Uploads without type validation can allow unsafe file handling or unexpected content.",
-    falsePositiveNote: "Deep validation in shared helpers may not always be visible."
+    falsePositiveNote: "Deep validation in shared helpers may not always be visible.",
+    falseNegativeNote: "Validation implemented through shared helpers, middleware, or infrastructure may be missed."
   },
   "upload/missing-file-size-limit": {
     checks: "Looks for upload route handlers without file size limit signals.",
     why: "Uploads without size limits can cause resource exhaustion.",
-    falsePositiveNote: "Limits enforced by hosting or middleware may not be visible."
+    falsePositiveNote: "Limits enforced by hosting or middleware may not be visible.",
+    falseNegativeNote: "Limits enforced through shared helpers, middleware, hosting, or infrastructure may be missed."
   }
 };
 
@@ -114,6 +126,9 @@ export function formatRuleExplanation(rules: Rule[], ruleId: string): string | u
     "False positive note:",
     explanation.falsePositiveNote,
     "",
+    "False negative boundary:",
+    explanation.falseNegativeNote,
+    "",
     `Help: ${ruleHelpUri(rule.id)}`
   ].join("\n");
 }
@@ -147,7 +162,8 @@ function genericExplanation(rule: Rule): RuleExplanation {
   return {
     checks: `Runs the built-in ${rule.category} check named "${rule.title}".`,
     why: "The finding is a deterministic review signal for a security-relevant pattern.",
-    falsePositiveNote: "Review context, framework conventions, middleware, and deployment controls before treating it as confirmed risk."
+    falsePositiveNote: "Review context, framework conventions, middleware, and deployment controls before treating it as confirmed risk.",
+    falseNegativeNote: "Cross-file data flow, dynamic resolution, and external controls are outside this bounded static check and may be missed."
   };
 }
 
