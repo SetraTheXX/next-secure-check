@@ -13,20 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an opt-in terminal-only `--summary` view for concise score, risk, finding-count, severity, confidence, context, and location output.
 - Added shared syntax-only bounded-flow facts for direct sources, command sinks, guards, short aliases, invalidations, function boundaries, and proven evidence paths.
 - Added the first raw SQL bounded source-to-sink slice for recognized query sinks, SQL-valued local aliases, dynamic string concatenation, and optional source evidence paths.
+- Added the v0.5 regression/performance release gate for fixture inventories, deterministic reports, concise summaries, public-output privacy, benchmarks, and CLI pack dry-runs.
 
 ### Documentation
 - Added the reproducible VHS README demo, simplified SVG wordmark, and v0.5 summary-output validation note.
 - Added the v0.5 baseline/finding-identity inventory and bounded-flow contract decision note for issue #13.
 - Added the shared `AnalysisFacts` foundation validation note for issue #14.
 - Added the raw SQL bounded-flow validation note for issue #15, including intentional stop conditions and a directional performance sample.
+- Added the Phase 13 validation note with the repeatable 100/1,000-file cold/warm benchmark protocol and release-gate evidence.
 
 ### Fixed
 - Fixed direct route-parameter command sources so they populate the shared bounded-flow source facts as well as the existing evidence path.
 - Fixed raw SQL bounded-flow aliases being dropped after a recognized query sink, so repeated sink uses remain visible.
 - Fixed static raw SQL concatenation with primitive literals being classified as dynamic interpolation.
+- Fixed secret finding evidence leaking through CLI JSON, terminal, and Markdown reports; public reporter output now uses `[REDACTED]`.
 
 ### Tests
-- Current validation baseline: 339 package tests, 146 web tests, 485 total tests.
+- Current validation baseline: 340 package tests, 146 web tests, 486 total tests.
 
 ## [0.4.1] - 2026-08-24
 

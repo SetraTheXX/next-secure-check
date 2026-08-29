@@ -11,7 +11,7 @@ const SUMMARY_FINDING_LIMIT = 3;
 export function formatReport(result: ScanResult, format: ReportFormat): string {
   switch (format) {
     case "json":
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(redactScanResult(result), null, 2);
     case "markdown":
       return formatMarkdown(result);
     case "github":
@@ -50,8 +50,9 @@ export function formatTerminal(result: ScanResult): string {
       const location = `${finding.filePath}${finding.line ? `:${finding.line}` : ""}`;
       lines.push(`- ${location}`);
       lines.push(`  ${finding.title} [${finding.ruleId}, confidence: ${finding.confidence}, context: ${formatContext(finding)}]`);
-      if (finding.evidence) {
-        lines.push(`  Evidence: ${finding.evidence}`);
+      const evidence = redactFindingEvidence(finding);
+      if (evidence) {
+        lines.push(`  Evidence: ${evidence}`);
       }
       lines.push(`  Fix: ${finding.recommendation}`);
     }
@@ -124,8 +125,9 @@ export function formatMarkdown(result: ScanResult): string {
       lines.push(`- Rule: \`${finding.ruleId}\``);
       lines.push(`- Confidence: \`${finding.confidence}\``);
       lines.push(`- Context: \`${formatContext(finding)}\``);
-      if (finding.evidence) {
-        lines.push(`- Evidence: \`${finding.evidence.replaceAll("`", "'")}\``);
+      const evidence = redactFindingEvidence(finding);
+      if (evidence) {
+        lines.push(`- Evidence: \`${evidence.replaceAll("`", "'")}\``);
       }
       lines.push(`- Recommendation: ${finding.recommendation}`);
     }
@@ -351,6 +353,27 @@ function sarifPrecision(confidence: ScanResult["findings"][number]["confidence"]
 
 function isSecretFinding(finding: ScanResult["findings"][number]): boolean {
   return finding.category === "secrets" || finding.ruleId.startsWith("secrets/");
+}
+
+const REDACTED_EVIDENCE = "[REDACTED]";
+
+function redactFindingEvidence(finding: ScanResult["findings"][number]): string | undefined {
+  if (!finding.evidence) {
+    return undefined;
+  }
+
+  return isSecretFinding(finding) ? REDACTED_EVIDENCE : finding.evidence;
+}
+
+function redactScanResult(result: ScanResult): ScanResult {
+  return {
+    ...result,
+    findings: result.findings.map((finding) =>
+      finding.evidence && isSecretFinding(finding)
+        ? { ...finding, evidence: REDACTED_EVIDENCE }
+        : { ...finding }
+    )
+  };
 }
 
 function sarifRuleTags(finding: ScanResult["findings"][number]): string[] {

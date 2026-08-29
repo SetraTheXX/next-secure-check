@@ -211,7 +211,7 @@ SARIF 2.1.0 output includes:
 - context and context-reason properties
 - concise messages built from the title, description, and recommendation
 
-Raw secret evidence is not included in SARIF output. Findings are review signals, not proof that an exploit exists; review the confidence, evidence, and recommendation before treating one as a confirmed vulnerability.
+Raw secret evidence is replaced with `[REDACTED]` in JSON, terminal, and Markdown output and is not embedded in SARIF; GitHub output also omits evidence details. Findings are review signals, not proof that an exploit exists; review the confidence, evidence, and recommendation before treating one as a confirmed vulnerability.
 
 ## Reproducible Demo
 
@@ -234,6 +234,16 @@ Expected fixture summaries:
 | repository self-scan with `app` | `100/100`, `excellent`, 0 findings |
 
 These are regression-fixture expectations, not universal accuracy or risk guarantees.
+
+Run the complete local v0.5 regression and performance gate after building:
+
+~~~bash
+pnpm release:gate
+~~~
+
+The gate checks fixture inventories, deterministic JSON/SARIF output, concise
+summary length, public-output privacy, CLI packaging, and disposable 100/1,000
+file benchmark corpora. See the [Phase 13 validation note](./docs/validation/phase-13-v05-release-gate.md) for the protocol and local measurements.
 
 ## GitHub Actions
 
@@ -388,14 +398,15 @@ pnpm build
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm release:gate
 ~~~
 
 The current validation baseline is:
 
 ~~~txt
-packages: 326 tests
+packages: 340 tests
 apps/web: 146 tests
-total: 472 tests
+total: 486 tests
 ~~~
 
 Workspace layout:
@@ -419,6 +430,7 @@ Useful validation references:
 - [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
 - [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
 - [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
+- [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 
 ## Learning Project and Development Philosophy
 
