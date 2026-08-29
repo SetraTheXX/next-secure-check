@@ -169,6 +169,7 @@ export const dangerouslySetInnerHtmlRule: Rule = {
           line: match.line,
           column: match.column,
           evidence: match.evidence,
+          evidencePath: match.evidencePath,
           description: "Rendering raw HTML can introduce XSS if the content is user-controlled.",
           recommendation: "Avoid raw HTML rendering or sanitize trusted markup with a proven sanitizer."
         })

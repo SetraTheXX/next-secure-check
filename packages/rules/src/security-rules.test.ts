@@ -132,8 +132,6 @@ describe("built-in security rules", () => {
         "    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />",
         "    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdown) }} />",
         "    <div dangerouslySetInnerHTML={{ __html: sanitizeMarkdown(markdown) }} />",
-        "    <div dangerouslySetInnerHTML={{ __html: sanitizeContent(markdown) }} />",
-        "    <div dangerouslySetInnerHTML={{ __html: toSafeHtml(markdown) }} />",
         "  </>;",
         "}"
       ].join("\n")
@@ -147,18 +145,58 @@ describe("built-in security rules", () => {
       "app/page.tsx": [
         'import sanitizeHtml from "sanitize-html";',
         'import purifier from "dompurify";',
-        'import { sanitize as sanitizeMarkdownContent } from "./sanitize";',
+        'import { sanitizeHtml as sanitizePackageHtml } from "sanitize-html";',
         "export default function Page({ html, markdown }) {",
         "  return <>",
         "    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />",
         "    <div dangerouslySetInnerHTML={{ __html: purifier.sanitize(html) }} />",
-        "    <div dangerouslySetInnerHTML={{ __html: sanitizeMarkdownContent(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizePackageHtml(markdown) }} />",
         "  </>;",
         "}"
       ].join("\n")
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "xss/dangerously-set-inner-html")).toBe(false);
+  });
+
+  it("does not trust unknown dangerouslySetInnerHTML sanitizer wrappers", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": [
+        'import { sanitize as localSanitize } from "./sanitize";',
+        'import { sanitizeHtml } from "./sanitize";',
+        "export default function Page({ html, markdown }) {",
+        "  return <>",
+        "    <div dangerouslySetInnerHTML={{ __html: localSanitize(html) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitize(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: sanitizeContent(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: toSafeHtml(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: customSanitizer(markdown) }} />",
+        "    <div dangerouslySetInnerHTML={{ __html: renderer.sanitize(markdown) }} />",
+        "  </>;",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "xss/dangerously-set-inner-html");
+
+    expect(findings).toHaveLength(7);
+    expect(findings.every((finding) => finding.severity === "MEDIUM")).toBe(true);
+  });
+
+  it("adds bounded source evidence for direct request-derived HTML", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": [
+        "export default function Page({ request }) {",
+        "  return <main dangerouslySetInnerHTML={{ __html: request.json() }} />;",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "xss/dangerously-set-inner-html");
+
+    expect(finding).toMatchObject({
+      severity: "MEDIUM",
+      evidencePath: "request.json()"
+    });
   });
 
   it("does not flag same-file static or sanitized HTML constants", async () => {

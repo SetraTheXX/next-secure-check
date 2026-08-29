@@ -14,8 +14,9 @@ The 323-package-test count above is the frozen #13 pre-implementation
 baseline. The post-#14 validation count was 326 package tests, 146 web tests,
 and 472 total tests; see [phase-11-analysis-facts.md](./phase-11-analysis-facts.md).
 The #15 raw-SQL pilot recorded 337 package tests, 146 web tests, and 483 total
-tests; subsequent review hardening and the #19 reporter gate bring the current
-count to 340 package tests, 146 web tests, and 486 total tests. See
+tests; subsequent review hardening, the #19 reporter gate, and the #16 XSS
+refinement bring the current count to 342 package tests, 146 web tests, and
+488 total tests. See
 [phase-12-raw-sql-bounded-flow.md](./phase-12-raw-sql-bounded-flow.md) and
 [phase-13-v05-release-gate.md](./phase-13-v05-release-gate.md).
 
@@ -57,6 +58,10 @@ fixture stability, and directional performance sample are documented in
 The #19 regression, benchmark, deterministic-output, public-privacy, and pack
 release gate are documented in
 [phase-13-v05-release-gate.md](./phase-13-v05-release-gate.md).
+
+The #16 XSS source/sanitizer refinement, documented sanitizer allowlist,
+bounded request-source evidence, and unknown-wrapper regression cases are
+documented in [phase-14-xss-refinement.md](./phase-14-xss-refinement.md).
 
 ## Post-release Real-world Smoke Note
 
