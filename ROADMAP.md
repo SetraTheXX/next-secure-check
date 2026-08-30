@@ -8,7 +8,7 @@ Public progress board for `next-secure-check`. It records completed release work
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
 | Current next task | [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.6 baseline and request-boundary contract |
-| Release blocker | No v0.5 release blocker; v0.6 Issue #29 is the next bounded task |
+| Release blocker | No v0.5 release blocker; #29 contract work is the current bounded task |
 
 ## Progress Legend
 
@@ -53,6 +53,8 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
 - [x] [v0.5 evidence and reporter explanations](./docs/validation/phase-16-evidence-reporter.md)
 - [x] [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
+- [x] [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
+- [x] [v0.6 request-boundary validation](./docs/validation/phase-18-v06-request-boundary-contract.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)

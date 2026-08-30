@@ -32,6 +32,12 @@ The #20 v0.5 release audit, package publication, coordinated Action release,
 demo contract, and feedback review are documented in
 [phase-17-v05-release.md](./phase-17-v05-release.md).
 
+The #29 v0.6 request-boundary baseline, compatibility contract, slice
+boundaries, and performance/privacy budget are documented in
+[phase-18-v06-request-boundary-contract.md](./phase-18-v06-request-boundary-contract.md)
+and
+[0003-v0.6-request-boundary-contract.md](../decisions/0003-v0.6-request-boundary-contract.md).
+
 Historical v0.1 baseline:
 
 ```txt

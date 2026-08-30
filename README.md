@@ -470,6 +470,7 @@ Useful validation references:
 - [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
 - [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 - [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
+- [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
 
 ## Learning Project and Development Philosophy
 
