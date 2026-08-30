@@ -7,8 +7,8 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.6 baseline and request-boundary contract |
-| Release blocker | No v0.5 release blocker; #29 contract work is the current bounded task |
+| Current next task | [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent |
+| Release blocker | No v0.5 release blocker; #30 is the next bounded v0.6 implementation slice |
 
 ## Progress Legend
 
@@ -356,9 +356,21 @@ release, not a pivot to full taint analysis: every new signal must have a
 documented source/sink/guard boundary, honest evidence, deterministic output,
 and a reviewed fixture contract.
 
+### Phase 0 - Baseline and request-boundary contract (#29)
+
+- [x] Phase status: Complete; the v0.5 baseline and v0.6 contract are recorded in the decision and validation notes.
+- [x] Link issues #30–#35 to their source/sink/guard/stop boundaries.
+- [x] Preserve existing rule IDs, report identity, output formats, determinism, privacy, and performance rules.
+- [x] Confirm no v0.6 runtime rule behavior was introduced before the contract.
+- [x] Run the existing build, typecheck, lint, test, and release-gate checks.
+
+**Exit criteria:** A reviewer can implement the next slice without guessing
+which request boundary is supported, what evidence is allowed, or where the
+analysis must stop.
+
 ### Implementation order
 
-1. [ ] [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.5 baseline and v0.6 request-boundary contract.
+1. [x] [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.5 baseline and v0.6 request-boundary contract.
 2. [ ] [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent.
 3. [ ] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
 4. [ ] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
