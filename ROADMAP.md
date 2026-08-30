@@ -7,8 +7,8 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add a bounded unvalidated redirect source-to-sink flow |
-| Release blocker | No v0.5 release blocker; #32 is the next bounded v0.6 implementation slice |
+| Current next task | [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add a bounded SSRF source-to-sink review flow |
+| Release blocker | No v0.5 release blocker; #33 is the next bounded v0.6 implementation slice |
 
 ## Progress Legend
 
@@ -24,12 +24,14 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.0` published as the bounded-analysis feature release.
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
-- [x] Current validation baseline: 366 package tests, 147 web tests, 513 total tests.
+- [x] v0.5.0 release validation baseline: 366 package tests, 147 web tests, 513 total tests.
+- [x] Current main validation after #32: 401 package tests, 147 web tests, 548 total tests.
 - [x] `v0.5.0` package metadata, documentation, demo, npm publication, and exact GitHub release/tag completed.
 - [x] Reusable GitHub Action `v1.1.0` released and floating `@v1` tag coordinated with the published `0.5.0` CLI.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
+- [x] v0.6 development line: 22 built-in rules; published v0.5.0 baseline remains 20 rules.
 
 ### Post-release follow-up (not v0.5 release blockers)
 
@@ -58,6 +60,8 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.6 Proxy and dynamic route validation](./docs/validation/phase-19-v06-proxy-dynamic-routes.md)
 - [x] [v0.6 Server Action guard validation](./docs/validation/phase-20-v06-server-actions.md)
 - [x] [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
+- [x] [v0.6 unvalidated redirect validation](./docs/validation/phase-21-v06-unvalidated-redirects.md)
+- [x] [v0.6 unvalidated redirect decision](./docs/decisions/0005-v0.6-unvalidated-redirect-signal.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)
@@ -376,7 +380,7 @@ analysis must stop.
 1. [x] [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.5 baseline and v0.6 request-boundary contract.
 2. [x] [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent.
 3. [x] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
-4. [ ] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
+4. [x] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
 5. [ ] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
 6. [ ] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
 7. [ ] [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop.
@@ -405,6 +409,20 @@ behavior stays compatible, and the full release gate passes.
 **Exit criteria:** Server Action signals are explicit, bounded, explainable, and
 privacy-safe; partial controls lower deterministically; existing v0.5 fixture
 and report contracts remain unchanged; and the full release gate passes.
+
+### v0.6 Phase 3 - Unvalidated redirect source-to-sink flow (#32)
+
+- [x] Phase status: Complete; implementation and validation are recorded in [phase-21-v06-unvalidated-redirects.md](./docs/validation/phase-21-v06-unvalidated-redirects.md).
+- [x] Add one separately documented `redirect/unvalidated-target` signal without changing the published v0.5 rule identities.
+- [x] Recognize bounded request/query/route/form/body sources and imported App Router, `NextResponse.redirect`, and Pages Router redirect sinks.
+- [x] Recognize static destination equality, allowlists, safe internal-path checks, and same-origin/host guard forms without trusting normalization alone.
+- [x] Stop at cross-file/cross-function flow, dynamic properties, unknown wrappers, reassignment/mutation, unsupported sinks, client components, and aliases beyond two hops.
+- [x] Add App Router, Pages Router, JavaScript/TypeScript, malformed-input, privacy, deterministic-output, and CLI explanation coverage.
+
+**Exit criteria:** Redirect signals are bounded, explainable, privacy-safe, and
+deterministic; recognized guards suppress only when their syntax proves the
+relevant relationship; the historical v0.5 baseline remains unchanged; and
+the full release gate passes.
 
 ### v0.6 compatibility guardrails
 

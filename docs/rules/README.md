@@ -25,6 +25,9 @@ Each rule document should include:
 - `injection/command-exec`
 - `injection/raw-sql-concat`
 
+### Redirects
+- `redirect/unvalidated-target`
+
 ### Authentication & Authorization
 - `auth/login-without-rate-limit`
 - `auth/register-without-rate-limit`

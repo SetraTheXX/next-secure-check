@@ -12,17 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Aligned the README first-use flow, demo source wording, roadmap status, and public repository description with the published `v0.5.0` CLI and `v1.1.0` Action.
 - Separated optional post-release demo and feedback follow-up from the completed v0.5 release gate.
 - Documented the bounded Server Action/Server Function guard signal and its separate v0.6 identity decision.
+- Documented the bounded unvalidated redirect signal, its recognized Next.js sinks, and its separate v0.6 identity decision.
 
 ### Added
 
 - Added `auth/server-action-without-guards` for direct or inline `use server` boundaries with action/request input and no visible same-function auth or input-validation intent.
+- Added `redirect/unvalidated-target` for request-derived values reaching recognized redirect sinks without a visible bounded destination guard.
 
 ### Changed
 
 - Recognized Next.js 16 `proxy.ts` alongside legacy `middleware.ts` for bounded same-app auth and rate-limit intent signals.
 - Extended API validation review signals to statically recognizable dynamic route parameters and request search parameters with bounded evidence paths.
 - Kept dynamic matcher values, cross-file flow, full route reachability, and unknown wrappers outside the supported inference boundary.
-- Kept the published v0.5.0 20-rule baseline unchanged while exposing the new rule only on the unreleased v0.6 development line; partial guard signals are lowered to LOW.
+- Kept the published v0.5.0 20-rule baseline unchanged while exposing the new v0.6 rules only on the unreleased development line; partial guard signals are lowered to LOW.
+- Kept redirect tracking same-function and syntax-first, with recognized allowlists/internal-path checks suppressing signals and dynamic or external-looking targets remaining reviewable.
 
 ## [0.5.0] - 2026-08-29
 

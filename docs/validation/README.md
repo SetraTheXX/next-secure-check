@@ -46,6 +46,11 @@ The #31 Server Action and Server Function boundary, same-function auth and
 validation intent, bounded aliases, and malformed-input coverage are documented
 in [phase-20-v06-server-actions.md](./phase-20-v06-server-actions.md).
 
+The #32 bounded unvalidated redirect source-to-sink flow, recognized Next.js
+redirect sinks, destination guards, stop conditions, and validation coverage
+are documented in
+[phase-21-v06-unvalidated-redirects.md](./phase-21-v06-unvalidated-redirects.md).
+
 Historical v0.1 baseline:
 
 ```txt

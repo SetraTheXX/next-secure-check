@@ -18,6 +18,7 @@ import {
   isUploadHandlingNode
 } from "./route-ast.js";
 import { findServerActionBoundaries } from "./server-action-ast.js";
+import { findUnvalidatedRedirectTargets, type RedirectDestinationKind } from "./redirect-flow.js";
 import { createXssAnalysisFacts, findDangerouslySetInnerHtmlNodes } from "./xss-ast.js";
 
 export type AstMatch = {
@@ -36,6 +37,11 @@ export type ServerActionMatch = AstMatch & {
   boundaryName: string;
   hasAuthIntent: boolean;
   hasValidationIntent: boolean;
+};
+
+export type RedirectMatch = AstMatch & {
+  destinationKind: RedirectDestinationKind;
+  sinkName: string;
 };
 
 export type AnalysisFacts = {
@@ -186,6 +192,18 @@ export function findServerActionMatches(file: SourceFile): ServerActionMatch[] {
       evidencePath: boundary.inputPath,
       hasAuthIntent: boundary.hasAuthIntent,
       hasValidationIntent: boundary.hasValidationIntent
+    }))
+  );
+}
+
+export function findUnvalidatedRedirectMatches(file: SourceFile): RedirectMatch[] {
+  const { sourceFile } = getAnalysisFacts(file);
+  return dedupeMatches(
+    findUnvalidatedRedirectTargets(sourceFile).map((match) => ({
+      ...matchFromNode(file, sourceFile, match.node),
+      evidencePath: match.evidencePath,
+      destinationKind: match.destinationKind,
+      sinkName: match.sinkName
     }))
   );
 }

@@ -24,6 +24,7 @@ describe("getBuiltInRules", () => {
     expect(ruleIds).toContain("injection/raw-sql-concat");
     expect(ruleIds).toContain("headers/missing-security-headers");
     expect(ruleIds).toContain("auth/server-action-without-guards");
-    expect(ruleIds).toHaveLength(21);
+    expect(ruleIds).toContain("redirect/unvalidated-target");
+    expect(ruleIds).toHaveLength(22);
   });
 });

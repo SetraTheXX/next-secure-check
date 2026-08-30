@@ -7,6 +7,7 @@ import {
   findRawSqlConcatMatches,
   findRouteHandlerExports,
   findServerActionMatches,
+  findUnvalidatedRedirectMatches,
   findUploadRouteHandlerMatches,
   hasAuthIntentSignal,
   hasRateLimitIntentSignal,
@@ -495,6 +496,43 @@ export const apiRouteWithoutValidationRule: Rule = {
   }
 };
 
+export const unvalidatedRedirectTargetRule: Rule = {
+  id: "redirect/unvalidated-target",
+  title: "Request-derived redirect target may be unvalidated",
+  severity: "MEDIUM",
+  category: "redirect",
+  confidence: "MEDIUM",
+  scan(context) {
+    return codeFiles(context).flatMap((file) =>
+      findUnvalidatedRedirectMatches(file).map((match) => {
+        const internalRelative = match.destinationKind === "internal-relative";
+        const findingRule = internalRelative
+          ? { ...unvalidatedRedirectTargetRule, severity: "LOW" as const, confidence: "LOW" as const }
+          : unvalidatedRedirectTargetRule;
+
+        return createFinding({
+          rule: findingRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          evidencePath: match.evidencePath,
+          description: internalRelative
+            ? `A request-derived value reaches ${match.sinkName} through an internal-relative path (${match.evidencePath}) without a recognized path guard. This is a bounded review signal, not proof of exploitability.`
+            : `A request-derived value reaches ${match.sinkName} (${match.evidencePath}) without a recognized internal-path, host allowlist, or same-origin guard. This is a bounded review signal, not proof of exploitability.`,
+          recommendation: internalRelative
+            ? "Validate the destination as an internal relative path, reject protocol-relative // targets, or map a short key through a fixed allowlist before redirecting."
+            : "Prefer a fixed internal destination, or validate the URL against an explicit host/origin allowlist before redirecting. Do not pass arbitrary request input to a redirect sink.",
+          references: [
+            "https://nextjs.org/docs/app/guides/redirecting",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"
+          ]
+        });
+      })
+    );
+  }
+};
+
 export const adminRouteWithoutAuthRule: Rule = {
   id: "auth/admin-route-without-auth",
   title: "Admin route may be missing auth protection",
@@ -648,6 +686,7 @@ export const builtInSecurityRules: Rule[] = [
   loginWithoutRateLimitRule,
   passwordWithoutHashingRule,
   rawSqlConcatRule,
+  unvalidatedRedirectTargetRule,
   missingSecurityHeadersRule,
   nextPublicSecretRule,
   registerWithoutRateLimitRule,

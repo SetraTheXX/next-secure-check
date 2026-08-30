@@ -28,6 +28,12 @@ const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
     falsePositiveNote: "A guard in a shared data-access layer, framework adapter, or unknown local wrapper may be valid but is not proven by this syntax-only check; one recognized guard lowers the finding.",
     falseNegativeNote: "The check does not prove runtime reachability or follow cross-file calls, dynamic exports, or custom wrappers; it only inspects the same function and short local aliases."
   },
+  "redirect/unvalidated-target": {
+    checks: "Looks for request-derived values reaching imported redirect, permanentRedirect, NextResponse.redirect, or Pages Router getServerSideProps destinations without a recognized path or host guard.",
+    why: "An unvalidated redirect destination can send users to an attacker-controlled location or create a phishing/open-redirect path.",
+    falsePositiveNote: "Fixed destinations, explicit internal-path checks, host/origin allowlists, and deployment controls can make a flow safe even when the surrounding syntax needs review.",
+    falseNegativeNote: "The check is intentionally bounded to recognized same-function sources, sinks, and short aliases; custom wrappers, cross-file/cross-function flow, dynamic properties, and unsupported router/config APIs are not proven."
+  },
   "auth/login-without-rate-limit": {
     checks: "Looks for login/auth routes without route-level or matching middleware rate-limit signals.",
     why: "Authentication endpoints are common brute-force and credential-stuffing targets.",

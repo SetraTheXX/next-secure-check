@@ -2164,4 +2164,381 @@ describe("built-in security rules", () => {
 
     expect(result.findings.filter((finding) => finding.ruleId === "auth/server-action-without-guards")).toEqual([]);
   });
+
+  it("detects request-derived values passed to redirect", async () => {
+    const result = await scanFixture({
+      "app/login/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Login({ searchParams }) {",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((candidate) => candidate.ruleId === "redirect/unvalidated-target");
+
+    expect(finding).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "MEDIUM",
+      evidencePath: "searchParams.get()"
+    });
+  });
+
+  it("supports permanentRedirect and NextResponse.redirect sinks", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        'import { permanentRedirect } from "next/navigation";',
+        'import { NextResponse } from "next/server";',
+        "export async function move(request) {",
+        "  permanentRedirect(request.nextUrl.searchParams.get('next'));",
+        "  return NextResponse.redirect(request.url);",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((candidate) => candidate.ruleId === "redirect/unvalidated-target");
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map((finding) => finding.evidencePath)).toEqual([
+      "request.nextUrl.searchParams.get()",
+      "request.url"
+    ]);
+  });
+
+  it("supports Pages Router getServerSideProps redirect destinations", async () => {
+    const result = await scanFixture({
+      "pages/login.tsx": [
+        "export async function getServerSideProps({ query }) {",
+        "  const destination = query.next;",
+        "  return { redirect: { destination, permanent: false } };",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((candidate) => candidate.ruleId === "redirect/unvalidated-target");
+
+    expect(finding).toMatchObject({
+      severity: "MEDIUM",
+      evidencePath: "query.next"
+    });
+    expect(finding?.description).toContain("getServerSideProps.redirect.destination");
+  });
+
+  it("suppresses fixed and visibly guarded redirect targets", async () => {
+    const result = await scanFixture({
+      "app/redirects/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "const ALLOWED_PATHS = ['/dashboard', '/settings'];",
+        "export default function Page({ searchParams }) {",
+        "  const target = searchParams.get('next');",
+        "  if (!ALLOWED_PATHS.includes(target)) return null;",
+        "  redirect(target);",
+        "  redirect('/dashboard');",
+        "}"
+      ].join("\n"),
+      "app/internal/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  const target = searchParams.get('next');",
+        "  if (!target.startsWith('/') || target.startsWith('//')) return null;",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/local-allowlist/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  const ALLOWED_PATHS = ['/dashboard'];",
+        "  const target = searchParams.get('next');",
+        "  if (!ALLOWED_PATHS.includes(target)) return null;",
+        "  redirect(target);",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "redirect/unvalidated-target")).toBe(false);
+  });
+
+  it("keeps weak redirect checks reviewable and distinguishes destination shapes", async () => {
+    const result = await scanFixture({
+      "app/weak/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  const target = searchParams.get('next');",
+        "  if (!target.startsWith('/')) return null;",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/normalized/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams, request }) {",
+        "  const target = searchParams.get('next');",
+        "  const normalized = new URL(target, request.url);",
+        "  redirect(normalized);",
+        "}"
+      ].join("\n"),
+      "app/relative/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  redirect(`/welcome/${searchParams.get('next')}`);",
+        "}"
+      ].join("\n"),
+      "app/external/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  redirect(`https://example.test/${searchParams.get('next')}`);",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target");
+
+    expect(findings).toHaveLength(4);
+    expect(findings.find((finding) => finding.filePath === "app/weak/page.tsx")).toMatchObject({ severity: "MEDIUM" });
+    expect(findings.find((finding) => finding.filePath === "app/normalized/page.tsx")).toMatchObject({ severity: "MEDIUM" });
+    expect(findings.find((finding) => finding.filePath === "app/relative/page.tsx")).toMatchObject({ severity: "LOW" });
+    expect(findings.find((finding) => finding.filePath === "app/external/page.tsx")).toMatchObject({ severity: "MEDIUM" });
+    expect(findings.find((finding) => finding.filePath === "app/relative/page.tsx")?.description).toContain("internal-relative");
+  });
+
+  it("keeps redirect tracking bounded across aliases and stops unsafe boundaries", async () => {
+    const result = await scanFixture({
+      "app/bounded/page.tsx": [
+        'import { redirect as go } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  const first = searchParams.get('next');",
+        "  const second = first;",
+        "  const target = second;",
+        "  go(target);",
+        "}"
+      ].join("\n"),
+      "app/too-deep/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  const first = searchParams.get('next');",
+        "  const second = first;",
+        "  const third = second;",
+        "  const target = third;",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/reassigned/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  let target = searchParams.get('next');",
+        "  target = normalize(target);",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/wrapper/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "function normalize(value) { return value; }",
+        "export default function Page({ searchParams }) {",
+        "  const target = normalize(searchParams.get('next'));",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/get-wrapper/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "const externalStore = { get(value) { return value; } };",
+        "export default function Page({ searchParams }) {",
+        "  const target = searchParams.get('next');",
+        "  externalStore.get(target);",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/boundary/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "function send(value) { redirect(value); }",
+        "export default function Page({ searchParams }) {",
+        "  send(searchParams.get('next'));",
+        "}"
+      ].join("\n"),
+      "app/mutated/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  let target = searchParams.get('next');",
+        "  target += '/safe';",
+        "  redirect(target);",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target");
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      filePath: "app/bounded/page.tsx",
+      evidencePath: "searchParams.get() -> second -> target"
+    });
+  });
+
+  it("recognizes request body and form-data redirect sources", async () => {
+    const result = await scanFixture({
+      "app/api/body/route.ts": [
+        'import { redirect } from "next/navigation";',
+        "export async function POST(request) {",
+        "  const body = await request.json();",
+        "  redirect(body.next);",
+        "}"
+      ].join("\n"),
+      "app/api/form/route.ts": [
+        'import { redirect } from "next/navigation";',
+        "export async function POST(request) {",
+        "  const form = await request.formData();",
+        "  redirect(form.get('next'));",
+        "}"
+      ].join("\n"),
+      "app/api/context-form/route.ts": [
+        'import { redirect } from "next/navigation";',
+        "export async function POST(context) {",
+        "  redirect(context.formData.get('next'));",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target");
+
+    expect(findings).toHaveLength(3);
+    expect(findings.map((finding) => finding.evidencePath)).toEqual([
+      "request.json() -> next",
+      "context.formData.get()",
+      "request.formData() -> get()"
+    ]);
+  });
+
+  it("does not treat client components or unrelated redirect helpers as server sinks", async () => {
+    const result = await scanFixture({
+      "app/client/page.tsx": [
+        '"use client";',
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n"),
+      "app/local/page.tsx": [
+        "function redirect(value) {}",
+        "export default function Page({ searchParams }) {",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n"),
+      "pages/static.tsx": [
+        "export async function getStaticProps({ params }) {",
+        "  return { props: { next: params.next } };",
+        "}"
+      ].join("\n"),
+      "app/shadowed/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  const redirect = (value) => value;",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n"),
+      "app/shadowed-function/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  function redirect(value) { return value; }",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target").map((finding) => finding.filePath)).toEqual([]);
+  });
+
+  it("recognizes same-origin and static host allowlist guards", async () => {
+    const result = await scanFixture({
+      "app/origin/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams, request }) {",
+        "  const target = searchParams.get('next');",
+        "  if (new URL(target, request.url).origin !== request.url.origin) return null;",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/host/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams, request }) {",
+        "  const target = searchParams.get('next');",
+        "  if (!new Set(['example.test']).has(new URL(target, request.url).host)) return null;",
+        "  redirect(target);",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "redirect/unvalidated-target")).toBe(false);
+  });
+
+  it("trusts only locally proven redirect guard helpers", async () => {
+    const result = await scanFixture({
+      "app/proven-helper/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "function isSafeRedirect(value) { return value.startsWith('/') && !value.startsWith('//'); }",
+        "const isAlsoSafe = (value) => value.startsWith('/') && !value.startsWith('//');",
+        "export default function Page({ searchParams }) {",
+        "  if (!isSafeRedirect(searchParams.get('next'))) return null;",
+        "  if (!isAlsoSafe(searchParams.get('next'))) return null;",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n"),
+      "app/unknown-helper/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "function isSafeRedirect(value) { return Boolean(value); }",
+        "export default function Page({ searchParams }) {",
+        "  if (!isSafeRedirect(searchParams.get('next'))) return null;",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n"),
+      "app/dynamic-allowlist/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "const ALLOWED_PATHS = loadAllowedPaths();",
+        "export default function Page({ searchParams }) {",
+        "  const target = searchParams.get('next');",
+        "  if (!ALLOWED_PATHS.includes(target)) return null;",
+        "  redirect(target);",
+        "}"
+      ].join("\n"),
+      "app/allowlist-helper/page.tsx": [
+        'import { redirect } from "next/navigation";',
+        "const ALLOWED_PATHS = ['/dashboard'];",
+        "function isAllowedRedirect(value) { return ALLOWED_PATHS.includes(value); }",
+        "export default function Page({ searchParams }) {",
+        "  if (!isAllowedRedirect(searchParams.get('next'))) return null;",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target");
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map((finding) => finding.filePath)).toEqual([
+      "app/dynamic-allowlist/page.tsx",
+      "app/unknown-helper/page.tsx"
+    ]);
+  });
+
+  it("supports JavaScript and JSX redirect sources", async () => {
+    const result = await scanFixture({
+      "app/javascript/page.js": [
+        'import { redirect } from "next/navigation";',
+        "export default function Page({ searchParams }) {",
+        "  redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n"),
+      "app/jsx/page.jsx": [
+        'import { NextResponse } from "next/server";',
+        "export default function Page({ searchParams }) {",
+        "  return NextResponse.redirect(searchParams.get('next'));",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target");
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map((finding) => finding.filePath)).toEqual([
+      "app/javascript/page.js",
+      "app/jsx/page.jsx"
+    ]);
+  });
+
+  it("does not crash on malformed redirect syntax", async () => {
+    const result = await scanFixture({
+      "app/broken/page.tsx": 'import { redirect } from "next/navigation"; export default function Page({ searchParams { redirect(searchParams.get("next"));'
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target")).toEqual([]);
+  });
 });

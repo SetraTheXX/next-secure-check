@@ -63,14 +63,16 @@ Using a versioned `npx` command avoids that class of conflict.
 ## What It Checks
 
 The published `v0.5.0` CLI contains 20 built-in rules. The current `main`
-branch adds one unreleased v0.6 rule for Server Actions and Server Functions,
-bringing the development-line surface to 21 rules across secrets, injection,
-XSS, authentication, validation, uploads, headers, and Next.js configuration.
+branch adds two unreleased v0.6 rules for Server Actions/Server Functions and
+request-derived redirect targets, bringing the development-line surface to 22
+rules across secrets, injection, redirects, XSS, authentication, validation,
+uploads, headers, and Next.js configuration.
 
 | Area | Checks |
 | --- | --- |
 | Secrets | [Committed `.env` files](./docs/rules/env-file-committed.md), [hardcoded secrets](./docs/rules/hardcoded-secret.md), [weak JWT secrets](./docs/rules/weak-jwt-secret.md), [public secret-like names](./docs/rules/next-public-secret.md) |
 | Injection | [`eval`](./docs/rules/no-eval.md), [`new Function`](./docs/rules/no-new-function.md), [command execution](./docs/rules/command-exec.md), [raw SQL interpolation](./docs/rules/raw-sql-concat.md) |
+| Redirects | [Unvalidated redirect targets](./docs/rules/unvalidated-redirect-target.md) |
 | XSS | [`dangerouslySetInnerHTML`](./docs/rules/dangerously-set-inner-html.md) |
 | Authentication | [Login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [admin route protection](./docs/rules/admin-route-without-auth.md), [Server Action guards](./docs/rules/server-action-without-guards.md) |
 | Validation and uploads | [API input validation](./docs/rules/api-route-without-validation.md), [file type validation](./docs/rules/missing-file-type-validation.md), [file size limits](./docs/rules/missing-file-size-limit.md) |
@@ -92,6 +94,14 @@ file-level or inline `use server` functions with visible action/request input.
 It checks same-function auth and validation intent; it does not prove runtime
 reachability or follow custom wrappers. The published v0.5.0 CLI does not yet
 include this unreleased v0.6 rule.
+
+The development-line redirect signal reviews request-derived values reaching
+imported `redirect`/`permanentRedirect`, `NextResponse.redirect`, or Pages
+Router `getServerSideProps` destinations. It recognizes short same-function
+source paths and visible internal-path, allowlist, or same-origin guards; it
+can recognize a same-file helper only when its guard expression is explicit; it
+does not follow source flow across files/functions or trust unknown wrappers. The
+published v0.5.0 CLI does not yet include this unreleased v0.6 rule.
 
 ## CLI Usage
 
@@ -446,13 +456,16 @@ pnpm test
 pnpm release:gate
 ~~~
 
-The current validation baseline is:
+The published v0.5.0 release validation baseline is:
 
 ~~~txt
 packages: 366 tests
 apps/web: 147 tests
 total: 513 tests
 ~~~
+
+The current `main` development line, including the unreleased v0.6 bounded
+redirect slice, has 401 package tests, 147 web tests, and 548 tests total.
 
 Workspace layout:
 
@@ -481,6 +494,8 @@ Useful validation references:
 - [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
 - [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
 - [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
+- [v0.6 unvalidated redirect validation](./docs/validation/phase-21-v06-unvalidated-redirects.md)
+- [v0.6 unvalidated redirect decision](./docs/decisions/0005-v0.6-unvalidated-redirect-signal.md)
 
 ## Learning Project and Development Philosophy
 

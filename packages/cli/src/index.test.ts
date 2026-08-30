@@ -106,6 +106,15 @@ describe("rules CLI helpers", () => {
     expect(output).toContain("runtime reachability");
   });
 
+  it("explains bounded redirect signals", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "redirect/unvalidated-target");
+
+    expect(output).toContain("Rule: redirect/unvalidated-target");
+    expect(output).toContain("open-redirect");
+    expect(output).toContain("same-function sources");
+    expect(output).toContain("cross-file/cross-function flow");
+  });
+
   it("returns undefined and formats a helpful message for unknown rule ids", () => {
     const rules = getBuiltInRules();
 
