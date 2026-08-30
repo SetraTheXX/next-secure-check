@@ -98,6 +98,14 @@ describe("rules CLI helpers", () => {
     expect(output).toContain("cross-file");
   });
 
+  it("explains Server Action guard signals", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "auth/server-action-without-guards");
+
+    expect(output).toContain("Rule: auth/server-action-without-guards");
+    expect(output).toContain("public request boundaries");
+    expect(output).toContain("runtime reachability");
+  });
+
   it("returns undefined and formats a helpful message for unknown rule ids", () => {
     const rules = getBuiltInRules();
 

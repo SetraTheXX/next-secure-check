@@ -30,6 +30,7 @@ Each rule document should include:
 - `auth/register-without-rate-limit`
 - `auth/password-without-hashing-library`
 - `auth/admin-route-without-auth`
+- `auth/server-action-without-guards`
 
 ### API & Validation
 - `validation/api-route-without-validation`

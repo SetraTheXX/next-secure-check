@@ -42,6 +42,10 @@ The #30 Proxy/dynamic-route slice, static matcher handling, bounded request
 source evidence, and validation/allowlist guard coverage are documented in
 [phase-19-v06-proxy-dynamic-routes.md](./phase-19-v06-proxy-dynamic-routes.md).
 
+The #31 Server Action and Server Function boundary, same-function auth and
+validation intent, bounded aliases, and malformed-input coverage are documented
+in [phase-20-v06-server-actions.md](./phase-20-v06-server-actions.md).
+
 Historical v0.1 baseline:
 
 ```txt

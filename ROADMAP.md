@@ -7,8 +7,8 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals |
-| Release blocker | No v0.5 release blocker; #31 is the next bounded v0.6 implementation slice |
+| Current next task | [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add a bounded unvalidated redirect source-to-sink flow |
+| Release blocker | No v0.5 release blocker; #32 is the next bounded v0.6 implementation slice |
 
 ## Progress Legend
 
@@ -56,6 +56,8 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
 - [x] [v0.6 request-boundary validation](./docs/validation/phase-18-v06-request-boundary-contract.md)
 - [x] [v0.6 Proxy and dynamic route validation](./docs/validation/phase-19-v06-proxy-dynamic-routes.md)
+- [x] [v0.6 Server Action guard validation](./docs/validation/phase-20-v06-server-actions.md)
+- [x] [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)
@@ -373,7 +375,7 @@ analysis must stop.
 
 1. [x] [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.5 baseline and v0.6 request-boundary contract.
 2. [x] [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent.
-3. [ ] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
+3. [x] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
 4. [ ] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
 5. [ ] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
 6. [ ] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
@@ -392,9 +394,21 @@ analysis must stop.
 boundaries, evidence remains bounded and deterministic, existing middleware
 behavior stays compatible, and the full release gate passes.
 
+### v0.6 Phase 2 - Server Action and Server Function guards (#31)
+
+- [x] Phase status: Complete; implementation and validation are recorded in [phase-20-v06-server-actions.md](./docs/validation/phase-20-v06-server-actions.md).
+- [x] Add one separately documented `auth/server-action-without-guards` signal without changing the existing v0.5 rule identities.
+- [x] Recognize file-level and inline `use server` boundaries, including nested inline Server Functions with direct action/request input.
+- [x] Reuse same-function auth and validation intent with bounded input aliases, static guards, reassignment stops, and unknown-wrapper negatives.
+- [x] Add dedicated rule explanation, rule documentation, compatibility decision, and malformed syntax coverage.
+
+**Exit criteria:** Server Action signals are explicit, bounded, explainable, and
+privacy-safe; partial controls lower deterministically; existing v0.5 fixture
+and report contracts remain unchanged; and the full release gate passes.
+
 ### v0.6 compatibility guardrails
 
-- [ ] Preserve existing rule IDs, CLI flags, output formats, and deterministic SARIF fingerprints unless a separately documented compatibility decision is accepted.
+- [x] Preserve existing rule IDs, CLI flags, output formats, and deterministic SARIF fingerprints; the separately documented #31 rule addition does not repurpose an existing identity.
 - [ ] Keep the default path syntax-first, bounded, and fast; TypeChecker remains opt-in research rather than the default engine.
 - [ ] Keep cross-file/cross-function taint, full CFG, heap aliasing, dynamic resolution, full route graphs, and unrestricted plugins out of scope.
 - [ ] Never execute code from a scanned repository.

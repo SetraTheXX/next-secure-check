@@ -2007,4 +2007,161 @@ describe("built-in security rules", () => {
 
     expect(result.findings.some((finding) => finding.ruleId === "config/next-powered-by-header")).toBe(false);
   });
+
+  it("detects file-level Server Actions with action input", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        '"use server";',
+        "export async function saveProfile(formData) {",
+        "  const name = formData.get('name');",
+        "  return save(name);",
+        "}",
+        "export function noInput() { return 1; }"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "auth/server-action-without-guards");
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "MEDIUM",
+      evidencePath: "formData.get()"
+    });
+    expect(findings[0]?.description).toContain('"saveProfile"');
+  });
+
+  it("detects inline use server actions and ignores ordinary exported helpers", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        "export async function updateProfile(input) {",
+        '  "use server";',
+        "  return persist(input);",
+        "}",
+        "function Page({ params }) {",
+        "  async function updatePost(formData) {",
+        '    "use server";',
+        "    return persist(params.id, formData);",
+        "  }",
+        "  return null;",
+        "}",
+        "export async function helper(input) {",
+        "  return input;",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "auth/server-action-without-guards");
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map((finding) => finding.description)).toEqual(
+      expect.arrayContaining([expect.stringContaining('"updateProfile"'), expect.stringContaining('"updatePost"')])
+    );
+  });
+
+  it("supports exported Server Action variables and ignores input-free actions", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        '"use server";',
+        "export const saveProfile = async (payload) => persist(payload);",
+        "export const refreshCache = async () => revalidatePath('/');"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "auth/server-action-without-guards");
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ evidencePath: "payload" });
+  });
+
+  it("recognizes request-like Server Action sources without explicit parameters", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        '"use server";',
+        "export async function inspectHeaders() {",
+        "  const token = headers().get('authorization');",
+        "  if (['admin'].includes(token)) return token;",
+        "  return null;",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((candidate) => candidate.ruleId === "auth/server-action-without-guards");
+
+    expect(finding).toMatchObject({ severity: "LOW", evidencePath: "headers().get()" });
+  });
+
+  it("lowers the Server Action signal when one recognized guard is visible", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        '"use server";',
+        'import { auth } from "next-auth";',
+        "export async function authOnly(input) {",
+        "  const session = await auth();",
+        "  return input;",
+        "}",
+        "export async function validationOnly(input) {",
+        "  const parsed = schema.safeParse(input);",
+        "  return parsed;",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "auth/server-action-without-guards");
+
+    expect(findings).toHaveLength(2);
+    expect(findings.every((finding) => finding.severity === "LOW")).toBe(true);
+    expect(findings.map((finding) => finding.description)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("input validation"),
+        expect.stringContaining("authentication")
+      ])
+    );
+  });
+
+  it("suppresses a Server Action when auth and input validation are both visible", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        '"use server";',
+        'import { auth } from "next-auth";',
+        "export async function save(input) {",
+        "  const session = await auth();",
+        "  if (!['safe'].includes(input)) return;",
+        "  return schema.safeParse(input);",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/server-action-without-guards")).toBe(false);
+  });
+
+  it("keeps unknown Server Action wrappers reviewable and stops a reassigned alias", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        '"use server";',
+        "function ensureAccess(value) { return value; }",
+        "export async function allowlisted(input) {",
+        "  const first = input;",
+        "  const second = first;",
+        "  if (ALLOWED_IDS.has(second)) return second;",
+        "  return input;",
+        "}",
+        "export async function reassigned(input) {",
+        "  let value = input;",
+        "  value = normalize(value);",
+        "  if (ALLOWED_IDS.has(value)) return value;",
+        "  ensureAccess(input);",
+        "  return value;",
+        "}"
+      ].join("\n")
+    });
+    const findings = result.findings.filter((finding) => finding.ruleId === "auth/server-action-without-guards");
+
+    expect(findings).toHaveLength(2);
+    expect(findings.find((finding) => finding.description.includes('"allowlisted"'))).toMatchObject({ severity: "LOW" });
+    expect(findings.find((finding) => finding.description.includes('"reassigned"'))).toMatchObject({ severity: "MEDIUM" });
+  });
+
+  it("does not crash on malformed Server Action syntax", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": '"use server"; export async function broken( { const value = request.json();'
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "auth/server-action-without-guards")).toEqual([]);
+  });
 });

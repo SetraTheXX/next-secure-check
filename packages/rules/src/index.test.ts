@@ -23,5 +23,7 @@ describe("getBuiltInRules", () => {
     expect(ruleIds).toContain("auth/password-without-hashing-library");
     expect(ruleIds).toContain("injection/raw-sql-concat");
     expect(ruleIds).toContain("headers/missing-security-headers");
+    expect(ruleIds).toContain("auth/server-action-without-guards");
+    expect(ruleIds).toHaveLength(21);
   });
 });

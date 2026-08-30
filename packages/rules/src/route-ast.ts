@@ -72,12 +72,54 @@ export function hasAuthIntentInSource(sourceFile: ts.SourceFile): boolean {
   return true;
 }
 
+export function hasAuthIntentInFunction(sourceFile: ts.SourceFile, root: ts.Node): boolean {
+  const bindings = collectAuthIntentBindings(sourceFile);
+  let found = false;
+
+  visitFunctionNodes(root, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isAuthIntentCall(node.expression, bindings)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isPropertyAccessExpression(node) && isAuthGuardProperty(node)) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
 export function hasValidationIntentInSource(sourceFile: ts.SourceFile): boolean {
   if (sourceFile.statements.some((node) => ts.isImportDeclaration(node) && isValidationLibraryImport(node))) {
     return true;
   }
 
   return routeHandlerRoots(sourceFile).some(hasValidationIntentInRoot);
+}
+
+export function hasValidationIntentInFunction(root: ts.Node): boolean {
+  let found = false;
+  visitFunctionNodes(root, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isValidationCall(node)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isBinaryExpression(node) && isTypeofValidationCheck(node)) {
+      found = true;
+    }
+  });
+
+  return found;
 }
 
 export type RequestBoundarySource = {
@@ -680,4 +722,27 @@ function hasDefaultExportModifier(node: ts.Node): boolean {
 function visitRouteNodes(node: ts.Node, callback: (node: ts.Node) => void): void {
   callback(node);
   ts.forEachChild(node, (child) => visitRouteNodes(child, callback));
+}
+
+function visitFunctionNodes(node: ts.Node, callback: (node: ts.Node) => void): void {
+  callback(node);
+  ts.forEachChild(node, (child) => {
+    if (isFunctionLikeNode(child)) {
+      return;
+    }
+
+    visitFunctionNodes(child, callback);
+  });
+}
+
+function isFunctionLikeNode(node: ts.Node): boolean {
+  return (
+    ts.isFunctionDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node) ||
+    ts.isConstructorDeclaration(node)
+  );
 }

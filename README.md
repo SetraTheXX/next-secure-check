@@ -62,14 +62,17 @@ Using a versioned `npx` command avoids that class of conflict.
 
 ## What It Checks
 
-The scanner currently contains 20 built-in rules across secrets, injection, XSS, authentication, validation, uploads, headers, and Next.js configuration.
+The published `v0.5.0` CLI contains 20 built-in rules. The current `main`
+branch adds one unreleased v0.6 rule for Server Actions and Server Functions,
+bringing the development-line surface to 21 rules across secrets, injection,
+XSS, authentication, validation, uploads, headers, and Next.js configuration.
 
 | Area | Checks |
 | --- | --- |
 | Secrets | [Committed `.env` files](./docs/rules/env-file-committed.md), [hardcoded secrets](./docs/rules/hardcoded-secret.md), [weak JWT secrets](./docs/rules/weak-jwt-secret.md), [public secret-like names](./docs/rules/next-public-secret.md) |
 | Injection | [`eval`](./docs/rules/no-eval.md), [`new Function`](./docs/rules/no-new-function.md), [command execution](./docs/rules/command-exec.md), [raw SQL interpolation](./docs/rules/raw-sql-concat.md) |
 | XSS | [`dangerouslySetInnerHTML`](./docs/rules/dangerously-set-inner-html.md) |
-| Authentication | [Login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [admin route protection](./docs/rules/admin-route-without-auth.md) |
+| Authentication | [Login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [admin route protection](./docs/rules/admin-route-without-auth.md), [Server Action guards](./docs/rules/server-action-without-guards.md) |
 | Validation and uploads | [API input validation](./docs/rules/api-route-without-validation.md), [file type validation](./docs/rules/missing-file-type-validation.md), [file size limits](./docs/rules/missing-file-size-limit.md) |
 | Headers and configuration | [Missing security headers](./docs/rules/missing-security-headers.md), [wildcard CORS](./docs/rules/insecure-cors-wildcard.md), [Next.js powered-by header](./docs/rules/next-powered-by-header.md), [production browser source maps](./docs/rules/production-browser-source-maps.md) |
 
@@ -83,6 +86,12 @@ pages, comments, strings, unused helpers, and unknown local auth/limiter
 wrappers remain reviewable instead of being silently treated as protected.
 See the [Phase 15 validation note](./docs/validation/phase-15-auth-middleware.md)
 for the App Router, Pages Router, and same-app middleware contract.
+
+The development-line Server Action signal applies the same review principle to
+file-level or inline `use server` functions with visible action/request input.
+It checks same-function auth and validation intent; it does not prove runtime
+reachability or follow custom wrappers. The published v0.5.0 CLI does not yet
+include this unreleased v0.6 rule.
 
 ## CLI Usage
 
@@ -471,6 +480,7 @@ Useful validation references:
 - [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
 - [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
 - [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
+- [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
 
 ## Learning Project and Development Philosophy
 

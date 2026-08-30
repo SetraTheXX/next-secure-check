@@ -17,6 +17,7 @@ import {
   isApiRouteFilePath,
   isUploadHandlingNode
 } from "./route-ast.js";
+import { findServerActionBoundaries } from "./server-action-ast.js";
 import { createXssAnalysisFacts, findDangerouslySetInnerHtmlNodes } from "./xss-ast.js";
 
 export type AstMatch = {
@@ -29,6 +30,12 @@ export type AstMatch = {
 
 export type DangerouslySetInnerHtmlMatch = AstMatch & {
   severity: Extract<Severity, "LOW" | "MEDIUM">;
+};
+
+export type ServerActionMatch = AstMatch & {
+  boundaryName: string;
+  hasAuthIntent: boolean;
+  hasValidationIntent: boolean;
 };
 
 export type AnalysisFacts = {
@@ -168,6 +175,19 @@ export function findRequestBoundaryInputMatches(file: SourceFile): AstMatch[] {
 
 export function hasRequestBoundaryGuardSignal(file: SourceFile): boolean {
   return hasRequestBoundaryGuardInSource(getAnalysisFacts(file).sourceFile);
+}
+
+export function findServerActionMatches(file: SourceFile): ServerActionMatch[] {
+  const { sourceFile } = getAnalysisFacts(file);
+  return dedupeMatches(
+    findServerActionBoundaries(sourceFile).map((boundary) => ({
+      ...matchFromNode(file, sourceFile, boundary.node),
+      boundaryName: boundary.name,
+      evidencePath: boundary.inputPath,
+      hasAuthIntent: boundary.hasAuthIntent,
+      hasValidationIntent: boundary.hasValidationIntent
+    }))
+  );
 }
 
 export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {

@@ -6,6 +6,7 @@ import {
   findRequestBoundaryInputMatches,
   findRawSqlConcatMatches,
   findRouteHandlerExports,
+  findServerActionMatches,
   findUploadRouteHandlerMatches,
   hasAuthIntentSignal,
   hasRateLimitIntentSignal,
@@ -531,6 +532,46 @@ export const adminRouteWithoutAuthRule: Rule = {
   }
 };
 
+export const serverActionWithoutGuardsRule: Rule = {
+  id: "auth/server-action-without-guards",
+  title: "Server Action may lack auth or input validation",
+  severity: "MEDIUM",
+  category: "auth",
+  confidence: "MEDIUM",
+  scan(context) {
+    return codeFiles(context).flatMap((file) =>
+      findServerActionMatches(file)
+        .filter((match) => !match.hasAuthIntent || !match.hasValidationIntent)
+        .map((match) => {
+          const missingControls = [
+            ...(match.hasAuthIntent ? [] : ["authentication"]),
+            ...(match.hasValidationIntent ? [] : ["input validation"])
+          ];
+          const partial = missingControls.length === 1;
+          const findingRule = partial
+            ? { ...serverActionWithoutGuardsRule, severity: "LOW" as const, confidence: "LOW" as const }
+            : serverActionWithoutGuardsRule;
+
+          return createFinding({
+            rule: findingRule,
+            file,
+            line: match.line,
+            column: match.column,
+            evidence: match.evidence,
+            evidencePath: match.evidencePath,
+            description: `Exported Server Action/Function "${match.boundaryName}" consumes action input (${match.evidencePath}) but has no recognized ${missingControls.join(
+              " or "
+            )} intent in the same function. This is a bounded review signal, not proof of exploitability.`,
+            recommendation:
+              missingControls.length === 2
+                ? "Add an explicit authentication check and schema or equivalent input validation before using the action input."
+                : `Add a visible ${missingControls[0]} check before using the action input.`
+          });
+        })
+    );
+  }
+};
+
 export const productionBrowserSourceMapsRule: Rule = {
   id: "config/production-browser-source-maps",
   title: "Production browser source maps may be enabled",
@@ -614,6 +655,7 @@ export const builtInSecurityRules: Rule[] = [
   missingFileSizeLimitRule,
   apiRouteWithoutValidationRule,
   adminRouteWithoutAuthRule,
+  serverActionWithoutGuardsRule,
   productionBrowserSourceMapsRule,
   nextPoweredByHeaderRule
 ];

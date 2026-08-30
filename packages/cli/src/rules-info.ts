@@ -22,6 +22,12 @@ const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
     falsePositiveNote: "Middleware, framework conventions, or external gateways can protect a route even when the handler is minimal.",
     falseNegativeNote: "The check does not build a full cross-file middleware or authorization graph; custom wrappers and external gateways may be missed."
   },
+  "auth/server-action-without-guards": {
+    checks: "Looks for direct Server Actions or Server Functions with a use server directive and action/request input but no visible auth or input-validation intent.",
+    why: "Next.js Server Actions are public request boundaries and should re-authorize the caller and validate client-controlled input.",
+    falsePositiveNote: "A guard in a shared data-access layer, framework adapter, or unknown local wrapper may be valid but is not proven by this syntax-only check; one recognized guard lowers the finding.",
+    falseNegativeNote: "The check does not prove runtime reachability or follow cross-file calls, dynamic exports, or custom wrappers; it only inspects the same function and short local aliases."
+  },
   "auth/login-without-rate-limit": {
     checks: "Looks for login/auth routes without route-level or matching middleware rate-limit signals.",
     why: "Authentication endpoints are common brute-force and credential-stuffing targets.",
