@@ -1,8 +1,8 @@
 # next-secure-check
 
-Deterministic, Next.js-focused static security checks for pre-deploy review and CI.
+Deterministic, explainable security checks for Next.js projects before deploy, locally or in CI.
 
-next-secure-check scans a local project and reports common security mistakes before they become production surprises. It uses rule-based pattern matching, syntax-level AST analysis, and file context. It does not execute repository code and does not use AI at runtime.
+Run one `npx` command to scan a project before it reaches production. Review each finding with its rule, severity, confidence, location, context, and recommendation. The scanner does not execute repository code or use AI at runtime.
 
 > **Stable npm release:** `v0.5.0` is published on npm and is the `latest` line. The [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0) targets the validated release commit, and the reusable [`v1.1.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0) runs the same CLI line through the floating `@v1` tag. v0.5 adds bounded source-to-sink evidence, structural auth intent, explainable reports, and a concise terminal summary.
 
@@ -20,7 +20,7 @@ next-secure-check scans a local project and reports common security mistakes bef
 - Get deterministic findings with severity, confidence, location, context, bounded evidence paths, and recommendations.
 - Use the same scanner locally, in GitHub Actions, or through SARIF-compatible Code Scanning workflows.
 
-It is a lightweight pre-release review signal, not a penetration test or a replacement for a full security audit.
+It is a pre-deploy review signal, not a penetration test or a replacement for a full security audit.
 
 ## See It in Action
 
@@ -32,17 +32,13 @@ The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-
 
 ## Quick Start
 
-Run the recommended application-focused scan without a global install:
+Run the recommended application-focused scan from your project root:
 
 ~~~bash
-npx --yes next-secure-check@latest scan . --preset app
+npx --yes next-secure-check@0.5.0 scan . --preset app --summary
 ~~~
 
-For reproducible CI on the stable npm line, pin the CLI version:
-
-~~~bash
-npx --yes next-secure-check@0.5.0 scan . --preset app
-~~~
+This concise first view shows the score, risk, finding counts, and representative findings. Remove `--summary` when you want the detailed terminal report with explanations and recommendations.
 
 The CLI requires Node.js 20 or newer.
 

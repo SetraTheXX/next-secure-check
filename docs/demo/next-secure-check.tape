@@ -1,4 +1,4 @@
-# Reproducible README demo for the v0.5.0 release candidate.
+# Reproducible README demo for the published v0.5.0 release.
 # Run from the repository root after `pnpm build`.
 Require node
 Require ffmpeg

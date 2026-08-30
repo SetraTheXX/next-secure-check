@@ -4,11 +4,11 @@ Public progress board for `next-secure-check`. It records completed release work
 
 | Field | Value |
 | --- | --- |
-| Last reviewed | 2026-08-29 |
+| Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
 | Current next task | [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.6 baseline and request-boundary contract |
-| Release blocker | No v0.5 release blocker; v0.6 implementation and real-world feedback are the active follow-up |
+| Release blocker | No v0.5 release blocker; v0.6 Issue #29 is the next bounded task |
 
 ## Progress Legend
 
@@ -31,10 +31,10 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
 
-### Open post-release work
+### Post-release follow-up (not v0.5 release blockers)
 
 - [x] Publish the aligned `v0.5.0` packages and update the reusable Action after npm availability was verified.
-- [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - finalize the optional demo edit, Turkish voice-over, English subtitles, and final privacy review.
+- [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - optional demo/video enhancement; separate from the completed v0.5 release gate.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
 
@@ -175,7 +175,7 @@ The first production slice should be a bounded `injection/raw-sql-concat` flow b
 - [x] [#17 Auth and middleware intent signals](https://github.com/SetraTheXX/next-secure-check/issues/17)
 - [x] [#18 Evidence and reporter explanations](https://github.com/SetraTheXX/next-secure-check/issues/18)
 - [x] [#19 Regression and performance release gate](https://github.com/SetraTheXX/next-secure-check/issues/19)
-- [ ] [#20 v0.5 release and feedback loop](https://github.com/SetraTheXX/next-secure-check/issues/20)
+- [x] [#20 v0.5 release and feedback loop](https://github.com/SetraTheXX/next-secure-check/issues/20)
 
 ### v0.5 compatibility rules
 

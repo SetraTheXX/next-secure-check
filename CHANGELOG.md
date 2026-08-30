@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-No unreleased changes are recorded yet.
+### Documentation
+
+- Aligned the README first-use flow, demo source wording, roadmap status, and public repository description with the published `v0.5.0` CLI and `v1.1.0` Action.
+- Separated optional post-release demo and feedback follow-up from the completed v0.5 release gate.
 
 ## [0.5.0] - 2026-08-29
 
