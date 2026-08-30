@@ -67,5 +67,5 @@ export function codeFiles(context: ScanContext): SourceFile[] {
 }
 
 export function configFiles(context: ScanContext): SourceFile[] {
-  return context.files.filter((file) => /(^|\/)(next\.config\.(js|mjs|ts)|middleware\.(js|ts))$/.test(file.path));
+  return context.files.filter((file) => /(^|\/)(next\.config\.(js|mjs|ts)|(?:middleware|proxy)\.(js|ts))$/.test(file.path));
 }

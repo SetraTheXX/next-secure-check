@@ -142,6 +142,116 @@ describe("scanProject", () => {
     ]);
   });
 
+  it("extracts Next.js proxy auth, rate-limit, and static matcher signals", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "proxy.ts",
+      [
+        "import { auth } from '@clerk/nextjs/server';",
+        "export function proxy(request) {",
+        "  const session = auth();",
+        "  const allowed = rateLimit();",
+        "  if (!allowed) return Response.json({}, { status: 429 });",
+        "  return Response.next({ session, request });",
+        "}",
+        "export const config = { matcher: [{ source: '/api/admin/:path*' }] };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/proxy",
+      title: "Proxy",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals).toEqual([
+      {
+        filePath: "proxy.ts",
+        hasAuthSignal: true,
+        hasRateLimitSignal: true,
+        matchers: ["/api/admin/:path*"],
+        scopeRoot: ""
+      }
+    ]);
+  });
+
+  it("does not infer proxy intent from unrelated helpers or dynamic matchers", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "proxy.ts",
+      [
+        "const note = \"matcher: '/api/admin/:path*'\";",
+        "function helper() { return auth(); }",
+        "export function proxy() { return Response.next(); }",
+        "export const config = { matcher: `/${process.env.PROXY_MATCHER}` };"
+      ].join("\n")
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/proxy-noise",
+      title: "Proxy noise",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals).toEqual([
+      {
+        filePath: "proxy.ts",
+        hasAuthSignal: false,
+        hasRateLimitSignal: false,
+        matchers: [],
+        scopeRoot: ""
+      }
+    ]);
+  });
+
+  it("extracts a nested JavaScript proxy entry point with app scope", async () => {
+    const root = await tempProject();
+    await writeProjectFile(
+      root,
+      "apps/web/src/proxy.js",
+      "export const proxy = async (request) => { const allowed = rateLimit(); return allowed ? Response.next() : Response.json({}, { status: 429 }); };\nexport const config = { matcher: '/api/:path*' };"
+    );
+    let middlewareSignals: MiddlewareSignal[] | undefined;
+    const rule: Rule = {
+      id: "test/proxy-js",
+      title: "JavaScript proxy",
+      severity: "LOW",
+      category: "test",
+      scan: (context) => {
+        middlewareSignals = context.middleware;
+        return [];
+      }
+    };
+
+    await scanProject(root, { rules: [rule] });
+
+    expect(middlewareSignals).toEqual([
+      {
+        filePath: "apps/web/src/proxy.js",
+        hasAuthSignal: false,
+        hasRateLimitSignal: true,
+        matchers: ["/api/:path*"],
+        scopeRoot: "apps/web"
+      }
+    ]);
+  });
+
   it("ignores middleware comments, strings, and generic role words", async () => {
     const root = await tempProject();
     await writeProjectFile(

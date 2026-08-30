@@ -7,8 +7,8 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent |
-| Release blocker | No v0.5 release blocker; #30 is the next bounded v0.6 implementation slice |
+| Current next task | [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals |
+| Release blocker | No v0.5 release blocker; #31 is the next bounded v0.6 implementation slice |
 
 ## Progress Legend
 
@@ -55,6 +55,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
 - [x] [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
 - [x] [v0.6 request-boundary validation](./docs/validation/phase-18-v06-request-boundary-contract.md)
+- [x] [v0.6 Proxy and dynamic route validation](./docs/validation/phase-19-v06-proxy-dynamic-routes.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)
@@ -371,12 +372,25 @@ analysis must stop.
 ### Implementation order
 
 1. [x] [Issue #29](https://github.com/SetraTheXX/next-secure-check/issues/29) - freeze the v0.5 baseline and v0.6 request-boundary contract.
-2. [ ] [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent.
+2. [x] [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent.
 3. [ ] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
 4. [ ] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
 5. [ ] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
 6. [ ] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
 7. [ ] [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop.
+
+### v0.6 Phase 1 - Proxy and dynamic route boundaries (#30)
+
+- [x] Phase status: Complete; implementation and validation are recorded in [phase-19-v06-proxy-dynamic-routes.md](./docs/validation/phase-19-v06-proxy-dynamic-routes.md).
+- [x] Recognize root and app/package-scoped `proxy.ts`/`proxy.js` entry points alongside legacy middleware files.
+- [x] Preserve same-app auth and rate-limit matcher behavior without building a route graph.
+- [x] Recognize static matcher strings, arrays, and simple matcher-object sources while ignoring dynamic values.
+- [x] Add bounded API request-source evidence for route params and search/request values without changing the existing rule ID.
+- [x] Add validation, allowlist, normalization-guard, App Router, Pages Router, JavaScript, TypeScript, malformed-input, and safe-negative regression coverage.
+
+**Exit criteria:** Proxy and dynamic route signals are visible only at recognized
+boundaries, evidence remains bounded and deterministic, existing middleware
+behavior stays compatible, and the full release gate passes.
 
 ### v0.6 compatibility guardrails
 

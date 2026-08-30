@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Aligned the README first-use flow, demo source wording, roadmap status, and public repository description with the published `v0.5.0` CLI and `v1.1.0` Action.
 - Separated optional post-release demo and feedback follow-up from the completed v0.5 release gate.
 
+### Changed
+
+- Recognized Next.js 16 `proxy.ts` alongside legacy `middleware.ts` for bounded same-app auth and rate-limit intent signals.
+- Extended API validation review signals to statically recognizable dynamic route parameters and request search parameters with bounded evidence paths.
+- Kept dynamic matcher values, cross-file flow, full route reachability, and unknown wrappers outside the supported inference boundary.
+
 ## [0.5.0] - 2026-08-29
 
 > GitHub release and tag: [v0.5.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0), targeting the validated release commit. The four npm packages are published at `0.5.0`, and the reusable Action is coordinated through [v1.1.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0) and `@v1`; post-release feedback remains follow-up work.

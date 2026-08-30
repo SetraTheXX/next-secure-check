@@ -38,6 +38,10 @@ boundaries, and performance/privacy budget are documented in
 and
 [0003-v0.6-request-boundary-contract.md](../decisions/0003-v0.6-request-boundary-contract.md).
 
+The #30 Proxy/dynamic-route slice, static matcher handling, bounded request
+source evidence, and validation/allowlist guard coverage are documented in
+[phase-19-v06-proxy-dynamic-routes.md](./phase-19-v06-proxy-dynamic-routes.md).
+
 Historical v0.1 baseline:
 
 ```txt

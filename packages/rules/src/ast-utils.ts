@@ -9,6 +9,8 @@ import { createRawSqlFlowCallbacks, findRawSqlConcatNodes } from "./sql-ast.js";
 import {
   ROUTE_HANDLER_NAMES,
   exportedRouteHandlerName,
+  findRequestBoundarySources,
+  hasRequestBoundaryGuardInSource,
   hasAuthIntentInSource,
   hasRateLimitIntentInSource,
   hasValidationIntentInSource,
@@ -152,6 +154,20 @@ export function hasRateLimitIntentSignal(file: SourceFile): boolean {
 
 export function hasValidationIntentSignal(file: SourceFile): boolean {
   return getAnalysisFacts(file).hasValidationIntent;
+}
+
+export function findRequestBoundaryInputMatches(file: SourceFile): AstMatch[] {
+  const { sourceFile } = getAnalysisFacts(file);
+  return dedupeMatches(
+    findRequestBoundarySources(sourceFile).map(({ node, path }) => ({
+      ...matchFromNode(file, sourceFile, node),
+      evidencePath: path
+    }))
+  );
+}
+
+export function hasRequestBoundaryGuardSignal(file: SourceFile): boolean {
+  return hasRequestBoundaryGuardInSource(getAnalysisFacts(file).sourceFile);
 }
 
 export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {

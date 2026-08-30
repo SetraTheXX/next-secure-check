@@ -1494,6 +1494,116 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(true);
   });
 
+  it("detects unvalidated dynamic route parameters with bounded evidence", async () => {
+    const result = await scanFixture({
+      "app/api/users/[id]/route.ts": [
+        "export async function GET(request, { params }) {",
+        "  return Response.json({ id: params.id });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "validation/api-route-without-validation");
+
+    expect(finding).toMatchObject({
+      filePath: "app/api/users/[id]/route.ts",
+      evidencePath: "params -> id"
+    });
+    expect(finding?.line).toBeUndefined();
+    expect(finding?.column).toBeUndefined();
+  });
+
+  it("detects unvalidated Pages Router query parameters", async () => {
+    const result = await scanFixture({
+      "pages/api/users/[id].js": "export default function handler(req, res) { res.json({ id: req.query.id }); }"
+    });
+    const finding = result.findings.find((item) => item.ruleId === "validation/api-route-without-validation");
+
+    expect(finding?.evidencePath).toBe("req.query.id");
+  });
+
+  it("detects request nextUrl search parameters with bounded evidence", async () => {
+    const result = await scanFixture({
+      "app/api/search/route.ts": [
+        "export async function GET(request) {",
+        "  const query = request.nextUrl.searchParams.get(\"q\");",
+        "  return Response.json({ query });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "validation/api-route-without-validation");
+
+    expect(finding?.evidencePath).toBe("request.nextUrl.searchParams.get()");
+  });
+
+  it("does not flag dynamic route parameters guarded by a static allowlist", async () => {
+    const result = await scanFixture({
+      "app/api/users/[id]/route.ts": [
+        "export async function GET(request, { params }) {",
+        "  if (![\"public\", \"team\"].includes(params.id)) return Response.json({ ok: false }, { status: 404 });",
+        "  return Response.json({ id: params.id });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
+  it("does not flag dynamic route parameters guarded by a Set allowlist", async () => {
+    const result = await scanFixture({
+      "app/api/users/[id]/route.ts": [
+        "const ALLOWED_IDS = new Set([\"public\", \"team\"]);",
+        "export async function GET(request, { params }) {",
+        "  if (!ALLOWED_IDS.has(params.id)) return Response.json({ ok: false }, { status: 404 });",
+        "  return Response.json({ id: params.id });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
+  it("does not flag dynamic route parameters guarded by a static comparison", async () => {
+    const result = await scanFixture({
+      "app/api/users/[id]/route.ts": [
+        "export async function GET(request, { params }) {",
+        "  if (params.id !== \"public\") return Response.json({ ok: false }, { status: 404 });",
+        "  return Response.json({ id: params.id });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
+  it("does not flag dynamic route parameters behind a visible normalization guard", async () => {
+    const result = await scanFixture({
+      "app/api/users/[id]/route.ts": [
+        "export async function GET(request, { params }) {",
+        "  if (!normalizePath(params.id)) return Response.json({ ok: false }, { status: 404 });",
+        "  return Response.json({ id: params.id });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
+  it("does not crash on malformed dynamic API route syntax", async () => {
+    await expect(
+      scanFixture({
+        "app/api/users/[id]/route.ts": "export async function GET(request, { params ) { return Response.json({ id: params.id });"
+      })
+    ).resolves.toBeDefined();
+  });
+
+  it("does not treat dynamic page parameters as API input", async () => {
+    const result = await scanFixture({
+      "app/users/[id]/page.tsx": "export default function Page({ params }) { return <p>{params.id}</p>; }"
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "validation/api-route-without-validation")).toBe(false);
+  });
+
   it("does not flag API routes with input validation", async () => {
     const result = await scanFixture({
       "app/api/users/route.ts": "import { z } from 'zod'; const schema = z.object({ name: z.string() }); export async function POST(req) { const body = await req.json(); return Response.json({ ok: true }); }"
@@ -1712,6 +1822,24 @@ describe("built-in security rules", () => {
     });
 
     expect(result.findings.some((finding) => finding.ruleId === "auth/admin-route-without-auth")).toBe(false);
+  });
+
+  it("does not flag admin routes covered by a same-app proxy matcher", async () => {
+    const result = await scanFixture({
+      "proxy.ts": [
+        "import { auth } from '@clerk/nextjs/server';",
+        "export function proxy() { return auth(); }",
+        "export const config = { matcher: '/api/admin/:path*' };"
+      ].join("\n"),
+      "app/api/admin/route.ts": "export async function GET() { return Response.json({ users: [] }); }",
+      "apps/other/app/api/admin/route.ts": "export async function GET() { return Response.json({ users: [] }); }"
+    });
+
+    expect(
+      result.findings
+        .filter((finding) => finding.ruleId === "auth/admin-route-without-auth")
+        .map((finding) => finding.filePath)
+    ).toEqual(["apps/other/app/api/admin/route.ts"]);
   });
 
   it("does not flag admin routes covered by broad API auth middleware matcher", async () => {

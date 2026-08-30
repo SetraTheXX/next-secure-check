@@ -104,13 +104,17 @@ function sortFindings(findings: Finding[]): Finding[] {
 }
 
 function extractMiddlewareSignals(files: SourceFile[]): MiddlewareSignal[] {
-  return files.filter(isMiddlewareFile).map((file) => ({
-    filePath: file.path,
-    hasAuthSignal: hasMiddlewareAuthSignal(file.content),
-    hasRateLimitSignal: hasMiddlewareRateLimitSignal(file.content),
-    matchers: extractMiddlewareMatchers(file.content),
-    scopeRoot: middlewareScopeRoot(file.path) ?? ""
-  }));
+  return files.filter(isMiddlewareFile).map((file) => {
+    const entryPointName = isProxyFile(file.path) ? "proxy" : "middleware";
+
+    return {
+      filePath: file.path,
+      hasAuthSignal: hasMiddlewareAuthSignal(file.content, entryPointName),
+      hasRateLimitSignal: hasMiddlewareRateLimitSignal(file.content, entryPointName),
+      matchers: extractMiddlewareMatchers(file.content),
+      scopeRoot: middlewareScopeRoot(file.path) ?? ""
+    };
+  });
 }
 
 function isMiddlewareFile(file: SourceFile): boolean {
@@ -118,15 +122,19 @@ function isMiddlewareFile(file: SourceFile): boolean {
 }
 
 function middlewareScopeRoot(filePath: string): string | undefined {
-  if (/^(?:src\/)?middleware\.[tj]s$/.test(filePath)) {
+  if (/^(?:src\/)?(?:middleware|proxy)\.[tj]s$/.test(filePath)) {
     return "";
   }
 
-  return /^((?:apps|packages)\/[^/]+)\/(?:src\/)?middleware\.[tj]s$/.exec(filePath)?.[1];
+  return /^((?:apps|packages)\/[^/]+)\/(?:src\/)?(?:middleware|proxy)\.[tj]s$/.exec(filePath)?.[1];
 }
 
-function hasMiddlewareAuthSignal(content: string): boolean {
-  const code = extractMiddlewareCode(stripCommentsAndStrings(content));
+function isProxyFile(filePath: string): boolean {
+  return /(?:^|\/)proxy\.[tj]s$/.test(filePath);
+}
+
+function hasMiddlewareAuthSignal(content: string, entryPointName: "middleware" | "proxy"): boolean {
+  const code = extractMiddlewareCode(stripCommentsAndStrings(content), entryPointName);
   const sourceWithoutComments = stripComments(content);
   const hasAuthCall = /\b(?:requireAuth|currentUser|getServerSession|verifyToken|isAdmin|withAuth|clerkMiddleware)\s*\(/i.test(code);
   const hasKnownModuleAuthCall = hasKnownAuthImport(sourceWithoutComments) && /\b(?:auth|clerk|getUser)\s*\(/i.test(code);
@@ -135,8 +143,8 @@ function hasMiddlewareAuthSignal(content: string): boolean {
   return hasAuthCall || hasKnownModuleAuthCall || hasAuthGuard || /\b(?:auth|jwt|session|token)\s*\.\s*verify\s*\(/i.test(code);
 }
 
-function hasMiddlewareRateLimitSignal(content: string): boolean {
-  const code = extractMiddlewareCode(stripCommentsAndStrings(content));
+function hasMiddlewareRateLimitSignal(content: string, entryPointName: "middleware" | "proxy"): boolean {
+  const code = extractMiddlewareCode(stripCommentsAndStrings(content), entryPointName);
   const sourceWithoutComments = stripComments(content);
   const hasDirectLimiterCall = /\b(?:applyRateLimit|checkRateLimit|enforceRateLimit|rateLimit|rateLimited|slowDown|throttle|withRateLimit)\s*\(/i.test(
     code
@@ -154,13 +162,128 @@ function hasMiddlewareRateLimitSignal(content: string): boolean {
 }
 
 function extractMiddlewareMatchers(content: string): string[] {
-  const matcherProperty = /matcher\s*:\s*(\[[^\]]+\]|["'`][^"'`]+["'`])/s.exec(stripComments(content));
-  if (!matcherProperty) {
-    return [];
+  const source = stripComments(content);
+  const matchers: string[] = [];
+
+  for (const matcherIndex of findMatcherPropertyIndices(source)) {
+    const propertyMatch = /^matcher\s*:\s*/.exec(source.slice(matcherIndex));
+    if (!propertyMatch) {
+      continue;
+    }
+
+    const valueStart = matcherIndex + propertyMatch[0].length;
+    matchers.push(...readStaticMatcherValue(source, valueStart));
   }
 
-  const matcherValue = matcherProperty[1] ?? "";
-  return [...matcherValue.matchAll(/["'`]([^"'`]+)["'`]/g)].map((match) => match[1] ?? "").filter(Boolean);
+  return [...new Set(matchers)];
+}
+
+function findMatcherPropertyIndices(source: string): number[] {
+  const indices: number[] = [];
+  let quote: string | undefined;
+  let escaped = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (character === "\\") {
+        escaped = true;
+      } else if (character === quote) {
+        quote = undefined;
+      }
+      continue;
+    }
+
+    if (character === "\"" || character === "'" || character === "`") {
+      quote = character;
+      continue;
+    }
+
+    if ((index === 0 || !/[A-Za-z0-9_$]/.test(source[index - 1] ?? "")) && /^matcher\s*:\s*/.test(source.slice(index))) {
+      indices.push(index);
+    }
+  }
+
+  return indices;
+}
+
+function readStaticMatcherValue(source: string, valueStart: number): string[] {
+  const start = skipWhitespace(source, valueStart);
+  const firstCharacter = source[start];
+
+  if (firstCharacter === "[") {
+    const end = findClosingDelimiter(source, start, "[", "]");
+    if (end === -1) {
+      return [];
+    }
+
+    const value = source.slice(start + 1, end);
+    if (/\b(?:has|missing|regexp)\s*:/.test(value)) {
+      return [];
+    }
+
+    const objectSources = [...value.matchAll(/\bsource\s*:\s*["'`]([^"'`]+)["'`]/g)]
+      .map((match) => match[1] ?? "")
+      .filter((matcher) => matcher.length > 0 && !matcher.includes("${"));
+    if (objectSources.length > 0) {
+      return objectSources;
+    }
+
+    const withoutStrings = value.replace(/["'`]([^"'`\\]*(?:\\.[^"'`\\]*)*)["'`]/g, " ");
+    if (/[^\s,]/.test(withoutStrings)) {
+      return [];
+    }
+
+    return [...value.matchAll(/["'`]([^"'`\\]*(?:\\.[^"'`\\]*)*)["'`]/g)]
+      .map((match) => match[1] ?? "")
+      .filter((matcher) => matcher.length > 0 && !matcher.includes("${"));
+  }
+
+  const literal = /^["'`]([^"'`\\]*(?:\\.[^"'`\\]*)*)["'`]/.exec(source.slice(start));
+  return literal?.[1] && !literal[1].includes("${") ? [literal[1]] : [];
+}
+
+function skipWhitespace(source: string, start: number): number {
+  let index = start;
+  while (/\s/.test(source[index] ?? "")) {
+    index += 1;
+  }
+  return index;
+}
+
+function findClosingDelimiter(source: string, openIndex: number, opening: string, closing: string): number {
+  let depth = 0;
+  let quote: string | undefined;
+  let escaped = false;
+
+  for (let index = openIndex; index < source.length; index += 1) {
+    const character = source[index];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (character === "\\") {
+        escaped = true;
+      } else if (character === quote) {
+        quote = undefined;
+      }
+      continue;
+    }
+
+    if (character === "\"" || character === "'" || character === "`") {
+      quote = character;
+    } else if (character === opening) {
+      depth += 1;
+    } else if (character === closing) {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
 }
 
 function stripComments(content: string): string {
@@ -174,16 +297,24 @@ function stripCommentsAndStrings(content: string): string {
   );
 }
 
-function extractMiddlewareCode(code: string): string {
-  const functionMatch = /\b(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+middleware\s*\([^)]*\)\s*\{/i.exec(code);
+function extractMiddlewareCode(code: string, entryPointName: "middleware" | "proxy"): string {
+  const functionPattern = new RegExp(
+    `\\b(?:export\\s+)?(?:default\\s+)?(?:async\\s+)?function\\s+${entryPointName}\\s*\\([^)]*\\)\\s*\\{`,
+    "i"
+  );
+  const functionMatch = functionPattern.exec(code);
   if (functionMatch) {
     const openBraceIndex = code.indexOf("{", functionMatch.index);
     return code.slice(functionMatch.index, findMatchingBrace(code, openBraceIndex) + 1);
   }
 
-  const arrowMatch = /\b(?:export\s+)?(?:const|let|var)\s+middleware\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/i.exec(code);
+  const arrowPattern = new RegExp(
+    `\\b(?:export\\s+)?(?:const|let|var)\\s+${entryPointName}\\s*=\\s*(?:async\\s*)?(?:\\([^)]*\\)|[A-Za-z_$][\\w$]*)\\s*=>`,
+    "i"
+  );
+  const arrowMatch = arrowPattern.exec(code);
   if (!arrowMatch) {
-    return code;
+    return entryPointName === "proxy" ? "" : code;
   }
 
   const bodyStart = arrowMatch.index + arrowMatch[0].length;

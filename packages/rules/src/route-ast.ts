@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { REQUEST_SOURCE_NAMES, ROUTE_PARAMS_NAMES, SEARCH_PARAMS_NAME } from "./command-ast.js";
 
 export const ROUTE_HANDLER_NAMES = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
 
@@ -33,6 +34,9 @@ const RESPONSE_FACTORY_NAMES = new Set(["json", "redirect", "rewrite"]);
 const RESPONSE_NAMES = new Set(["NextResponse", "Response"]);
 const RESPONSE_OBJECT_NAMES = new Set(["reply", "res", "response"]);
 const VALIDATION_TYPE_NAMES = new Set(["boolean", "function", "number", "object", "string"]);
+const REQUEST_BOUNDARY_MEMBER_NAMES = new Set(["body", "cookies", "formData", "headers", "json", "nextUrl", "params", "query", "url"]);
+const REQUEST_BOUNDARY_NORMALIZER_NAMES = new Set(["normalize", "normalizeInput", "normalizePath", "sanitize", "sanitizeInput"]);
+const ALLOWLIST_NAME_PATTERN = /^(?:accept|allowed?|allowlist|permitted|supported|trusted|valid|whitelist)/i;
 const TYPEOF_COMPARISON_OPERATORS = new Set([
   ts.SyntaxKind.EqualsEqualsToken,
   ts.SyntaxKind.EqualsEqualsEqualsToken,
@@ -69,34 +73,48 @@ export function hasAuthIntentInSource(sourceFile: ts.SourceFile): boolean {
 }
 
 export function hasValidationIntentInSource(sourceFile: ts.SourceFile): boolean {
-  let found = false;
-
   if (sourceFile.statements.some((node) => ts.isImportDeclaration(node) && isValidationLibraryImport(node))) {
     return true;
   }
 
+  return routeHandlerRoots(sourceFile).some(hasValidationIntentInRoot);
+}
+
+export type RequestBoundarySource = {
+  node: ts.Node;
+  path: string;
+};
+
+export function findRequestBoundarySources(sourceFile: ts.SourceFile): RequestBoundarySource[] {
+  const sources: RequestBoundarySource[] = [];
+
   for (const root of routeHandlerRoots(sourceFile)) {
     visitRouteNodes(root, (node) => {
-      if (found) {
-        return;
-      }
-
-      if (ts.isCallExpression(node) && isValidationCall(node)) {
-        found = true;
-        return;
-      }
-
-      if (ts.isBinaryExpression(node) && isTypeofValidationCheck(node)) {
-        found = true;
+      const sourcePath = requestBoundarySourcePath(node);
+      if (sourcePath) {
+        sources.push({ node, path: sourcePath });
       }
     });
-
-    if (found) {
-      break;
-    }
   }
 
-  return found;
+  const seen = new Set<string>();
+  return sources.filter(({ node, path: sourcePath }) => {
+    const key = `${node.pos}:${node.end}:${sourcePath}`;
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+export function hasRequestBoundaryGuardInSource(sourceFile: ts.SourceFile): boolean {
+  if (sourceFile.statements.some((node) => ts.isImportDeclaration(node) && isValidationLibraryImport(node))) {
+    return true;
+  }
+
+  return routeHandlerRoots(sourceFile).some((root) => hasValidationIntentInRoot(root) || hasRequestBoundaryAllowlistInRoot(root));
 }
 
 export function hasRateLimitIntentInSource(sourceFile: ts.SourceFile): boolean {
@@ -285,6 +303,232 @@ function addAuthBinding(name: string, knownModule: boolean, trusted: Set<string>
 
 function isValidationLibraryImport(node: ts.ImportDeclaration): boolean {
   return ts.isStringLiteralLike(node.moduleSpecifier) && VALIDATION_MODULE_PATTERN.test(node.moduleSpecifier.text);
+}
+
+function hasValidationIntentInRoot(root: ts.Node): boolean {
+  let found = false;
+  visitRouteNodes(root, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isCallExpression(node) && isValidationCall(node)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isBinaryExpression(node) && isTypeofValidationCheck(node)) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
+function hasRequestBoundaryAllowlistInRoot(root: ts.Node): boolean {
+  let found = false;
+  visitRouteNodes(root, (node) => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isBinaryExpression(node) && isRequestBoundaryAllowlistComparison(node)) {
+      found = true;
+      return;
+    }
+
+    if (!ts.isCallExpression(node)) {
+      return;
+    }
+
+    if (isRequestBoundaryAllowlistCall(node) || isRequestBoundaryNormalizationGuard(node)) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
+function isRequestBoundaryAllowlistCall(node: ts.CallExpression): boolean {
+  if (!ts.isPropertyAccessExpression(node.expression) || !["has", "includes"].includes(node.expression.name.text)) {
+    return false;
+  }
+
+  if (!node.arguments.some((argument) => containsRequestBoundarySource(argument))) {
+    return false;
+  }
+
+  const receiver = node.expression.expression;
+  if (ts.isArrayLiteralExpression(receiver)) {
+    return true;
+  }
+
+  if (ts.isNewExpression(receiver) && ts.isIdentifier(receiver.expression) && receiver.expression.text === "Set") {
+    return true;
+  }
+
+  const receiverRoot = rootIdentifier(receiver);
+  return receiverRoot !== undefined && ALLOWLIST_NAME_PATTERN.test(receiverRoot.text);
+}
+
+function isRequestBoundaryNormalizationGuard(node: ts.CallExpression): boolean {
+  if (!ts.isIdentifier(node.expression) || !REQUEST_BOUNDARY_NORMALIZER_NAMES.has(node.expression.text)) {
+    return false;
+  }
+
+  return node.arguments.some((argument) => containsRequestBoundarySource(argument)) && isWithinGuardCondition(node);
+}
+
+function isRequestBoundaryAllowlistComparison(node: ts.BinaryExpression): boolean {
+  if (
+    ![
+      ts.SyntaxKind.EqualsEqualsToken,
+      ts.SyntaxKind.EqualsEqualsEqualsToken,
+      ts.SyntaxKind.ExclamationEqualsToken,
+      ts.SyntaxKind.ExclamationEqualsEqualsToken
+    ].includes(node.operatorToken.kind) ||
+    !isWithinGuardCondition(node)
+  ) {
+    return false;
+  }
+
+  return (
+    (containsRequestBoundarySource(node.left) && isStaticBoundaryValue(node.right)) ||
+    (containsRequestBoundarySource(node.right) && isStaticBoundaryValue(node.left))
+  );
+}
+
+function isStaticBoundaryValue(node: ts.Node): boolean {
+  return ts.isStringLiteralLike(node) || ts.isNumericLiteral(node) || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword;
+}
+
+function containsRequestBoundarySource(node: ts.Node): boolean {
+  let found = false;
+  visitRouteNodes(node, (child) => {
+    if (!found && requestBoundarySourcePath(child)) {
+      found = true;
+    }
+  });
+  return found;
+}
+
+function requestBoundarySourcePath(node: ts.Node): string | undefined {
+  if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+    if (isCallExpressionSource(node.expression)) {
+      const memberPath = staticMemberPath(node.expression);
+      return memberPath ? `${formatRequestBoundaryPath(memberPath)}()` : undefined;
+    }
+
+    return undefined;
+  }
+
+  if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+    if (isNestedMemberNode(node) || (ts.isCallExpression(node.parent) && node.parent.expression === node)) {
+      return undefined;
+    }
+
+    const memberPath = staticMemberPath(node);
+    return memberPath && isRequestBoundaryMemberPath(memberPath) ? formatRequestBoundaryPath(memberPath) : undefined;
+  }
+
+  if (!ts.isIdentifier(node) || !isBareRequestBoundaryIdentifier(node) || isDeclarationName(node)) {
+    return undefined;
+  }
+
+  return isNestedMemberNode(node) ? undefined : node.text;
+}
+
+function isCallExpressionSource(expression: ts.PropertyAccessExpression): boolean {
+  const memberPath = staticMemberPath(expression);
+  if (!memberPath) {
+    return false;
+  }
+
+  const methodName = memberPath.at(-1);
+  if (REQUEST_SOURCE_NAMES.test(memberPath[0] ?? "") && (methodName === "formData" || methodName === "json")) {
+    return true;
+  }
+
+  if (SEARCH_PARAMS_NAME.test(memberPath[0] ?? "") && methodName === "get") {
+    return true;
+  }
+
+  if (
+    REQUEST_SOURCE_NAMES.test(memberPath[0] ?? "") &&
+    methodName === "get" &&
+    (memberPath.includes("headers") || memberPath.includes("cookies"))
+  ) {
+    return true;
+  }
+
+  return (
+    REQUEST_SOURCE_NAMES.test(memberPath[0] ?? "") &&
+    methodName === "get" &&
+    memberPath.includes("nextUrl") &&
+    memberPath.includes("searchParams")
+  );
+}
+
+function isRequestBoundaryMemberPath(memberPath: string[]): boolean {
+  const [root, ...members] = memberPath;
+  if (!root || members.length === 0) {
+    return false;
+  }
+
+  if (ROUTE_PARAMS_NAMES.test(root) || SEARCH_PARAMS_NAME.test(root)) {
+    return true;
+  }
+
+  return REQUEST_SOURCE_NAMES.test(root) && members.some((member) => REQUEST_BOUNDARY_MEMBER_NAMES.has(member));
+}
+
+function isBareRequestBoundaryIdentifier(node: ts.Identifier): boolean {
+  return ROUTE_PARAMS_NAMES.test(node.text) || SEARCH_PARAMS_NAME.test(node.text);
+}
+
+function staticMemberPath(expression: ts.Expression): string[] | undefined {
+  if (ts.isIdentifier(expression)) {
+    return [expression.text];
+  }
+
+  if (ts.isPropertyAccessExpression(expression)) {
+    const parentPath = staticMemberPath(expression.expression);
+    return parentPath ? [...parentPath, expression.name.text] : undefined;
+  }
+
+  if (ts.isElementAccessExpression(expression) && expression.argumentExpression && ts.isStringLiteralLike(expression.argumentExpression)) {
+    const parentPath = staticMemberPath(expression.expression);
+    return parentPath ? [...parentPath, expression.argumentExpression.text] : undefined;
+  }
+
+  return undefined;
+}
+
+function formatRequestBoundaryPath(memberPath: string[] | string): string {
+  const path = typeof memberPath === "string" ? [memberPath] : memberPath;
+  if (ROUTE_PARAMS_NAMES.test(path[0] ?? "")) {
+    return path.join(" -> ");
+  }
+
+  return path.join(".");
+}
+
+function isNestedMemberNode(node: ts.Node): boolean {
+  const parent = node.parent;
+  return (
+    ((ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) && parent.expression === node) ||
+    (ts.isCallExpression(parent) && parent.expression === node)
+  );
+}
+
+function isDeclarationName(node: ts.Identifier): boolean {
+  const parent = node.parent;
+  return (
+    (ts.isParameter(parent) && parent.name === node) ||
+    (ts.isVariableDeclaration(parent) && parent.name === node) ||
+    (ts.isBindingElement(parent) && parent.name === node) ||
+    (ts.isFunctionDeclaration(parent) && parent.name === node)
+  );
 }
 
 function isValidationCall(node: ts.CallExpression): boolean {

@@ -23,7 +23,8 @@ And checks for structural route-local signals such as:
 - calls to `rateLimit()`, `checkRateLimit()`, `applyRateLimit()`, or `withRateLimit()`
 - limiter methods such as `limiter.limit(...)` or `ratelimit.limit(...)`
 - explicit 429 responses such as `Response.json(..., { status: 429 })`, `new Response(..., { status: 429 })`, or `res.status(429)`
-- a conservative same-app middleware matcher with a structural limiter signal
+- a conservative same-app `middleware.ts` or Next.js 16 `proxy.ts` matcher with
+  a structural limiter signal
 
 Names in comments, strings, unused assignments, or unknown wrappers are not
 treated as proof of rate limiting.

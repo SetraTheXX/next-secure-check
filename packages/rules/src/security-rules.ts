@@ -3,11 +3,13 @@ import {
   findCommandExecutionMatches,
   findDangerouslySetInnerHtmlMatches,
   findPasswordHandlingMatches,
+  findRequestBoundaryInputMatches,
   findRawSqlConcatMatches,
   findRouteHandlerExports,
   findUploadRouteHandlerMatches,
   hasAuthIntentSignal,
   hasRateLimitIntentSignal,
+  hasRequestBoundaryGuardSignal,
   hasValidationIntentSignal
 } from "./ast-utils.js";
 import { codeFiles, configFiles, createFinding, findMatches } from "./rule-utils.js";
@@ -470,21 +472,25 @@ export const apiRouteWithoutValidationRule: Rule = {
   category: "validation",
   confidence: "MEDIUM",
   scan(context) {
-    const contentSignals = /(\breq\.body\b|\breq\.query\b|\breq\.json\(|request\.json\(|request\.formData\(|searchParams|nextUrl\.searchParams)/i;
-
     return codeFiles(context)
       .filter((file) => isApiRouteFilePath(file.path))
       .filter((file) => findRouteHandlerExports(file).length > 0)
-      .filter((file) => contentSignals.test(file.content))
-      .filter((file) => !hasValidationIntentSignal(file))
-      .map((file) =>
-        createFinding({
+      .map((file) => {
+        const requestBoundaryInputs = findRequestBoundaryInputMatches(file);
+        if (requestBoundaryInputs.length === 0 || hasValidationIntentSignal(file) || hasRequestBoundaryGuardSignal(file)) {
+          return undefined;
+        }
+
+        const [source] = requestBoundaryInputs;
+        return createFinding({
           rule: apiRouteWithoutValidationRule,
           file,
+          evidencePath: source?.evidencePath,
           description: "API routes that consume user input should validate the input before using it.",
           recommendation: "Add input validation with a schema library such as Zod, Yup, Joi, or a clear custom validation layer."
-        })
-      );
+        });
+      })
+      .filter((finding): finding is NonNullable<typeof finding> => finding !== undefined);
   }
 };
 

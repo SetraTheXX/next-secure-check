@@ -17,15 +17,24 @@ Without input validation, malicious or malformed data can reach your business lo
 ## Detection Logic
 
 The rule looks for App Router or Pages Router API files with an exported route
-handler that contain evidence of reading user input (`req.body`,
-`searchParams`, `request.json()`, or `request.formData()`) but do not contain a
-recognized validation-intent signal. This route-handler requirement keeps API
-helpers, UI components, and similarly named files out of the endpoint check.
-Recognized signals include imports from common validation libraries such as Zod,
-Yup, Joi, Valibot, Superstruct, or ArkType, direct calls such as `safeParse()`,
-`parse()`, `validate()`, `isValid()`, and `Array.isArray()`, and structural
-`typeof value === "string"`-style checks. `JSON.parse()` alone is not input
-validation.
+handler that contain evidence of reading user input (`req.body`, `req.query`,
+`searchParams.get()`, `request.nextUrl.searchParams.get()`, `request.json()`,
+`request.formData()`, or dynamic route parameters such as `params.id`) but do
+not contain a recognized validation-intent signal. This route-handler
+requirement keeps API helpers, UI components, and similarly named files out of
+the endpoint check. The finding includes a bounded `evidencePath` when the
+source is statically recognizable, such as `params -> id` or
+`request.json()`.
+
+Recognized signals include imports from common validation libraries such as
+Zod, Yup, Joi, Valibot, Superstruct, or ArkType, direct calls such as
+`safeParse()`, `parse()`, `validate()`, `isValid()`, and `Array.isArray()`,
+structural `typeof value === "string"`-style checks, and a static allowlist
+guard such as `["public"].includes(params.id)` or `ALLOWED_IDS.has(params.id)`.
+`JSON.parse()` alone, normalization alone, and unknown custom wrappers are not
+input validation. A direct normalization/allowlist check used as a guard is
+accepted only when its relationship to the request source is visible in the
+same route handler.
 
 Comments, labels, and unknown custom wrappers are intentionally not treated as proof of validation. A project-specific helper can therefore still be reported unless its implementation exposes one of the recognized syntax-level signals.
 
