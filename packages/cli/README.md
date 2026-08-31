@@ -6,11 +6,9 @@ Run a quick static security sanity check before deploying a Next.js app.
 
 Requires Node.js 20.9 or newer.
 
-The stable npm line is `v0.5.0`, published with aligned CLI and internal
-package versions. The reusable GitHub Action `@v1` is coordinated with this
-CLI line. The checked-in source is prepared as a `v0.6.0` candidate with 25
-rules, but that candidate is not yet published; the examples below use the
-stable line unless explicitly stated otherwise.
+The stable npm line is `v0.6.0`, published with aligned CLI and internal
+package versions and 25 built-in rules. The reusable GitHub Action `@v1` is
+coordinated with this CLI line.
 
 ## Usage
 
@@ -23,7 +21,7 @@ npx --yes next-secure-check@latest scan . --preset app
 For reproducible CI runs on the stable npm line, pin the release version:
 
 ```bash
-npx --yes next-secure-check@0.5.0 scan . --preset app
+npx --yes next-secure-check@0.6.0 scan . --preset app
 ```
 
 Or run without installing:
@@ -65,7 +63,7 @@ npx --yes next-secure-check@latest scan . --preset ci
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
 Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin
-`next-secure-check@0.5.0` in CI for reproducible v0.5 runs.
+`next-secure-check@0.6.0` in CI for reproducible v0.6 runs.
 
 ## CLI Helpers
 
@@ -147,7 +145,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.5.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.6.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 SARIF / GitHub Code Scanning workflow:
@@ -176,7 +174,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.5.0 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.6.0 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -192,6 +190,13 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 ```
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.
+
+## v0.6.0 Highlights
+
+- Five bounded request-boundary and configuration signals for Server Actions, redirects, SSRF, session cookies, and broad image-host configuration
+- Same-function source-to-sink evidence with visible guard and stop conditions
+- Next.js 16 `proxy.ts`, dynamic request parameters, Pages Router, JavaScript, TypeScript, and CommonJS config coverage
+- Deterministic JSON/SARIF output, privacy-safe evidence, and the v0.6 release quality gate
 
 ## v0.5.0 Highlights
 
@@ -211,12 +216,11 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 
 ## Release Status
 
-The v0.5.0 GitHub and npm releases contain the bounded-analysis, intent,
+The v0.6.0 GitHub and npm releases contain the bounded-analysis, intent,
 reporter, and summary changes described above. The CLI, core, rules, and
-reporter manifests are all aligned and published at `0.5.0`; the reusable
-Action `@v1` runs this stable line. The checked-in manifests now carry the
-next `0.6.0` candidate version for release preparation, but npm consumers
-should continue using `0.5.0` until the candidate is deliberately published.
+reporter manifests are all aligned and published at `0.6.0`; the reusable
+Action `@v1` runs this stable line. The earlier `v0.5.0` line remains available
+for reproducibility and historical compatibility checks.
 
 To try the local build from a clone:
 

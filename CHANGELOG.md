@@ -7,14 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Release preparation
+## [0.6.0] - 2026-08-31
 
-- Prepared the four publishable workspace packages at candidate version `0.6.0`.
-- Kept the published `0.5.0` CLI, `v1.1.0` Action, `@v1` tag, and README demo as the stable consumer path until the npm publication and follow-up Action release are deliberately completed.
+> GitHub release and tag: [v0.6.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.6.0). The four npm packages are published at `0.6.0`, and the reusable Action is coordinated through [v1.2.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.2.0) and `@v1`.
+
+### Release
+
+- Published the four aligned workspace packages at `0.6.0` with 25 built-in rules.
+- Updated the reusable GitHub Action to `next-secure-check@0.6.0`, released it as `v1.2.0`, and coordinated the floating `@v1` tag.
+- Refreshed the reproducible README demo for the published v0.6.0 CLI while keeping the concise three-scan flow.
 
 ### Documentation
 
-- Aligned the README first-use flow, demo source wording, roadmap status, and public repository description with the published `v0.5.0` CLI and `v1.1.0` Action.
+- Aligned the README first-use flow, demo source wording, roadmap status, and public repository description with the published `v0.6.0` CLI and `v1.2.0` Action.
 - Added the v0.6 quality gate and release-feedback validation note with a minimized five-rule matrix, opt-in smoke observations, exact version contract, and independent review handoff.
 - Separated optional post-release demo and feedback follow-up from the completed v0.5 release gate.
 - Documented the bounded Server Action/Server Function guard signal and its separate v0.6 identity decision.
@@ -36,12 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recognized Next.js 16 `proxy.ts` alongside legacy `middleware.ts` for bounded same-app auth and rate-limit intent signals.
 - Extended API validation review signals to statically recognizable dynamic route parameters and request search parameters with bounded evidence paths.
 - Kept dynamic matcher values, cross-file flow, full route reachability, and unknown wrappers outside the supported inference boundary.
-- Kept the published v0.5.0 20-rule baseline unchanged while exposing the new v0.6 rules only on the unreleased development line; partial guard signals are lowered to LOW.
+- Kept the published v0.5.0 20-rule baseline available for compatibility while publishing the five bounded v0.6 rules; partial guard signals are lowered to LOW.
 - Kept redirect tracking same-function and syntax-first, with recognized allowlists/internal-path checks suppressing signals and dynamic or external-looking targets remaining reviewable.
 - Kept SSRF tracking server-only, same-function, syntax-first, and privacy-safe, with exact sink/source allowlists and visible host/private-network guards; the published v0.5.0 20-rule baseline remains unchanged.
 - Refined `headers/missing-security-headers` to recognize static Next.js `headers()` and middleware/proxy setters, include bounded evidence, and describe dynamic/runtime uncertainty without changing its rule identity.
 - Added bounded Pages Router `Set-Cookie` serializer and CommonJS `next.config.cjs` discovery coverage without expanding the published baseline.
-- Kept the published v0.5.0 20-rule baseline unchanged while the v0.6 development line now contains 25 rules.
+- Kept the published v0.5.0 20-rule baseline unchanged while the published v0.6.0 line contains 25 rules.
 
 ## [0.5.0] - 2026-08-29
 

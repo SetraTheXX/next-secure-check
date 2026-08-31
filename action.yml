@@ -73,9 +73,9 @@ runs:
         fi
 
         if [[ "$SCAN_FORMAT" == "github" && -z "$report_path" ]]; then
-          npx --yes next-secure-check@0.5.0 "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.6.0 "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
         else
-          npx --yes next-secure-check@0.5.0 "${args[@]}"
+          npx --yes next-secure-check@0.6.0 "${args[@]}"
 
           if [[ "$SCAN_FORMAT" == "github" ]]; then
             cat "$report_path" >> "$GITHUB_STEP_SUMMARY"

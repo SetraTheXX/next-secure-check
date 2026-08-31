@@ -4,9 +4,9 @@ Date: 2026-08-31
 
 Issue: [#35](https://github.com/SetraTheXX/next-secure-check/issues/35)
 
-Status: Complete for the v0.6 release-quality candidate and candidate-package
-preparation. npm publication and the v0.6 GitHub tag/release remain a separate
-maintainer release decision.
+Status: Complete for the published v0.6.0 release and coordinated Action
+release. npm publication, GitHub release/tag, and public CLI smoke were verified
+after the release handoff.
 
 ## Purpose
 
@@ -24,21 +24,15 @@ behalf.
 
 | Surface | Version/status | Meaning |
 | --- | --- | --- |
-| Stable npm CLI and internal packages | `0.5.0`, published | Stable public line with 20 built-in rules |
-| v0.6 candidate CLI and internal packages | `0.6.0`, local candidate only | 25 built-in rules; not published or tagged |
-| Reusable GitHub Action | `v1.1.0`, `@v1` | Runs the published `next-secure-check@0.5.0` line |
-| README demo | Published `v0.5.0` build | Stable three-fixture `--summary` demo; intentionally not a v0.6 claim |
+| Stable npm CLI and internal packages | `0.6.0`, published | Stable public line with 25 built-in rules |
+| Previous npm CLI and internal packages | `0.5.0`, published | Frozen compatibility line with 20 built-in rules |
+| Reusable GitHub Action | `v1.2.0`, `@v1` | Runs the published `next-secure-check@0.6.0` line |
+| README demo | Published `v0.6.0` build | Stable three-fixture `--summary` demo |
 
-The four publishable working-tree manifests are now aligned at candidate
-version `0.6.0`. This is release preparation only: it does not publish npm
-artifacts, create a tag, update the Action pin, or change the demo. Until the
-candidate is deliberately published, stable users should keep using the
-published `0.5.0` CLI and `v1.1.0`/`@v1` Action.
-
-The CLI `init` template follows the checked-in CLI version, so a locally built
-candidate writes `next-secure-check@0.6.0` for a future published workflow. The
-stable README and Action remain pinned to `0.5.0` while that package is not yet
-available on npm.
+The four publishable packages were published together at `0.6.0`, and the
+Action was then coordinated to the same CLI line as `v1.2.0` and `@v1`. The
+CLI `init` template follows the CLI package version and therefore writes the
+published `next-secure-check@0.6.0` workflow reference.
 
 ## Runnable quality gate
 
@@ -79,21 +73,20 @@ pnpm audit --prod --audit-level high  PASS — no known vulnerabilities
 The compatibility stage and benchmark samples passed with these local values:
 
 ```text
-100 files:  cold scanner 134.6/140.8 ms median/p95; cold process 532.9/570.6 ms; warm 86.0/128.0 ms; overhead 1.18x
-1,000 files: cold scanner 911.8/997.1 ms median/p95; cold process 1331.9/1432.7 ms; warm 788.9/851.1 ms; overhead 1.14x
-warm corpus scaling ratio: 9.18x
+100 files:  cold scanner 143.6/148.1 ms median/p95; cold process 565.8/618.8 ms; warm 89.6/124.3 ms; overhead 1.22x
+1,000 files: cold scanner 900.8/946.6 ms median/p95; cold process 1337.2/1472.1 ms; warm 771.0/859.9 ms; overhead 1.15x
+warm corpus scaling ratio: 8.60x
 ```
 
-The published-package smoke reported `next-secure-check@0.5.0`, and its secure
+The published-package smoke reported `next-secure-check@0.6.0`, and its secure
 fixture scan remained `99/100`, `excellent`, with one LOW finding. The four
-publishable package tarballs were independently checked with `npm pack
---dry-run --ignore-scripts`; the candidate publish dry-run recognized all four
-`0.6.0` packages without publishing them. The previously published `0.5.0`
-smoke remains the stable consumer check.
+published package versions, `latest` dist-tag, and individual package metadata
+were verified against npm after publication. Package tarballs were also
+independently checked with `npm pack --dry-run --ignore-scripts`.
 
-The checked-in demo asset remains `1280x640`, `18.44` seconds, and `461`
-frames. Its tape uses only the three fixture scans with `--summary`; no
-summary flag is combined with JSON/SARIF or another machine-readable format.
+The checked-in demo asset is `1280x640`, `18.52` seconds, and `463` frames. It
+is generated from the same three fixture scans with `--summary`; no summary
+flag is combined with JSON/SARIF or another machine-readable format.
 
 ## v0.6 development matrix
 
@@ -115,10 +108,12 @@ local path was emitted by the matrix output.
 
 ## Real-world smoke and feedback disposition
 
-Two public repositories were downloaded as source archives and scanned with
-the published `0.5.0` CLI and the local 25-rule development line. No scanned
-repository code was executed, and raw reports or repository contents were not
-stored.
+Two public repositories were downloaded as source archives and compared before
+the v0.6.0 publication using the published `0.5.0` CLI and the local 25-rule
+development line. No scanned repository code was executed, and raw reports or
+repository contents were not stored. The published v0.6.0 fixture smoke above
+is the post-publication consumer check; the comparison below remains historical
+feedback evidence, not a general accuracy claim.
 
 | Input | Published `0.5.0` | Local development line | Difference observed |
 | --- | --- | --- | --- |
@@ -163,11 +158,11 @@ Use this checklist for a fresh review or a future user report:
   review-only/non-actionable; no unreviewed accuracy claim is made.
 - [x] Determinism, privacy, and performance budgets pass locally and in CI.
 - [x] `npm pack --dry-run`, package metadata, and Action compatibility checks
-  pass; the Action remains correctly pinned to the published v0.5 line.
+  pass; the Action is correctly pinned to the published v0.6 line.
 - [x] Release documentation states the exact published versions and v0.6
   limitations.
-- [x] The v0.6 npm publication/tag decision is intentionally handed off as a
-  separate release step; it is not implied by this validation note.
+- [x] The four v0.6.0 npm packages, GitHub `v0.6.0` release/tag, Action
+  `v1.2.0` release, and floating `@v1` tag were verified after publication.
 
 ## Boundaries
 

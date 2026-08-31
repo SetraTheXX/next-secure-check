@@ -1,4 +1,4 @@
-# Reproducible README demo for the published v0.5.0 release.
+# Reproducible README demo for the published v0.6.0 release.
 # Run from the repository root after `pnpm build`.
 Require node
 Require ffmpeg
@@ -24,7 +24,7 @@ Type "cls"
 Enter
 Show
 
-Type "echo next-secure-check v0.5.0 / deterministic review signal"
+Type "echo next-secure-check v0.6.0 / 25 bounded review rules"
 Enter
 Type "echo mode: --summary keeps the demo compact and readable"
 Enter

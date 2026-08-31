@@ -5,10 +5,10 @@ Public progress board for `next-secure-check`. It records completed release work
 | Field | Value |
 | --- | --- |
 | Last reviewed | 2026-08-31 |
-| Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
-| Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | Publish the prepared v0.6.0 candidate packages, then coordinate the follow-up Action release |
-| Release blocker | No known technical blocker; maintainer npm publication/authentication and the v0.6 tag/release remain pending, so the stable Action stays on 0.5.0 |
+| Current release | `v0.6.0` stable on npm and GitHub; reusable Action `v1.2.0` is available through `@v1` |
+| Next release focus | Post-v0.6 feedback, adoption, and confirmed regression reduction |
+| Current next task | Collect bounded real-user feedback and convert confirmed observations into small fixtures |
+| Release blocker | No known technical blocker for the published v0.6.0 line; future changes remain feedback-driven |
 
 ## Progress Legend
 
@@ -33,14 +33,16 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
 - [x] v0.6 development line: 25 built-in rules; published v0.5.0 baseline remains 20 rules.
 - [x] v0.6 #35 quality gate: legacy baseline, five-rule positive/safe matrix, CLI smoke, package contract, and feedback handoff completed.
-- [x] v0.6.0 release-candidate package metadata: four publishable manifests aligned locally; npm, tag, and Action publication remain separate.
+- [x] v0.6.0 release: four packages published, GitHub release/tag created, and public npm latest verified.
+- [x] Reusable GitHub Action v1.2.0: Action pin, release/tag, and floating `@v1` coordination verified.
+- [x] v0.6.0 README demo: checked-in tape and GIF regenerated from the published CLI flow.
 
 ### Post-release follow-up (not v0.5 release blockers)
 
 - [x] Publish the aligned `v0.5.0` packages and update the reusable Action after npm availability was verified.
-- [x] Prepare the aligned `0.6.0` candidate manifests and keep stable `0.5.0` Action/demo consumption explicit.
-- [ ] Publish all four `0.6.0` npm packages and verify the npm `latest` line.
-- [ ] Update `action.yml`, release the follow-up Action version, and move `@v1` only after `0.6.0` is available on npm.
+- [x] Prepare and publish the aligned `0.6.0` package manifests after the quality gate.
+- [x] Update `action.yml`, release the follow-up Action version, and move `@v1` after `0.6.0` became available on npm.
+- [x] Regenerate the README demo from the published `0.6.0` CLI without adding verbose rule-list output.
 - [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - optional demo/video enhancement; separate from the completed v0.5 release gate.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
@@ -463,15 +465,17 @@ and deterministic; existing v0.5 fixtures and rule identities remain stable;
 the full release gate passes; and the published npm/Action line is not moved
 until the separate #35 release-quality review.
 
-### v0.6 Phase 6 - Quality gate and release feedback (#35)
+### v0.6 Phase 6 - Quality gate, release, and feedback (#35)
 
-- [x] **Phase status:** Complete for the release-quality candidate; local gate and opt-in smoke evidence are recorded in [phase-24-v06-quality-gate.md](./docs/validation/phase-24-v06-quality-gate.md).
+- [x] **Phase status:** Complete for the published release; local gate, npm smoke, and coordinated Action evidence are recorded in [phase-24-v06-quality-gate.md](./docs/validation/phase-24-v06-quality-gate.md).
 - [x] Keep the frozen v0.5 fixture, report, SARIF, privacy, and performance contract as a compatibility stage.
 - [x] Add a minimized positive/safe matrix covering all five v0.6 development-line rule identities.
 - [x] Add CLI version/help/rule/explanation/fail-on smoke and aligned package/Action/README version checks.
 - [x] Review public Next.js smoke inputs without executing scanned code or storing raw findings; record only bounded aggregate observations.
 - [x] Define the independent review and feedback handoff for crashes, false positives, false negatives, compatibility, privacy, performance, packaging, and docs.
-- [x] Keep the v0.6 npm publication and tag as an explicit follow-up release decision after the maintainer’s npm handoff.
+- [x] Publish the v0.6 npm packages and GitHub release/tag after the maintainer’s npm handoff.
+- [x] Coordinate Action `v1.2.0` and the floating `@v1` tag after npm availability was verified.
+- [x] Refresh the README demo from the published v0.6.0 CLI while preserving the concise summary flow.
 
 **Exit criteria:** The published v0.5 line remains reproducible, all current
 v0.6 signals have positive and safe release checks, public output remains
