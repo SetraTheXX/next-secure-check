@@ -1,6 +1,6 @@
 {
   "name": "@next-secure-check/rules",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Security rules for next-secure-check",
   "keywords": [
     "nextjs",

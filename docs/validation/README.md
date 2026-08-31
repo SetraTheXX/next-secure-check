@@ -60,7 +60,7 @@ The post-#33 working line contained 426 package tests, 147 web tests, and 573
 total tests. After #34, the current working line contains 453 package tests,
 147 web tests, and 600 total tests. The published v0.5.0 baseline remains
 separately frozen at 20 rules; the five v0.6 rules are available only from the
-unreleased development line.
+unreleased `v0.6.0` candidate line.
 
 The #34 session-cookie, security-header, and broad image-domain signals,
 including privacy-safe evidence, App/Pages Router coverage, JavaScript and

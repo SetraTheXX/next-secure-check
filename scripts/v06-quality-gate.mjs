@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const cliPath = path.join(repoRoot, "packages", "cli", "dist", "index.js");
 const legacyGatePath = path.join(repoRoot, "scripts", "v05-release-gate.mjs");
-const releasedCliVersion = "0.5.0";
+const publishedCliVersion = "0.5.0";
+const candidateCliVersion = "0.6.0";
 const developmentRuleIds = [
   "auth/server-action-without-guards",
   "auth/session-cookie-without-security-flags",
@@ -227,7 +228,7 @@ async function checkDevelopmentRuleMatrix() {
 function checkCliSmoke() {
   const version = runNode([cliPath, "--version"]);
   requireSuccess(version, "CLI version smoke");
-  assert(version.stdout.trim() === releasedCliVersion, `CLI version changed: expected ${releasedCliVersion}, received ${version.stdout.trim()}`);
+  assert(version.stdout.trim() === candidateCliVersion, `CLI candidate version changed: expected ${candidateCliVersion}, received ${version.stdout.trim()}`);
 
   const rootHelp = runNode([cliPath, "--help"]);
   requireSuccess(rootHelp, "CLI root help smoke");
@@ -267,19 +268,19 @@ async function checkPackageContract() {
   })));
 
   for (const { relativePath, manifest } of packages) {
-    assert(manifest.version === releasedCliVersion, `${relativePath} version drifted from ${releasedCliVersion}`);
+    assert(manifest.version === candidateCliVersion, `${relativePath} candidate version drifted from ${candidateCliVersion}`);
     assert(manifest.engines?.node === ">=20.9.0", `${relativePath} must declare the workspace Node baseline >=20.9.0`);
     assert(manifest.license === "MIT", `${relativePath} is missing the MIT license metadata`);
     assert(Array.isArray(manifest.files) && manifest.files.includes("dist"), `${relativePath} does not publish dist`);
   }
 
   const action = await readFile(path.join(repoRoot, "action.yml"), "utf8");
-  assert(action.includes(`next-secure-check@${releasedCliVersion}`), "Action is not pinned to the published CLI line");
+  assert(action.includes(`next-secure-check@${publishedCliVersion}`), "Action is not pinned to the published CLI line");
   assert(action.includes("actions/setup-node@v7") && action.includes("node-version: 20"), "Action Node setup contract changed");
 
   const readme = await readFile(path.join(repoRoot, "README.md"), "utf8");
-  assert(readme.includes("v0.5.0") && readme.includes("v1.1.0") && readme.includes("unreleased v0.6"), "README version matrix is incomplete");
-  console.log("[v06] package/release contract passed: aligned published versions, Node baseline, license, dist, Action pin, and README matrix");
+  assert(readme.includes("v0.5.0") && readme.includes("v1.1.0") && readme.includes("v0.6.0") && readme.includes("not yet published"), "README version matrix is incomplete");
+  console.log("[v06] package/release contract passed: aligned candidate versions, Node baseline, license, dist, stable Action pin, and README matrix");
 }
 
 async function runLegacyReleaseGate() {

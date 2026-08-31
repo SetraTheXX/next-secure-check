@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Release preparation
+
+- Prepared the four publishable workspace packages at candidate version `0.6.0`.
+- Kept the published `0.5.0` CLI, `v1.1.0` Action, `@v1` tag, and README demo as the stable consumer path until the npm publication and follow-up Action release are deliberately completed.
+
 ### Documentation
 
 - Aligned the README first-use flow, demo source wording, roadmap status, and public repository description with the published `v0.5.0` CLI and `v1.1.0` Action.

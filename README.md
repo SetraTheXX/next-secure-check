@@ -4,7 +4,7 @@ Deterministic, explainable security checks for Next.js projects before deploy, l
 
 Run one `npx` command to scan a project before it reaches production. Review each finding with its rule, severity, confidence, location, context, and recommendation. The scanner does not execute repository code or use AI at runtime.
 
-> **Stable npm release:** `v0.5.0` is published on npm and is the `latest` line. The [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0) targets the validated release commit, and the reusable [`v1.1.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0) runs the same CLI line through the floating `@v1` tag. v0.5 adds bounded source-to-sink evidence, structural auth intent, explainable reports, and a concise terminal summary.
+> **Stable npm release:** `v0.5.0` is published on npm and is the `latest` line. The [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0) targets the validated release commit, and the reusable [`v1.1.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0) runs the same CLI line through the floating `@v1` tag. The current `main` branch is prepared as a `v0.6.0` candidate with 25 rules, but it is not yet published; use `0.5.0` for stable npm/Action consumption. v0.5 adds bounded source-to-sink evidence, structural auth intent, explainable reports, and a concise terminal summary.
 
 [![npm](https://img.shields.io/npm/v/next-secure-check?logo=npm)](https://www.npmjs.com/package/next-secure-check)
 [![CI](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml/badge.svg)](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml)
@@ -63,7 +63,7 @@ Using a versioned `npx` command avoids that class of conflict.
 ## What It Checks
 
 The published `v0.5.0` CLI contains 20 built-in rules. The current `main`
-branch adds five unreleased v0.6 rules for Server Actions/Server Functions,
+branch is prepared as a `v0.6.0` candidate and adds five unreleased v0.6 rules for Server Actions/Server Functions,
 request-derived redirect targets, unvalidated outbound URLs, session-cookie
 flags, and broad image-host configuration, bringing the development-line
 surface to 25 rules across secrets, injection, redirects, SSRF, XSS,
@@ -453,7 +453,8 @@ The scanner is designed to provide fast, explainable review signals. It is not a
 
 The current stable published line is `v0.5.0` on npm; the [`v0.5.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 is tagged on the validated release commit, and the coordinated [`v1.1.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.1.0)
-is available through `@v1`. Post-release feedback and the next request-boundary
+is available through `@v1`. The current `main` package manifests are prepared
+as a `v0.6.0` candidate, but `v0.6.0` is not yet published or tagged. Post-release feedback and the next request-boundary
 coverage are tracked in the detailed, checklist-based plan in
 [`ROADMAP.md`](./ROADMAP.md).
 
@@ -489,9 +490,10 @@ apps/web: 147 tests
 total: 513 tests
 ~~~
 
-The current `main` development line, including the unreleased v0.6 bounded
-request-boundary slices, has 453 package tests, 147 web tests, and 600 tests
-total.
+The current `main` v0.6.0 candidate line, including the bounded request-boundary
+slices, has 453 package tests, 147 web tests, and 600 tests total. It is not yet
+published; the README demo and reusable Action intentionally remain on the
+stable v0.5.0 line.
 
 Workspace layout:
 

@@ -8,7 +8,9 @@ Requires Node.js 20.9 or newer.
 
 The stable npm line is `v0.5.0`, published with aligned CLI and internal
 package versions. The reusable GitHub Action `@v1` is coordinated with this
-CLI line.
+CLI line. The checked-in source is prepared as a `v0.6.0` candidate with 25
+rules, but that candidate is not yet published; the examples below use the
+stable line unless explicitly stated otherwise.
 
 ## Usage
 
@@ -212,7 +214,9 @@ npx --yes next-secure-check@latest scan . --fail-on critical
 The v0.5.0 GitHub and npm releases contain the bounded-analysis, intent,
 reporter, and summary changes described above. The CLI, core, rules, and
 reporter manifests are all aligned and published at `0.5.0`; the reusable
-Action `@v1` runs this stable line.
+Action `@v1` runs this stable line. The checked-in manifests now carry the
+next `0.6.0` candidate version for release preparation, but npm consumers
+should continue using `0.5.0` until the candidate is deliberately published.
 
 To try the local build from a clone:
 

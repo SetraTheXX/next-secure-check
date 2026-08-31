@@ -4,8 +4,9 @@ Date: 2026-08-31
 
 Issue: [#35](https://github.com/SetraTheXX/next-secure-check/issues/35)
 
-Status: Complete for the v0.6 release-quality candidate. npm publication and
-the v0.6 GitHub tag/release remain a separate maintainer release decision.
+Status: Complete for the v0.6 release-quality candidate and candidate-package
+preparation. npm publication and the v0.6 GitHub tag/release remain a separate
+maintainer release decision.
 
 ## Purpose
 
@@ -23,14 +24,21 @@ behalf.
 
 | Surface | Version/status | Meaning |
 | --- | --- | --- |
-| npm CLI and internal packages | `0.5.0`, published | Stable public line with 20 built-in rules |
+| Stable npm CLI and internal packages | `0.5.0`, published | Stable public line with 20 built-in rules |
+| v0.6 candidate CLI and internal packages | `0.6.0`, local candidate only | 25 built-in rules; not published or tagged |
 | Reusable GitHub Action | `v1.1.0`, `@v1` | Runs the published `next-secure-check@0.5.0` line |
-| Current `main` working tree | v0.6 development line | 25 built-in rules locally; not published or tagged as v0.6 |
+| README demo | Published `v0.5.0` build | Stable three-fixture `--summary` demo; intentionally not a v0.6 claim |
 
-The working-tree package manifests intentionally retain the published
-`0.5.0` package version until a separate v0.6 release preparation and npm
-publication step. The 25-rule development line must not be presented as the
-published CLI or Action.
+The four publishable working-tree manifests are now aligned at candidate
+version `0.6.0`. This is release preparation only: it does not publish npm
+artifacts, create a tag, update the Action pin, or change the demo. Until the
+candidate is deliberately published, stable users should keep using the
+published `0.5.0` CLI and `v1.1.0`/`@v1` Action.
+
+The CLI `init` template follows the checked-in CLI version, so a locally built
+candidate writes `next-secure-check@0.6.0` for a future published workflow. The
+stable README and Action remain pinned to `0.5.0` while that package is not yet
+available on npm.
 
 ## Runnable quality gate
 
@@ -71,16 +79,17 @@ pnpm audit --prod --audit-level high  PASS — no known vulnerabilities
 The compatibility stage and benchmark samples passed with these local values:
 
 ```text
-100 files:  cold scanner 141.1/167.1 ms median/p95; cold process 606.2/705.9 ms; warm 85.8/119.2 ms; overhead 1.19x
-1,000 files: cold scanner 883.0/928.5 ms median/p95; cold process 1270.5/1334.4 ms; warm 802.3/896.2 ms; overhead 1.17x
-warm corpus scaling ratio: 9.35x
+100 files:  cold scanner 134.6/140.8 ms median/p95; cold process 532.9/570.6 ms; warm 86.0/128.0 ms; overhead 1.18x
+1,000 files: cold scanner 911.8/997.1 ms median/p95; cold process 1331.9/1432.7 ms; warm 788.9/851.1 ms; overhead 1.14x
+warm corpus scaling ratio: 9.18x
 ```
 
 The published-package smoke reported `next-secure-check@0.5.0`, and its secure
 fixture scan remained `99/100`, `excellent`, with one LOW finding. The four
 publishable package tarballs were independently checked with `npm pack
---dry-run --ignore-scripts`; the publish dry-run correctly reported no new
-packages because the `0.5.0` line is already published.
+--dry-run --ignore-scripts`; the candidate publish dry-run recognized all four
+`0.6.0` packages without publishing them. The previously published `0.5.0`
+smoke remains the stable consumer check.
 
 The checked-in demo asset remains `1280x640`, `18.44` seconds, and `461`
 frames. Its tape uses only the three fixture scans with `--summary`; no

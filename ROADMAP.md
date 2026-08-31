@@ -7,8 +7,8 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | v0.6 release decision and npm publication handoff after the completed #35 quality gate |
-| Release blocker | No known technical blocker for a v0.6 release candidate; npm publication and the v0.6 tag remain a separate release decision |
+| Current next task | Publish the prepared v0.6.0 candidate packages, then coordinate the follow-up Action release |
+| Release blocker | No known technical blocker; maintainer npm publication/authentication and the v0.6 tag/release remain pending, so the stable Action stays on 0.5.0 |
 
 ## Progress Legend
 
@@ -33,10 +33,14 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
 - [x] v0.6 development line: 25 built-in rules; published v0.5.0 baseline remains 20 rules.
 - [x] v0.6 #35 quality gate: legacy baseline, five-rule positive/safe matrix, CLI smoke, package contract, and feedback handoff completed.
+- [x] v0.6.0 release-candidate package metadata: four publishable manifests aligned locally; npm, tag, and Action publication remain separate.
 
 ### Post-release follow-up (not v0.5 release blockers)
 
 - [x] Publish the aligned `v0.5.0` packages and update the reusable Action after npm availability was verified.
+- [x] Prepare the aligned `0.6.0` candidate manifests and keep stable `0.5.0` Action/demo consumption explicit.
+- [ ] Publish all four `0.6.0` npm packages and verify the npm `latest` line.
+- [ ] Update `action.yml`, release the follow-up Action version, and move `@v1` only after `0.6.0` is available on npm.
 - [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - optional demo/video enhancement; separate from the completed v0.5 release gate.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
@@ -390,7 +394,7 @@ analysis must stop.
 4. [x] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
 5. [x] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
 6. [x] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
-7. [ ] [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop.
+7. [x] [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop.
 
 ### v0.6 Phase 1 - Proxy and dynamic route boundaries (#30)
 

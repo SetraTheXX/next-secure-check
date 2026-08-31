@@ -165,7 +165,7 @@ describe("initProject", () => {
       JSON.stringify({ preset: "app", format: "terminal", failOn: "high" }, null, 2) + "\n"
     );
     await expect(readFile(path.join(targetPath, NEXT_SECURE_CHECK_WORKFLOW_PATH), "utf8")).resolves.toContain(
-      "npx --yes next-secure-check@0.5.0 scan . --preset app --format github --fail-on high"
+      `npx --yes next-secure-check@${CLI_VERSION} scan . --preset app --format github --fail-on high`
     );
     await expect(readFile(path.join(targetPath, NEXT_SECURE_CHECK_WORKFLOW_PATH), "utf8")).resolves.toContain(
       "actions/checkout@v7"
