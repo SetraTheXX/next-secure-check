@@ -1,7 +1,20 @@
 # headers/missing-security-headers
 
+## Rule ID
+
+`headers/missing-security-headers`
+
+## Severity and confidence
+
+- Severity: LOW
+- Confidence: LOW
+
 ## Description
-Detects if standard HTTP security headers are missing from the `next.config.js` or `next.config.mjs` file.
+
+Detects missing common security-header configuration in recognized Next.js
+`headers()` functions and `middleware`/`proxy` response header setters. It
+reviews Content-Security-Policy, frame protection, X-Content-Type-Options,
+Referrer-Policy, and Permissions-Policy.
 
 ## Why is this a problem?
 Security headers instruct the browser on how to behave when handling your application's content. Missing headers leave the application vulnerable to various client-side attacks:
@@ -10,7 +23,10 @@ Security headers instruct the browser on how to behave when handling your applic
 - **XSS**: Without a Content Security Policy (CSP), it's easier for attackers to execute malicious scripts.
 
 ## How to fix
-Add a `headers()` function to your `next.config.js` to apply security headers to all routes.
+Add a `headers()` function to your `next.config.js`, `.cjs`, `.mjs`, or `.ts`
+config, or set headers in a
+recognized `middleware.ts`/`proxy.ts` response path. Configure the policy for
+your application rather than copying a universal CSP without review.
 
 ```javascript
 // next.config.js
@@ -30,3 +46,12 @@ module.exports = {
     ];
   },
 };
+```
+
+## Evidence and limitations
+
+The analyzer records only static header names and bounded evidence paths; it
+does not include raw header values in findings. Dynamic header names/values,
+reverse-proxy or hosting headers, runtime response behavior, and complete CSP
+correctness are outside the check. A finding is a review signal, not proof that
+every response omits a header.

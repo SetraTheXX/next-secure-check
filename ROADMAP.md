@@ -7,8 +7,8 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add a bounded SSRF source-to-sink review flow |
-| Release blocker | No v0.5 release blocker; #33 is the next bounded v0.6 implementation slice |
+| Current next task | [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop |
+| Release blocker | No v0.5 release blocker; #34 is complete and #35 is the remaining v0.6 release-quality slice |
 
 ## Progress Legend
 
@@ -25,13 +25,13 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
 - [x] v0.5.0 release validation baseline: 366 package tests, 147 web tests, 513 total tests.
-- [x] Current main validation after #32: 401 package tests, 147 web tests, 548 total tests.
+- [x] Current main validation after #34: 453 package tests, 147 web tests, 600 total tests.
 - [x] `v0.5.0` package metadata, documentation, demo, npm publication, and exact GitHub release/tag completed.
 - [x] Reusable GitHub Action `v1.1.0` released and floating `@v1` tag coordinated with the published `0.5.0` CLI.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
-- [x] v0.6 development line: 22 built-in rules; published v0.5.0 baseline remains 20 rules.
+- [x] v0.6 development line: 25 built-in rules; published v0.5.0 baseline remains 20 rules.
 
 ### Post-release follow-up (not v0.5 release blockers)
 
@@ -62,6 +62,10 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
 - [x] [v0.6 unvalidated redirect validation](./docs/validation/phase-21-v06-unvalidated-redirects.md)
 - [x] [v0.6 unvalidated redirect decision](./docs/decisions/0005-v0.6-unvalidated-redirect-signal.md)
+- [x] [v0.6 bounded SSRF validation](./docs/validation/phase-22-v06-ssrf-flow.md)
+- [x] [v0.6 bounded SSRF decision](./docs/decisions/0006-v0.6-ssrf-signal.md)
+- [x] [v0.6 cookie and Next.js configuration hardening validation](./docs/validation/phase-23-v06-config-hardening.md)
+- [x] [v0.6 cookie and Next.js configuration hardening decision](./docs/decisions/0007-v0.6-config-hardening-signals.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)
@@ -382,7 +386,7 @@ analysis must stop.
 3. [x] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
 4. [x] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
 5. [x] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
-6. [ ] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
+6. [x] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
 7. [ ] [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop.
 
 ### v0.6 Phase 1 - Proxy and dynamic route boundaries (#30)
@@ -437,6 +441,20 @@ the full release gate passes.
 deterministic; recognized guards suppress only when their syntax proves the
 relevant relationship; the historical v0.5 baseline remains unchanged; and the
 full release gate passes.
+
+### v0.6 Phase 5 - Session-cookie and Next.js configuration hardening (#34)
+
+- [x] Phase status: Complete; implementation and validation are recorded in [phase-23-v06-config-hardening.md](./docs/validation/phase-23-v06-config-hardening.md).
+- [x] Add the separately identified `auth/session-cookie-without-security-flags` signal for recognized auth/session-like cookie writes.
+- [x] Recognize visible `httpOnly`, `secure`, and `sameSite` states through bounded App Router, response-cookie, and Pages Router serializer forms without emitting cookie names or values.
+- [x] Refine `headers/missing-security-headers` for supported `next.config` and middleware/proxy patterns with bounded evidence and runtime/dynamic uncertainty wording.
+- [x] Add `config/next-image-domains` for static broad host configuration while keeping `remotePatterns` safe negatives.
+- [x] Add safe, partial, dynamic, App Router, Pages Router, JavaScript, TypeScript, CommonJS config, privacy, and deterministic regression coverage.
+
+**Exit criteria:** Cookie/config signals are bounded, explainable, privacy-safe,
+and deterministic; existing v0.5 fixtures and rule identities remain stable;
+the full release gate passes; and the published npm/Action line is not moved
+until the separate #35 release-quality review.
 
 ### v0.6 compatibility guardrails
 

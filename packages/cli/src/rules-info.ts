@@ -77,10 +77,22 @@ const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
     falseNegativeNote: "The rule is name- and context-based; secrets hidden behind computed names or other configuration channels may be missed."
   },
   "headers/missing-security-headers": {
-    checks: "Looks for missing common security header configuration in Next.js apps.",
+    checks: "Looks for missing common security header configuration in recognized Next.js headers() and middleware/proxy header setters.",
     why: "Security headers help reduce XSS, clickjacking, content sniffing, and referrer leakage risks.",
-    falsePositiveNote: "Headers configured outside the app, for example at a reverse proxy, may not be visible.",
-    falseNegativeNote: "Headers configured by reverse proxies, hosting, or dynamic runtime code may be missed."
+    falsePositiveNote: "Headers configured outside the app, dynamic values, or framework adapters may be valid even when this bounded syntax check reports a gap.",
+    falseNegativeNote: "The check does not evaluate runtime header values or headers configured by reverse proxies, hosting, or dynamic framework code."
+  },
+  "auth/session-cookie-without-security-flags": {
+    checks: "Looks for recognized auth/session-like cookies written through cookies().set, response.cookies.set, or a bounded Pages Router Set-Cookie serializer without visible httpOnly, secure, and sameSite flags.",
+    why: "Session cookies need deliberate browser and transport protections to reduce script access and accidental cross-site transmission.",
+    falsePositiveNote: "Only auth/session-like cookie names are considered, and dynamic options remain low-confidence review signals; some intentional cross-site flows may require a different sameSite policy.",
+    falseNegativeNote: "The check does not resolve custom cookie wrappers, dynamic names, cross-file helpers, runtime TLS/browser behavior, or cookie writes through unsupported APIs."
+  },
+  "config/next-image-domains": {
+    checks: "Looks for static host entries under images.domains in a Next.js config.",
+    why: "The broad images.domains form does not constrain protocol, port, or pathname as precisely as remotePatterns.",
+    falsePositiveNote: "A deliberately broad image host may be acceptable for a specific deployment; review the allowed origins and replace it when narrower constraints are possible.",
+    falseNegativeNote: "Dynamic config, computed objects, and runtime image-host policy are not resolved; remotePatterns are recognized as the constrained alternative."
   },
   "upload/missing-file-type-validation": {
     checks: "Looks for upload route handlers without file type validation signals.",

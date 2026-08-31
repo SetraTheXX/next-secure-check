@@ -24,8 +24,10 @@ describe("getBuiltInRules", () => {
     expect(ruleIds).toContain("injection/raw-sql-concat");
     expect(ruleIds).toContain("headers/missing-security-headers");
     expect(ruleIds).toContain("auth/server-action-without-guards");
+    expect(ruleIds).toContain("auth/session-cookie-without-security-flags");
     expect(ruleIds).toContain("redirect/unvalidated-target");
     expect(ruleIds).toContain("ssrf/unvalidated-outbound-url");
-    expect(ruleIds).toHaveLength(23);
+    expect(ruleIds).toContain("config/next-image-domains");
+    expect(ruleIds).toHaveLength(25);
   });
 });

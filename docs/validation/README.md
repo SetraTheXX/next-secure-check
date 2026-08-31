@@ -56,10 +56,18 @@ URL-like request sources, destination guards, stop conditions, and shared-flow
 validation are documented in
 [phase-22-v06-ssrf-flow.md](./phase-22-v06-ssrf-flow.md).
 
-The post-#33 working line contains 426 package tests, 147 web tests, and 573
-total tests. The published v0.5.0 baseline remains separately frozen at 20
-rules; the three v0.6 request-boundary rules are available only from the
+The post-#33 working line contained 426 package tests, 147 web tests, and 573
+total tests. After #34, the current working line contains 453 package tests,
+147 web tests, and 600 total tests. The published v0.5.0 baseline remains
+separately frozen at 20 rules; the five v0.6 rules are available only from the
 unreleased development line.
+
+The #34 session-cookie, security-header, and broad image-domain signals,
+including privacy-safe evidence, App/Pages Router coverage, JavaScript and
+TypeScript parsing, CommonJS config discovery, and the release-gate result are
+documented in
+[phase-23-v06-config-hardening.md](./phase-23-v06-config-hardening.md) and
+[0007-v0.6-config-hardening-signals.md](../decisions/0007-v0.6-config-hardening-signals.md).
 
 Historical v0.1 baseline:
 

@@ -124,6 +124,24 @@ describe("rules CLI helpers", () => {
     expect(output).toContain("cross-file/cross-function flow");
   });
 
+  it("explains session-cookie security flag signals", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "auth/session-cookie-without-security-flags");
+
+    expect(output).toContain("Rule: auth/session-cookie-without-security-flags");
+    expect(output).toContain("httpOnly");
+    expect(output).toContain("dynamic options");
+    expect(output).toContain("custom cookie wrappers");
+  });
+
+  it("explains broad Next.js image domain signals", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "config/next-image-domains");
+
+    expect(output).toContain("Rule: config/next-image-domains");
+    expect(output).toContain("images.domains");
+    expect(output).toContain("remotePatterns");
+    expect(output).toContain("Dynamic config");
+  });
+
   it("returns undefined and formats a helpful message for unknown rule ids", () => {
     const rules = getBuiltInRules();
 

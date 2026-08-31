@@ -63,11 +63,11 @@ Using a versioned `npx` command avoids that class of conflict.
 ## What It Checks
 
 The published `v0.5.0` CLI contains 20 built-in rules. The current `main`
-branch adds three unreleased v0.6 rules for Server Actions/Server Functions,
-request-derived redirect targets, and unvalidated outbound URLs, bringing the
-development-line surface to 23 rules across secrets, injection, redirects,
-SSRF, XSS, authentication, validation, uploads, headers, and Next.js
-configuration.
+branch adds five unreleased v0.6 rules for Server Actions/Server Functions,
+request-derived redirect targets, unvalidated outbound URLs, session-cookie
+flags, and broad image-host configuration, bringing the development-line
+surface to 25 rules across secrets, injection, redirects, SSRF, XSS,
+authentication, validation, uploads, headers, and Next.js configuration.
 
 | Area | Checks |
 | --- | --- |
@@ -76,9 +76,9 @@ configuration.
 | Redirects | [Unvalidated redirect targets](./docs/rules/unvalidated-redirect-target.md) |
 | SSRF | [Unvalidated outbound URLs](./docs/rules/unvalidated-outbound-url.md) |
 | XSS | [`dangerouslySetInnerHTML`](./docs/rules/dangerously-set-inner-html.md) |
-| Authentication | [Login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [admin route protection](./docs/rules/admin-route-without-auth.md), [Server Action guards](./docs/rules/server-action-without-guards.md) |
+| Authentication | [Login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [admin route protection](./docs/rules/admin-route-without-auth.md), [Server Action guards](./docs/rules/server-action-without-guards.md), [session-cookie security flags](./docs/rules/session-cookie-without-security-flags.md) |
 | Validation and uploads | [API input validation](./docs/rules/api-route-without-validation.md), [file type validation](./docs/rules/missing-file-type-validation.md), [file size limits](./docs/rules/missing-file-size-limit.md) |
-| Headers and configuration | [Missing security headers](./docs/rules/missing-security-headers.md), [wildcard CORS](./docs/rules/insecure-cors-wildcard.md), [Next.js powered-by header](./docs/rules/next-powered-by-header.md), [production browser source maps](./docs/rules/production-browser-source-maps.md) |
+| Headers and configuration | [Missing security headers](./docs/rules/missing-security-headers.md), [wildcard CORS](./docs/rules/insecure-cors-wildcard.md), [Next.js powered-by header](./docs/rules/next-powered-by-header.md), [production browser source maps](./docs/rules/production-browser-source-maps.md), [broad image domains](./docs/rules/next-image-domains.md) |
 
 See [`docs/rules`](./docs/rules) for the complete rule documentation, examples, and known limitations.
 
@@ -112,6 +112,15 @@ checks, and private-network/safe-proxy helpers, while stopping at unknown
 wrappers, dynamic sinks, reassignment, and cross-file/cross-function flow. It
 does not make network requests or prove exploitability. The published v0.5.0
 CLI does not yet include this unreleased v0.6 rule.
+
+The development-line cookie signal reviews recognized auth/session-like cookie
+writes through `cookies().set`, `response.cookies.set`, and one bounded Pages
+Router `Set-Cookie` serializer form for visible `httpOnly`, `secure`, and
+`sameSite` flags without exposing cookie values. The configuration signals
+also review static Next.js security headers and broad `images.domains` entries;
+dynamic values, runtime hosting headers, and complete CSP correctness remain
+outside the bounded check. The published v0.5.0 CLI does not yet include these
+unreleased v0.6 rules.
 
 ## CLI Usage
 
@@ -449,9 +458,9 @@ coverage are tracked in the detailed, checklist-based plan in
 [`ROADMAP.md`](./ROADMAP.md).
 
 The next direction is deliberately narrow: extend bounded, explainable coverage
-to Next.js request boundaries such as Proxy, Server Actions, redirects, and
-server-side URL flows before considering default type-aware analysis or an
-unrestricted plugin system.
+to Next.js request boundaries and configuration signals such as Proxy, Server
+Actions, redirects, server-side URL flows, cookies, and headers before
+considering default type-aware analysis or an unrestricted plugin system.
 
 For release history, see [`CHANGELOG.md`](./CHANGELOG.md). Historical validation notes remain under [`docs/validation`](./docs/validation).
 
@@ -475,7 +484,7 @@ total: 513 tests
 ~~~
 
 The current `main` development line, including the unreleased v0.6 bounded
-request-boundary slices, has 426 package tests, 147 web tests, and 573 tests
+request-boundary slices, has 453 package tests, 147 web tests, and 600 tests
 total.
 
 Workspace layout:
@@ -509,6 +518,8 @@ Useful validation references:
 - [v0.6 unvalidated redirect decision](./docs/decisions/0005-v0.6-unvalidated-redirect-signal.md)
 - [v0.6 bounded SSRF flow validation](./docs/validation/phase-22-v06-ssrf-flow.md)
 - [v0.6 bounded SSRF signal decision](./docs/decisions/0006-v0.6-ssrf-signal.md)
+- [v0.6 cookie and Next.js configuration hardening validation](./docs/validation/phase-23-v06-config-hardening.md)
+- [v0.6 cookie and Next.js configuration hardening decision](./docs/decisions/0007-v0.6-config-hardening-signals.md)
 
 ## Learning Project and Development Philosophy
 

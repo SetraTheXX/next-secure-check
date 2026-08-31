@@ -108,4 +108,13 @@ describe("collectFiles", () => {
 
     expect(file?.path).toBe("src/app/route.ts");
   });
+
+  it("collects CommonJS Next.js config files", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "next.config.cjs"), "module.exports = {};");
+
+    const files = await collectFiles(root);
+
+    expect(files.map((file) => file.path)).toEqual(["next.config.cjs"]);
+  });
 });

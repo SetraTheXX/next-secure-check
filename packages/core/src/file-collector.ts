@@ -32,6 +32,7 @@ const INCLUDED_FILENAMES = new Set([
   ".env.test.local",
   "middleware.js",
   "middleware.ts",
+  "next.config.cjs",
   "next.config.js",
   "next.config.mjs",
   "next.config.ts",

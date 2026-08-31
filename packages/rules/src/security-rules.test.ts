@@ -979,6 +979,379 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "headers/missing-security-headers")).toBe(false);
   });
 
+  it("detects auth-like cookie writes without complete security flags without exposing values", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        "  cookies().set('session', process.env.SESSION_TOKEN, { secure: true });",
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "MEDIUM",
+      filePath: "app/api/session/route.ts",
+      line: 3
+    });
+    expect(finding?.evidence).toContain("httpOnly");
+    expect(finding?.evidence).toContain("visible secure");
+    expect(finding?.evidence).toContain("sameSite");
+    expect(finding?.evidence).not.toContain("SESSION_TOKEN");
+    expect(finding?.description).toContain("review signal");
+  });
+
+  it("does not flag a fully protected auth-like cookie written with the object form", async () => {
+    const result = await scanFixture({
+      "app/actions.ts": [
+        'import { cookies } from "next/headers";',
+        'export async function createSession() { cookies().set({ name: "session", value: process.env.SESSION_TOKEN, httpOnly: true, secure: true, sameSite: "lax" }); }'
+      ].join("\n")
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "auth/session-cookie-without-security-flags")).toEqual([]);
+  });
+
+  it("recognizes a partial cookie store created with await cookies", async () => {
+    const result = await scanFixture({
+      "pages/api/session.ts": [
+        'import { cookies } from "next/headers";',
+        "export default async function handler() {",
+        "  const cookieStore = await cookies();",
+        '  cookieStore.set("session", process.env.SESSION_TOKEN, { httpOnly: true, secure: true });',
+        "}"
+      ].join("\n")
+    });
+
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({
+      severity: "LOW",
+      confidence: "LOW",
+      filePath: "pages/api/session.ts",
+      line: 4
+    });
+    expect(finding?.evidence).toContain("sameSite");
+  });
+
+  it("keeps dynamic auth-like cookie options as a low-confidence review signal", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        '  cookies().set("auth_token", process.env.SESSION_TOKEN, { httpOnly: true, secure: process.env.COOKIE_SECURE, sameSite: cookieSameSite });',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({ severity: "LOW", confidence: "LOW" });
+    expect(finding?.evidence).toContain("dynamic secure, sameSite");
+    expect(finding?.evidence).not.toContain("COOKIE_SECURE");
+    expect(finding?.description).toContain("not proof");
+  });
+
+  it("treats shorthand cookie flags as dynamic", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        "  const httpOnly = getCookiePolicy();",
+        '  cookies().set("session", process.env.SESSION_TOKEN, { httpOnly, secure: true, sameSite: "lax" });',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({ severity: "LOW", confidence: "LOW" });
+    expect(finding?.evidence).toContain("dynamic httpOnly");
+    expect(finding?.evidence).not.toContain("missing httpOnly");
+  });
+
+  it("recognizes a directly awaited cookies store", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        '  (await cookies()).set("session", process.env.SESSION_TOKEN, { httpOnly: true, secure: true });',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({ severity: "LOW", confidence: "LOW" });
+    expect(finding?.evidence).toContain("visible httpOnly, secure");
+    expect(finding?.evidence).toContain("missing sameSite");
+  });
+
+  it("keeps cookie findings deterministic and privacy-safe", async () => {
+    const fixture = {
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        '  cookies().set("session", process.env.SESSION_TOKEN, { secure: true });',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    };
+    const [first, second] = await Promise.all([scanFixture(fixture), scanFixture(fixture)]);
+
+    expect(first.findings).toEqual(second.findings);
+    expect(JSON.stringify(first.findings)).not.toContain("SESSION_TOKEN");
+  });
+
+  it("treats an options identifier as dynamic rather than claiming flags are absent", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        "  const options = getCookieOptions();",
+        '  cookies().set("session", process.env.SESSION_TOKEN, options);',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({ severity: "LOW", confidence: "LOW" });
+    expect(finding?.evidence).toContain("dynamic httpOnly, secure, sameSite");
+  });
+
+  it("does not treat a cookie options spread as a complete static guarantee", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        '  cookies().set("session", process.env.SESSION_TOKEN, { httpOnly: true, secure: true, sameSite: "lax", ...getCookieOptions() });',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({ severity: "LOW", confidence: "LOW" });
+    expect(finding?.evidence).toContain("dynamic httpOnly, secure, sameSite");
+  });
+
+  it("does not carry a cookie store alias across function boundaries", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { cookies } from "next/headers";',
+        "async function createStore() {",
+        "  const cookieStore = await cookies();",
+        "  return cookieStore;",
+        "}",
+        "export async function POST() {",
+        '  cookieStore.set("session", process.env.SESSION_TOKEN);',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "auth/session-cookie-without-security-flags")).toEqual([]);
+  });
+
+  it("ignores non-auth cookies and client-side cookie code", async () => {
+    const result = await scanFixture({
+      "app/settings/page.tsx": [
+        '"use client";',
+        "export function Settings() {",
+        '  cookies().set("accessibility", "dark");',
+        "  return null;",
+        "}"
+      ].join("\n"),
+      "app/api/preferences/route.ts": [
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        '  cookies().set("tokenizer", "dark");',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "auth/session-cookie-without-security-flags")).toEqual([]);
+  });
+
+  it("does not treat a later string literal as a client directive", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'const label = "use client";',
+        'import { cookies } from "next/headers";',
+        "export async function POST() {",
+        '  cookies().set("session", process.env.SESSION_TOKEN);',
+        "  return Response.json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "auth/session-cookie-without-security-flags")).toBe(true);
+  });
+
+  it("recognizes response.cookies.set in an App Router handler", async () => {
+    const result = await scanFixture({
+      "app/api/session/route.ts": [
+        'import { NextResponse } from "next/server";',
+        "export async function POST() {",
+        "  const response = NextResponse.json({ ok: true });",
+        '  response.cookies.set("session", process.env.SESSION_TOKEN, { httpOnly: true, secure: true });',
+        "  return response;",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({ severity: "LOW", confidence: "LOW", filePath: "app/api/session/route.ts", line: 4 });
+    expect(finding?.evidence).toContain("sameSite");
+  });
+
+  it("recognizes a bounded serialized Set-Cookie write in a JavaScript Pages Router handler", async () => {
+    const result = await scanFixture({
+      "pages/api/session.js": [
+        'import { serialize } from "cookie";',
+        "export default function handler(req, res) {",
+        '  res.setHeader("Set-Cookie", serialize("session", process.env.SESSION_TOKEN, { httpOnly: true, secure: true }));',
+        "  res.status(200).json({ ok: true });",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "auth/session-cookie-without-security-flags");
+
+    expect(finding).toMatchObject({ severity: "LOW", confidence: "LOW", filePath: "pages/api/session.js", line: 3 });
+    expect(finding?.evidence).toContain("visible httpOnly, secure");
+    expect(finding?.evidence).toContain("missing sameSite");
+  });
+
+  it("does not treat header names in unrelated config strings as configured security headers", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": "export default function Page() { return null; }",
+      "next.config.js": [
+        'const documentation = "Content-Security-Policy X-Frame-Options X-Content-Type-Options Referrer-Policy Permissions-Policy";',
+        "module.exports = { reactStrictMode: true };"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "headers/missing-security-headers");
+
+    expect(finding).toBeDefined();
+    expect(finding?.description).toContain("Content-Security-Policy");
+    expect(finding?.evidence).toContain("No recognized static");
+  });
+
+  it("reports bounded header evidence and uncertainty for dynamic header values", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": "export default function Page() { return null; }",
+      "next.config.ts": [
+        'const unrelatedText = "frame-ancestors \'none\'";',
+        "const dynamicPolicy = createPolicy();",
+        "export default {",
+        "  async headers() {",
+        "    return [{ source: '/(.*)', headers: [{ key: 'Content-Security-Policy', value: dynamicPolicy }] }];",
+        "  }",
+        "};"
+      ].join("\n")
+    });
+    const finding = result.findings.find((item) => item.ruleId === "headers/missing-security-headers");
+
+    expect(finding).toBeDefined();
+    expect(finding?.evidence).toContain("Content-Security-Policy");
+    expect(finding?.evidencePath).toBe("next.config.ts: headers()");
+    expect(finding?.description).toContain("frame protection");
+    expect(finding?.description).toContain("Dynamic header names or values were not evaluated");
+  });
+
+  it("does not flag fully named but dynamic security headers as missing", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": "export default function Page() { return null; }",
+      "next.config.js": [
+        "const policy = buildPolicy();",
+        "const frame = buildFramePolicy();",
+        "const contentType = buildContentTypePolicy();",
+        "const referrer = buildReferrerPolicy();",
+        "const permissions = buildPermissionsPolicy();",
+        "module.exports = {",
+        "  async headers() {",
+        "    return [{ source: '/(.*)', headers: [",
+        "      { key: 'Content-Security-Policy', value: policy },",
+        "      { key: 'X-Frame-Options', value: frame },",
+        "      { key: 'X-Content-Type-Options', value: contentType },",
+        "      { key: 'Referrer-Policy', value: referrer },",
+        "      { key: 'Permissions-Policy', value: permissions }",
+        "    ] }];",
+        "  }",
+        "};"
+      ].join("\n")
+    });
+    expect(result.findings.filter((finding) => finding.ruleId === "headers/missing-security-headers")).toEqual([]);
+  });
+
+  it("detects broad Next.js images.domains configuration with bounded evidence", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "app/page.tsx": "export default function Page() { return null; }",
+      "next.config.mjs": 'export default { images: { domains: ["cdn.example.com"] } };'
+    });
+    const finding = result.findings.find((item) => item.ruleId === "config/next-image-domains");
+
+    expect(finding).toMatchObject({
+      severity: "MEDIUM",
+      confidence: "HIGH",
+      filePath: "next.config.mjs",
+      line: 1
+    });
+    expect(finding?.evidence).toContain("images.domains");
+    expect(finding?.evidence).not.toContain("cdn.example.com");
+    expect(finding?.description).toContain("broad");
+    expect(finding?.recommendation).toContain("remotePatterns");
+  });
+
+  it("recognizes broad image domains in a CommonJS Next.js config", async () => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "app/page.tsx": "export default function Page() { return null; }",
+      "next.config.cjs": 'module.exports = { images: { domains: ["cdn.example.com"] } };'
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "config/next-image-domains")).toBe(true);
+  });
+
+  it.each([
+    ["constrained remotePatterns", 'export default { images: { remotePatterns: [{ protocol: "https", hostname: "cdn.example.com", pathname: "/assets/**" }] } };'],
+    ["dynamic domains", "const imageDomains = getImageDomains(); export default { images: { domains: imageDomains } };"],
+    ["empty domains", "export default { images: { domains: [] } };"],
+    ["unrelated domains property", "const settings = { domains: [\"cdn.example.com\"] }; export default { settings };"],
+  ])("does not flag %s as a proven broad image-host configuration", async (_label, config) => {
+    const result = await scanFixture({
+      "package.json": '{"name":"demo","dependencies":{"next":"latest"}}',
+      "app/page.tsx": "export default function Page() { return null; }",
+      "next.config.js": config
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "config/next-image-domains")).toEqual([]);
+  });
+
+  it("recognizes complete security headers in a JavaScript Proxy entry point", async () => {
+    const result = await scanFixture({
+      "app/page.tsx": "export default function Page() { return null; }",
+      "proxy.js": [
+        "export function proxy(request) {",
+        "  const response = NextResponse.next();",
+        '  response.headers.set("Content-Security-Policy", "default-src \'self\'; frame-ancestors \'none\'");',
+        '  response.headers.set("X-Content-Type-Options", "nosniff");',
+        '  response.headers.set("Referrer-Policy", "no-referrer");',
+        '  response.headers.set("Permissions-Policy", "camera=()");',
+        "  return response;",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "headers/missing-security-headers")).toEqual([]);
+  });
+
   it("detects NEXT_PUBLIC secret-like variables", async () => {
     const result = await scanFixture({ ".env": "NEXT_PUBLIC_STRIPE_SECRET=sk_test_123" });
 
