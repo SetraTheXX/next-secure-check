@@ -34,6 +34,12 @@ const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
     falsePositiveNote: "Fixed destinations, explicit internal-path checks, host/origin allowlists, and deployment controls can make a flow safe even when the surrounding syntax needs review.",
     falseNegativeNote: "The check is intentionally bounded to recognized same-function sources, sinks, and short aliases; custom wrappers, cross-file/cross-function flow, dynamic properties, and unsupported router/config APIs are not proven."
   },
+  "ssrf/unvalidated-outbound-url": {
+    checks: "Looks for request-derived URL-like values reaching global fetch or exact-import axios/got HTTP sinks in exported server handlers without a visible host allowlist, URL guard, private-network rejection, or safe proxy helper.",
+    why: "Server-side requests to attacker-controlled URLs can reach internal services or metadata endpoints and create a server-side request forgery path.",
+    falsePositiveNote: "Fixed URLs, static host allowlists, and visible same-file URL or private-network guards can be safe; middleware, proxy, or infrastructure controls outside the file are not proven.",
+    falseNegativeNote: "The check is intentionally bounded to same-file server entries, known sinks, URL-like request fields, and at most two aliases; cross-file/cross-function flow, dynamic sinks, unknown wrappers, DNS/network probing, and other request fields are outside the boundary."
+  },
   "auth/login-without-rate-limit": {
     checks: "Looks for login/auth routes without route-level or matching middleware rate-limit signals.",
     why: "Authentication endpoints are common brute-force and credential-stuffing targets.",

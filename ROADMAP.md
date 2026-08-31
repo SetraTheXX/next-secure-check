@@ -381,7 +381,7 @@ analysis must stop.
 2. [x] [Issue #30](https://github.com/SetraTheXX/next-secure-check/issues/30) - support Next.js 16 Proxy and dynamic route parameter intent.
 3. [x] [Issue #31](https://github.com/SetraTheXX/next-secure-check/issues/31) - add bounded Server Action and Server Function auth/validation signals.
 4. [x] [Issue #32](https://github.com/SetraTheXX/next-secure-check/issues/32) - add bounded unvalidated redirect source-to-sink flow.
-5. [ ] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
+5. [x] [Issue #33](https://github.com/SetraTheXX/next-secure-check/issues/33) - add bounded SSRF source-to-sink review flow.
 6. [ ] [Issue #34](https://github.com/SetraTheXX/next-secure-check/issues/34) - refine session-cookie and Next.js config hardening signals.
 7. [ ] [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop.
 
@@ -424,13 +424,27 @@ deterministic; recognized guards suppress only when their syntax proves the
 relevant relationship; the historical v0.5 baseline remains unchanged; and
 the full release gate passes.
 
+### v0.6 Phase 4 - Bounded SSRF source-to-sink flow (#33)
+
+- [x] Phase status: Complete; implementation and validation are recorded in [phase-22-v06-ssrf-flow.md](./docs/validation/phase-22-v06-ssrf-flow.md).
+- [x] Add one separately documented `ssrf/unvalidated-outbound-url` signal without changing the published v0.5 rule identities.
+- [x] Recognize server-oriented request/query/route/form/body URL sources and the global `fetch` plus documented `axios`/`got` sink allowlist.
+- [x] Recognize visible static host/origin checks, URL host validation, private-network rejection helpers, and safe proxy helpers without trusting unknown wrappers.
+- [x] Stop at client components, module scope, dynamic sinks/properties, reassignment/mutation, aliases beyond two hops, and cross-file/cross-function flow.
+- [x] Add source/sink/guard, constant/client, alias-boundary, malformed-input, privacy, deterministic-output, shared-flow, and CLI explanation coverage.
+
+**Exit criteria:** SSRF signals are bounded, explainable, privacy-safe, and
+deterministic; recognized guards suppress only when their syntax proves the
+relevant relationship; the historical v0.5 baseline remains unchanged; and the
+full release gate passes.
+
 ### v0.6 compatibility guardrails
 
-- [x] Preserve existing rule IDs, CLI flags, output formats, and deterministic SARIF fingerprints; the separately documented #31 rule addition does not repurpose an existing identity.
-- [ ] Keep the default path syntax-first, bounded, and fast; TypeChecker remains opt-in research rather than the default engine.
-- [ ] Keep cross-file/cross-function taint, full CFG, heap aliasing, dynamic resolution, full route graphs, and unrestricted plugins out of scope.
-- [ ] Never execute code from a scanned repository.
-- [ ] Treat each finding as an explainable review signal, not proof of exploitability.
+- [x] Preserve existing rule IDs, CLI flags, output formats, and deterministic SARIF fingerprints; separately documented v0.6 rule identities do not repurpose the published baseline.
+- [x] Keep the default path syntax-first, bounded, and fast; TypeChecker remains opt-in research rather than the default engine.
+- [x] Keep cross-file/cross-function taint, full CFG, heap aliasing, dynamic resolution, full route graphs, and unrestricted plugins out of scope.
+- [x] Never execute code from a scanned repository.
+- [x] Treat each finding as an explainable review signal, not proof of exploitability.
 
 **v0.6 success metric:** better request-boundary evidence and fewer unsupported
 guesses, measured by reviewed fixture changes, noise/false-positive notes,

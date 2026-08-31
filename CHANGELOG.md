@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separated optional post-release demo and feedback follow-up from the completed v0.5 release gate.
 - Documented the bounded Server Action/Server Function guard signal and its separate v0.6 identity decision.
 - Documented the bounded unvalidated redirect signal, its recognized Next.js sinks, and its separate v0.6 identity decision.
+- Documented the bounded SSRF source-to-sink signal, its recognized outbound HTTP sinks, and its separate v0.6 identity decision.
 
 ### Added
 
 - Added `auth/server-action-without-guards` for direct or inline `use server` boundaries with action/request input and no visible same-function auth or input-validation intent.
 - Added `redirect/unvalidated-target` for request-derived values reaching recognized redirect sinks without a visible bounded destination guard.
+- Added `ssrf/unvalidated-outbound-url` for request-derived URL-like values reaching recognized server-side HTTP sinks without a visible bounded destination guard.
 
 ### Changed
 
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kept dynamic matcher values, cross-file flow, full route reachability, and unknown wrappers outside the supported inference boundary.
 - Kept the published v0.5.0 20-rule baseline unchanged while exposing the new v0.6 rules only on the unreleased development line; partial guard signals are lowered to LOW.
 - Kept redirect tracking same-function and syntax-first, with recognized allowlists/internal-path checks suppressing signals and dynamic or external-looking targets remaining reviewable.
+- Kept SSRF tracking server-only, same-function, syntax-first, and privacy-safe, with exact sink/source allowlists and visible host/private-network guards; the published v0.5.0 20-rule baseline remains unchanged.
 
 ## [0.5.0] - 2026-08-29
 

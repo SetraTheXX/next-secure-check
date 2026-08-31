@@ -7,6 +7,7 @@ import {
   findRawSqlConcatMatches,
   findRouteHandlerExports,
   findServerActionMatches,
+  findUnvalidatedOutboundRequestMatches,
   findUnvalidatedRedirectMatches,
   findUploadRouteHandlerMatches,
   hasAuthIntentSignal,
@@ -533,6 +534,36 @@ export const unvalidatedRedirectTargetRule: Rule = {
   }
 };
 
+export const unvalidatedOutboundRequestUrlRule: Rule = {
+  id: "ssrf/unvalidated-outbound-url",
+  title: "Request-derived outbound URL may enable SSRF",
+  severity: "HIGH",
+  category: "ssrf",
+  confidence: "MEDIUM",
+  scan(context) {
+    return codeFiles(context).flatMap((file) =>
+      findUnvalidatedOutboundRequestMatches(file).map((match) =>
+        createFinding({
+          rule: unvalidatedOutboundRequestUrlRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          evidencePath: match.evidencePath,
+          description:
+            `A request-derived URL reaches ${match.sinkName} (${match.evidencePath}) without a recognized host allowlist, URL validation, private-network block, or safe proxy helper. This is a bounded review signal, not proof of exploitability.`,
+          recommendation:
+            "Validate outbound URLs with an explicit host allowlist, reject private or loopback networks, and keep proxy destinations fixed when possible.",
+          references: [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html",
+            "https://nextjs.org/docs/app/guides/data-security"
+          ]
+        })
+      )
+    );
+  }
+};
+
 export const adminRouteWithoutAuthRule: Rule = {
   id: "auth/admin-route-without-auth",
   title: "Admin route may be missing auth protection",
@@ -687,6 +718,7 @@ export const builtInSecurityRules: Rule[] = [
   passwordWithoutHashingRule,
   rawSqlConcatRule,
   unvalidatedRedirectTargetRule,
+  unvalidatedOutboundRequestUrlRule,
   missingSecurityHeadersRule,
   nextPublicSecretRule,
   registerWithoutRateLimitRule,

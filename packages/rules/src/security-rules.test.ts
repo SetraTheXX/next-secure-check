@@ -2541,4 +2541,39 @@ describe("built-in security rules", () => {
 
     expect(result.findings.filter((finding) => finding.ruleId === "redirect/unvalidated-target")).toEqual([]);
   });
+
+  it("detects bounded request-derived URLs reaching outbound fetch", async () => {
+    const result = await scanFixture({
+      "app/api/proxy/route.ts": [
+        "export async function POST(request) {",
+        "  const url = request.query.url;",
+        "  await fetch(url);",
+        "}"
+      ].join("\n")
+    });
+    const finding = result.findings.find((candidate) => candidate.ruleId === "ssrf/unvalidated-outbound-url");
+
+    expect(finding).toMatchObject({
+      severity: "HIGH",
+      confidence: "MEDIUM",
+      evidencePath: "request.query -> url",
+      evidence: "await fetch(url);"
+    });
+    expect(finding?.description).toContain("fetch");
+  });
+
+  it("suppresses a bounded SSRF flow with a visible static host allowlist", async () => {
+    const result = await scanFixture({
+      "app/api/proxy/route.ts": [
+        'const ALLOWED_HOSTS = ["api.example.com"];',
+        "export async function POST(request) {",
+        "  const url = request.query.url;",
+        "  if (!ALLOWED_HOSTS.includes(new URL(url).hostname)) return Response.json({ ok: false });",
+        "  await fetch(url);",
+        "}"
+      ].join("\n")
+    });
+
+    expect(result.findings.filter((finding) => finding.ruleId === "ssrf/unvalidated-outbound-url")).toEqual([]);
+  });
 });

@@ -115,6 +115,15 @@ describe("rules CLI helpers", () => {
     expect(output).toContain("cross-file/cross-function flow");
   });
 
+  it("explains bounded SSRF signals", () => {
+    const output = formatRuleExplanation(getBuiltInRules(), "ssrf/unvalidated-outbound-url");
+
+    expect(output).toContain("Rule: ssrf/unvalidated-outbound-url");
+    expect(output).toContain("server-side request forgery");
+    expect(output).toContain("host allowlist");
+    expect(output).toContain("cross-file/cross-function flow");
+  });
+
   it("returns undefined and formats a helpful message for unknown rule ids", () => {
     const rules = getBuiltInRules();
 

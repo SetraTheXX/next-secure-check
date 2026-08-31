@@ -3,7 +3,7 @@ import ts from "typescript";
 import { SourceAnalysisCache, type AnalysisCacheStats } from "./analysis-cache.js";
 import type { BoundedFlowFacts } from "./analysis-facts.js";
 import { collectCommandDiscovery } from "./command-discovery.js";
-import { collectCommandFlowFacts, isAnalyzableCommandExecutionCall } from "./command-flow.js";
+import { collectCommandFlowFacts, isAnalyzableCommandExecutionCall, type BoundedFlowCallbacks } from "./command-flow.js";
 import { findPasswordHandlingNodes, hasPasswordHashingCall } from "./password-ast.js";
 import { createRawSqlFlowCallbacks, findRawSqlConcatNodes } from "./sql-ast.js";
 import {
@@ -19,6 +19,7 @@ import {
 } from "./route-ast.js";
 import { findServerActionBoundaries } from "./server-action-ast.js";
 import { findUnvalidatedRedirectTargets, type RedirectDestinationKind } from "./redirect-flow.js";
+import { createSsrfFlowAnalysis, type SsrfFlowMatch } from "./ssrf-flow.js";
 import { createXssAnalysisFacts, findDangerouslySetInnerHtmlNodes } from "./xss-ast.js";
 
 export type AstMatch = {
@@ -44,6 +45,11 @@ export type RedirectMatch = AstMatch & {
   sinkName: string;
 };
 
+export type OutboundRequestMatch = AstMatch & {
+  evidencePath: string;
+  sinkName: string;
+};
+
 export type AnalysisFacts = {
   sourceFile: ts.SourceFile;
   boundedFlow: BoundedFlowFacts;
@@ -61,6 +67,7 @@ export type AnalysisFacts = {
   hasRateLimitIntent: boolean;
   hasValidationIntent: boolean;
   hasUploadHandling: boolean;
+  ssrfMatches: readonly SsrfFlowMatch[];
 };
 
 export type AnalysisFactsCacheStats = AnalysisCacheStats;
@@ -208,6 +215,17 @@ export function findUnvalidatedRedirectMatches(file: SourceFile): RedirectMatch[
   );
 }
 
+export function findUnvalidatedOutboundRequestMatches(file: SourceFile): OutboundRequestMatch[] {
+  const { sourceFile, ssrfMatches } = getAnalysisFacts(file);
+  return dedupeMatches(
+    ssrfMatches.map((match) => ({
+      ...matchFromNode(file, sourceFile, match.node),
+      evidencePath: match.evidencePath,
+      sinkName: match.sinkName
+    }))
+  );
+}
+
 export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
   if (!isApiRouteFilePath(file.path)) {
     return [];
@@ -225,12 +243,14 @@ export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
 }
 
 function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
+  const rawSqlCallbacks = createRawSqlFlowCallbacks();
+  const ssrfAnalysis = createSsrfFlowAnalysis(sourceFile);
   const commandDiscovery = collectCommandDiscovery(sourceFile);
   const commandFlow = collectCommandFlowFacts(
     sourceFile,
     commandDiscovery.commandIdentifiers,
     commandDiscovery.childProcessNamespaces,
-    createRawSqlFlowCallbacks()
+    mergeBoundedFlowCallbacks(rawSqlCallbacks, ssrfAnalysis.callbacks)
   );
   const routeHandlerNodes: ts.Node[] = [];
   let hasUploadHandling = false;
@@ -264,7 +284,19 @@ function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
     hasAuthIntent: hasAuthIntentInSource(sourceFile),
     hasRateLimitIntent: hasRateLimitIntentInSource(sourceFile),
     hasValidationIntent: hasValidationIntentInSource(sourceFile),
-    hasUploadHandling
+    hasUploadHandling,
+    ssrfMatches: ssrfAnalysis.getMatches()
+  };
+}
+
+function mergeBoundedFlowCallbacks(...callbackSets: BoundedFlowCallbacks[]): BoundedFlowCallbacks {
+  return {
+    onVariableDeclaration: (node, context) => callbackSets.forEach((callbacks) => callbacks.onVariableDeclaration?.(node, context)),
+    onAssignment: (node, context) => callbackSets.forEach((callbacks) => callbacks.onAssignment?.(node, context)),
+    onCall: (node, context) => callbackSets.forEach((callbacks) => callbacks.onCall?.(node, context)),
+    shouldSkipCallInvalidation: (node, context) => callbackSets.some((callbacks) => callbacks.shouldSkipCallInvalidation?.(node, context) ?? false),
+    onTaggedTemplate: (node, context) => callbackSets.forEach((callbacks) => callbacks.onTaggedTemplate?.(node, context)),
+    onInvalidation: (identifier, reason, context) => callbackSets.forEach((callbacks) => callbacks.onInvalidation?.(identifier, reason, context))
   };
 }
 

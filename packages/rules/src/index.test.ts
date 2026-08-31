@@ -25,6 +25,7 @@ describe("getBuiltInRules", () => {
     expect(ruleIds).toContain("headers/missing-security-headers");
     expect(ruleIds).toContain("auth/server-action-without-guards");
     expect(ruleIds).toContain("redirect/unvalidated-target");
-    expect(ruleIds).toHaveLength(22);
+    expect(ruleIds).toContain("ssrf/unvalidated-outbound-url");
+    expect(ruleIds).toHaveLength(23);
   });
 });

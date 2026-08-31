@@ -39,6 +39,7 @@ export type BoundedFlowCallbacks = {
   readonly onVariableDeclaration?: (node: ts.VariableDeclaration, context: BoundedFlowContext) => void;
   readonly onAssignment?: (node: ts.BinaryExpression, context: BoundedFlowContext) => void;
   readonly onCall?: (node: ts.CallExpression, context: BoundedFlowContext) => void;
+  readonly shouldSkipCallInvalidation?: (node: ts.CallExpression, context: BoundedFlowContext) => boolean;
   readonly onTaggedTemplate?: (node: ts.TaggedTemplateExpression, context: BoundedFlowContext) => void;
   readonly onInvalidation?: (
     identifier: string,
@@ -206,7 +207,9 @@ function analyzeCommandScope(
   }
 
   if (ts.isCallExpression(node)) {
-    state.callbacks.onCall?.(node, createBoundedFlowContext(state));
+    const context = createBoundedFlowContext(state);
+    state.callbacks.onCall?.(node, context);
+    const skipCallInvalidation = state.callbacks.shouldSkipCallInvalidation?.(node, context) ?? false;
 
     if (isAnalyzableCommandExecutionCall(node, commandIdentifiers, childProcessNamespaces)) {
       state.factsBuilder.sinkFacts.set(node, { node, scope: scopeRoot, kind: commandExecutionName(node.expression) });
@@ -227,8 +230,11 @@ function analyzeCommandScope(
       } else {
         invalidateTaintedReferences(node, state, "call-escape");
       }
-    } else if (!isCommandAllowlistMembershipCall(node) && !sourcePathForExpression(node, state)) {
-      invalidateTaintedReferences(node, state, "call-escape");
+    } else {
+      const sourcePath = sourcePathForExpression(node, state);
+      if (!skipCallInvalidation && !isCommandAllowlistMembershipCall(node) && !sourcePath) {
+        invalidateTaintedReferences(node, state, "call-escape");
+      }
     }
   }
 

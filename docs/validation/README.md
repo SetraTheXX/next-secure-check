@@ -51,6 +51,16 @@ redirect sinks, destination guards, stop conditions, and validation coverage
 are documented in
 [phase-21-v06-unvalidated-redirects.md](./phase-21-v06-unvalidated-redirects.md).
 
+The #33 bounded SSRF source-to-sink flow, recognized outbound HTTP sinks,
+URL-like request sources, destination guards, stop conditions, and shared-flow
+validation are documented in
+[phase-22-v06-ssrf-flow.md](./phase-22-v06-ssrf-flow.md).
+
+The post-#33 working line contains 426 package tests, 147 web tests, and 573
+total tests. The published v0.5.0 baseline remains separately frozen at 20
+rules; the three v0.6 request-boundary rules are available only from the
+unreleased development line.
+
 Historical v0.1 baseline:
 
 ```txt

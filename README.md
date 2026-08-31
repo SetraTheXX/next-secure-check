@@ -63,16 +63,18 @@ Using a versioned `npx` command avoids that class of conflict.
 ## What It Checks
 
 The published `v0.5.0` CLI contains 20 built-in rules. The current `main`
-branch adds two unreleased v0.6 rules for Server Actions/Server Functions and
-request-derived redirect targets, bringing the development-line surface to 22
-rules across secrets, injection, redirects, XSS, authentication, validation,
-uploads, headers, and Next.js configuration.
+branch adds three unreleased v0.6 rules for Server Actions/Server Functions,
+request-derived redirect targets, and unvalidated outbound URLs, bringing the
+development-line surface to 23 rules across secrets, injection, redirects,
+SSRF, XSS, authentication, validation, uploads, headers, and Next.js
+configuration.
 
 | Area | Checks |
 | --- | --- |
 | Secrets | [Committed `.env` files](./docs/rules/env-file-committed.md), [hardcoded secrets](./docs/rules/hardcoded-secret.md), [weak JWT secrets](./docs/rules/weak-jwt-secret.md), [public secret-like names](./docs/rules/next-public-secret.md) |
 | Injection | [`eval`](./docs/rules/no-eval.md), [`new Function`](./docs/rules/no-new-function.md), [command execution](./docs/rules/command-exec.md), [raw SQL interpolation](./docs/rules/raw-sql-concat.md) |
 | Redirects | [Unvalidated redirect targets](./docs/rules/unvalidated-redirect-target.md) |
+| SSRF | [Unvalidated outbound URLs](./docs/rules/unvalidated-outbound-url.md) |
 | XSS | [`dangerouslySetInnerHTML`](./docs/rules/dangerously-set-inner-html.md) |
 | Authentication | [Login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [admin route protection](./docs/rules/admin-route-without-auth.md), [Server Action guards](./docs/rules/server-action-without-guards.md) |
 | Validation and uploads | [API input validation](./docs/rules/api-route-without-validation.md), [file type validation](./docs/rules/missing-file-type-validation.md), [file size limits](./docs/rules/missing-file-size-limit.md) |
@@ -102,6 +104,14 @@ source paths and visible internal-path, allowlist, or same-origin guards; it
 can recognize a same-file helper only when its guard expression is explicit; it
 does not follow source flow across files/functions or trust unknown wrappers. The
 published v0.5.0 CLI does not yet include this unreleased v0.6 rule.
+
+The development-line SSRF signal reviews URL-like request/query/route/form/body
+values reaching global `fetch` or the documented `axios`/`got` sinks in
+server-oriented functions. It recognizes visible host allowlists, URL host
+checks, and private-network/safe-proxy helpers, while stopping at unknown
+wrappers, dynamic sinks, reassignment, and cross-file/cross-function flow. It
+does not make network requests or prove exploitability. The published v0.5.0
+CLI does not yet include this unreleased v0.6 rule.
 
 ## CLI Usage
 
@@ -465,7 +475,8 @@ total: 513 tests
 ~~~
 
 The current `main` development line, including the unreleased v0.6 bounded
-redirect slice, has 401 package tests, 147 web tests, and 548 tests total.
+request-boundary slices, has 426 package tests, 147 web tests, and 573 tests
+total.
 
 Workspace layout:
 
@@ -496,6 +507,8 @@ Useful validation references:
 - [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
 - [v0.6 unvalidated redirect validation](./docs/validation/phase-21-v06-unvalidated-redirects.md)
 - [v0.6 unvalidated redirect decision](./docs/decisions/0005-v0.6-unvalidated-redirect-signal.md)
+- [v0.6 bounded SSRF flow validation](./docs/validation/phase-22-v06-ssrf-flow.md)
+- [v0.6 bounded SSRF signal decision](./docs/decisions/0006-v0.6-ssrf-signal.md)
 
 ## Learning Project and Development Philosophy
 

@@ -28,6 +28,9 @@ Each rule document should include:
 ### Redirects
 - `redirect/unvalidated-target`
 
+### Server-Side Request Forgery (SSRF)
+- [`ssrf/unvalidated-outbound-url`](./unvalidated-outbound-url.md)
+
 ### Authentication & Authorization
 - `auth/login-without-rate-limit`
 - `auth/register-without-rate-limit`
