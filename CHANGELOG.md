@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - Aligned the README first-use flow, demo source wording, roadmap status, and public repository description with the published `v0.5.0` CLI and `v1.1.0` Action.
+- Added the v0.6 quality gate and release-feedback validation note with a minimized five-rule matrix, opt-in smoke observations, exact version contract, and independent review handoff.
 - Separated optional post-release demo and feedback follow-up from the completed v0.5 release gate.
 - Documented the bounded Server Action/Server Function guard signal and its separate v0.6 identity decision.
 - Documented the bounded unvalidated redirect signal, its recognized Next.js sinks, and its separate v0.6 identity decision.
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Aligned publishable package Node engine metadata with the workspace baseline of `>=20.9.0` and updated the user-facing installation guidance.
 - Recognized Next.js 16 `proxy.ts` alongside legacy `middleware.ts` for bounded same-app auth and rate-limit intent signals.
 - Extended API validation review signals to statically recognizable dynamic route parameters and request search parameters with bounded evidence paths.
 - Kept dynamic matcher values, cross-file flow, full route reachability, and unknown wrappers outside the supported inference boundary.

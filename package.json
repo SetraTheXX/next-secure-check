@@ -14,7 +14,8 @@
     "test:packages": "vitest run --passWithNoTests",
     "test:web": "pnpm -C apps/web test",
     "typecheck": "pnpm -r --if-present typecheck",
-    "release:gate": "node scripts/v05-release-gate.mjs",
+    "release:gate": "node scripts/v06-quality-gate.mjs",
+    "release:gate:v05": "node scripts/v05-release-gate.mjs",
     "clean": "pnpm -r --if-present clean"
   },
   "devDependencies": {

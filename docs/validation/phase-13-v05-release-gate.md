@@ -13,6 +13,9 @@ synthetic-corpus performance envelope.
 
 The gate reads project files as scanner input. It does not execute code from a
 scanned project, clone an external repository, or require a network service.
+The current public `pnpm release:gate` command runs this frozen v0.5 gate as
+the compatibility stage of the v0.6 quality gate; `pnpm release:gate:v05`
+runs this stage directly.
 
 ## Commands
 

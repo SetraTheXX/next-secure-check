@@ -7,8 +7,8 @@ Public progress board for `next-secure-check`. It records completed release work
 | Last reviewed | 2026-08-31 |
 | Current release | `v0.5.0` stable on npm and GitHub; reusable Action `v1.1.0` is available through `@v1` |
 | Next release focus | `v0.6.0` - Next.js request-boundary coverage with bounded, explainable flows |
-| Current next task | [Issue #35](https://github.com/SetraTheXX/next-secure-check/issues/35) - run the real-world quality gate and release feedback loop |
-| Release blocker | No v0.5 release blocker; #34 is complete and #35 is the remaining v0.6 release-quality slice |
+| Current next task | v0.6 release decision and npm publication handoff after the completed #35 quality gate |
+| Release blocker | No known technical blocker for a v0.6 release candidate; npm publication and the v0.6 tag remain a separate release decision |
 
 ## Progress Legend
 
@@ -32,6 +32,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] Vulnerable fixture with `--preset strict`: 0/100, `critical`, 26 findings.
 - [x] Secure fixture with `--preset app`: 99/100, `excellent`, 1 LOW finding.
 - [x] v0.6 development line: 25 built-in rules; published v0.5.0 baseline remains 20 rules.
+- [x] v0.6 #35 quality gate: legacy baseline, five-rule positive/safe matrix, CLI smoke, package contract, and feedback handoff completed.
 
 ### Post-release follow-up (not v0.5 release blockers)
 
@@ -39,6 +40,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - optional demo/video enhancement; separate from the completed v0.5 release gate.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
+- [x] Record opt-in public-repository smoke observations without storing raw reports or making accuracy claims.
 
 ### Public evidence
 
@@ -66,6 +68,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.6 bounded SSRF decision](./docs/decisions/0006-v0.6-ssrf-signal.md)
 - [x] [v0.6 cookie and Next.js configuration hardening validation](./docs/validation/phase-23-v06-config-hardening.md)
 - [x] [v0.6 cookie and Next.js configuration hardening decision](./docs/decisions/0007-v0.6-config-hardening-signals.md)
+- [x] [v0.6 quality gate and release feedback](./docs/validation/phase-24-v06-quality-gate.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)
@@ -455,6 +458,22 @@ full release gate passes.
 and deterministic; existing v0.5 fixtures and rule identities remain stable;
 the full release gate passes; and the published npm/Action line is not moved
 until the separate #35 release-quality review.
+
+### v0.6 Phase 6 - Quality gate and release feedback (#35)
+
+- [x] **Phase status:** Complete for the release-quality candidate; local gate and opt-in smoke evidence are recorded in [phase-24-v06-quality-gate.md](./docs/validation/phase-24-v06-quality-gate.md).
+- [x] Keep the frozen v0.5 fixture, report, SARIF, privacy, and performance contract as a compatibility stage.
+- [x] Add a minimized positive/safe matrix covering all five v0.6 development-line rule identities.
+- [x] Add CLI version/help/rule/explanation/fail-on smoke and aligned package/Action/README version checks.
+- [x] Review public Next.js smoke inputs without executing scanned code or storing raw findings; record only bounded aggregate observations.
+- [x] Define the independent review and feedback handoff for crashes, false positives, false negatives, compatibility, privacy, performance, packaging, and docs.
+- [x] Keep the v0.6 npm publication and tag as an explicit follow-up release decision after the maintainer’s npm handoff.
+
+**Exit criteria:** The published v0.5 line remains reproducible, all current
+v0.6 signals have positive and safe release checks, public output remains
+private and deterministic, packaging/Action contracts are aligned, and a
+reviewer can turn a real-world observation into a minimized issue without
+making an unreviewed accuracy claim.
 
 ### v0.6 compatibility guardrails
 

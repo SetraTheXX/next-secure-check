@@ -40,7 +40,7 @@ npx --yes next-secure-check@0.5.0 scan . --preset app --summary
 
 This concise first view shows the score, risk, finding counts, and representative findings. Remove `--summary` when you want the detailed terminal report with explanations and recommendations.
 
-The CLI requires Node.js 20 or newer.
+The CLI requires Node.js 20.9 or newer.
 
 ### Global install
 
@@ -475,6 +475,12 @@ pnpm test
 pnpm release:gate
 ~~~
 
+`pnpm release:gate` runs the frozen v0.5 compatibility checks plus the
+current v0.6 development-rule matrix, CLI smoke, and package/release contract.
+It uses checked-in or disposable local fixtures; public-repository smoke tests
+remain opt-in and never execute scanned code. See the [v0.6 quality-gate
+validation note](./docs/validation/phase-24-v06-quality-gate.md).
+
 The published v0.5.0 release validation baseline is:
 
 ~~~txt
@@ -520,6 +526,7 @@ Useful validation references:
 - [v0.6 bounded SSRF signal decision](./docs/decisions/0006-v0.6-ssrf-signal.md)
 - [v0.6 cookie and Next.js configuration hardening validation](./docs/validation/phase-23-v06-config-hardening.md)
 - [v0.6 cookie and Next.js configuration hardening decision](./docs/decisions/0007-v0.6-config-hardening-signals.md)
+- [v0.6 quality gate and release feedback](./docs/validation/phase-24-v06-quality-gate.md)
 
 ## Learning Project and Development Philosophy
 

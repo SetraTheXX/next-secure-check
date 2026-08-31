@@ -69,6 +69,11 @@ documented in
 [phase-23-v06-config-hardening.md](./phase-23-v06-config-hardening.md) and
 [0007-v0.6-config-hardening-signals.md](../decisions/0007-v0.6-config-hardening-signals.md).
 
+The #35 v0.6 quality gate, minimized development-rule matrix, opt-in
+real-world smoke observations, package/Action contract, and independent
+review handoff are documented in
+[phase-24-v06-quality-gate.md](./phase-24-v06-quality-gate.md).
+
 Historical v0.1 baseline:
 
 ```txt

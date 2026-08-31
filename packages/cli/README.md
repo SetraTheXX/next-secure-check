@@ -4,7 +4,7 @@ Deterministic security checks for Next.js projects. No AI required.
 
 Run a quick static security sanity check before deploying a Next.js app.
 
-Requires Node.js 20 or newer.
+Requires Node.js 20.9 or newer.
 
 The stable npm line is `v0.5.0`, published with aligned CLI and internal
 package versions. The reusable GitHub Action `@v1` is coordinated with this
