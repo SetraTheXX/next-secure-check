@@ -4,7 +4,7 @@ Public progress board for `next-secure-check`. It records completed release work
 
 | Field | Value |
 | --- | --- |
-| Last reviewed | 2026-08-31 |
+| Last reviewed | 2026-09-03 |
 | Current release | `v0.6.0` stable on npm and GitHub; reusable Action `v1.2.0` is available through `@v1` |
 | Next release focus | Post-v0.6 feedback, adoption, and confirmed regression reduction |
 | Current next task | Collect bounded real-user feedback and convert confirmed observations into small fixtures |
@@ -25,7 +25,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] `v0.4.1` published as the CLI documentation-only patch.
 - [x] npm package, workspace package metadata, GitHub Actions validation, pack smoke, and release documentation completed.
 - [x] v0.5.0 release validation baseline: 366 package tests, 147 web tests, 513 total tests.
-- [x] Current main validation after #34: 453 package tests, 147 web tests, 600 total tests.
+- [x] v0.6 development validation after #34: 453 package tests, 147 web tests, 600 total tests.
 - [x] `v0.5.0` package metadata, documentation, demo, npm publication, and exact GitHub release/tag completed.
 - [x] Reusable GitHub Action `v1.1.0` released and floating `@v1` tag coordinated with the published `0.5.0` CLI.
 - [x] Repository self-scan with `--preset app`: 100/100, `excellent`, 0 findings.
@@ -35,15 +35,15 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] v0.6 #35 quality gate: legacy baseline, five-rule positive/safe matrix, CLI smoke, package contract, and feedback handoff completed.
 - [x] v0.6.0 release: four packages published, GitHub release/tag created, and public npm latest verified.
 - [x] Reusable GitHub Action v1.2.0: Action pin, release/tag, and floating `@v1` coordination verified.
-- [x] v0.6.0 README demo: checked-in tape and GIF regenerated from the published CLI flow.
+- [x] v0.6.0 README demo: checked-in tape and GIF regenerated from the v0.6.0 release-commit CLI flow; published npm smoke verified separately.
 
-### Post-release follow-up (not v0.5 release blockers)
+### Post-release follow-up (not current v0.6 release blockers)
 
 - [x] Publish the aligned `v0.5.0` packages and update the reusable Action after npm availability was verified.
 - [x] Prepare and publish the aligned `0.6.0` package manifests after the quality gate.
 - [x] Update `action.yml`, release the follow-up Action version, and move `@v1` after `0.6.0` became available on npm.
-- [x] Regenerate the README demo from the published `0.6.0` CLI without adding verbose rule-list output.
-- [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - optional demo/video enhancement; separate from the completed v0.5 release gate.
+- [x] Regenerate the README demo from the v0.6.0 release-commit CLI without adding verbose rule-list output; published npm smoke is recorded separately.
+- [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - optional demo/video enhancement; separate from the completed v0.6 release gate.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
 - [x] Record opt-in public-repository smoke observations without storing raw reports or making accuracy claims.
@@ -497,7 +497,7 @@ determinism, privacy, and performance—not by rule count alone.
 
 ## Deferred beyond the first v0.6 slices
 
-These are valuable, but should not block the v0.5 bounded-analysis quality work:
+These are valuable, but should not block current post-release feedback and adoption work:
 
 - [ ] Productized or default TypeChecker/type-aware analysis after a measured opt-in study.
 - [ ] Cross-file/interprocedural taint flow, call graphs, heap/property aliasing, and full CFG analysis.

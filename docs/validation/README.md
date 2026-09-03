@@ -2,6 +2,13 @@
 
 This folder contains manual validation notes for project phases and milestone checks.
 
+Current published status (reviewed 2026-09-03):
+
+- npm CLI and internal packages: `v0.6.0`, with 25 built-in rules
+- reusable GitHub Action: `v1.2.0`, available through `@v1`
+- current validation line: 453 package tests, 147 web tests, 600 total tests
+- current release quality gate: complete; no known technical release blocker
+
 Frozen #13 pre-implementation validation baseline:
 
 ```txt

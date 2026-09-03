@@ -28,7 +28,7 @@ It is a pre-deploy review signal, not a penetration test or a replacement for a 
   <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
 </p>
 
-The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the published `v0.6.0` CLI and three concise `--summary` scans; the full finding report is intentionally omitted for readability. It shows a review signal, not proof of exploitability or a universal security score.
+The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the `v0.6.0` release-commit CLI and three concise `--summary` scans; the published npm consumer path is verified separately by the [current quality gate](./docs/validation/phase-24-v06-quality-gate.md). The full finding report is intentionally omitted for readability. It shows a review signal, not proof of exploitability or a universal security score.
 
 ## Quick Start
 
@@ -216,7 +216,7 @@ Supported fields in the current release:
 - `excludePaths`: relative path glob patterns to ignore
 - `categories`: rule categories to run
 - `failOn`: `low`, `medium`, `high`, `critical`, or `info`
-- `format`: `terminal`, `json`, `markdown`, or `github`
+- `format`: `terminal`, `json`, `markdown`, `github`, or `sarif`
 - `preset`: `default`, `app`, `strict`, `ci`, `audit`, `library`, or `monorepo`
 
 `--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output. It is available in the published npm `v0.6.0` line.
@@ -291,7 +291,7 @@ Expected fixture summaries:
 
 These are regression-fixture expectations, not universal accuracy or risk guarantees.
 
-Run the complete local v0.5 regression and performance gate after building:
+Run the complete local v0.6 compatibility, regression, and performance gate after building:
 
 ~~~bash
 pnpm release:gate
@@ -299,9 +299,10 @@ pnpm release:gate
 
 The gate checks fixture inventories, deterministic JSON/SARIF output, concise
 summary length, public-output privacy, CLI packaging, and disposable 100/1,000
-file benchmark corpora. See the [Phase 13 validation note](./docs/validation/phase-13-v05-release-gate.md)
-for the protocol and the [Phase 17 release validation note](./docs/validation/phase-17-v05-release.md)
-for the v0.5 release audit.
+file benchmark corpora. See the [Phase 24 v0.6 quality-gate note](./docs/validation/phase-24-v06-quality-gate.md)
+for the current protocol and result. The [Phase 13 validation note](./docs/validation/phase-13-v05-release-gate.md)
+and [Phase 17 release validation note](./docs/validation/phase-17-v05-release.md)
+remain historical v0.5 records.
 
 ## GitHub Actions
 

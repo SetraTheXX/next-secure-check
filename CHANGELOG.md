@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Corrected the README configuration format list to include SARIF and clarified
+  that `pnpm release:gate` is the current v0.6 compatibility and release gate.
+- Refreshed the validation index and roadmap wording for the post-v0.6 release
+  state.
+
 ## [0.6.0] - 2026-08-31
 
 > GitHub release and tag: [v0.6.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.6.0). The four npm packages are published at `0.6.0`, and the reusable Action is coordinated through [v1.2.0](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.2.0) and `@v1`.
