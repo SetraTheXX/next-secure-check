@@ -1,242 +1,170 @@
 # next-secure-check
 
-Deterministic, explainable security checks for Next.js projects before deploy, locally or in CI.
-
-Run one `npx` command to scan a project before it reaches production. Review each finding with its rule, severity, confidence, location, context, and recommendation. The scanner does not execute repository code or use AI at runtime.
-
-> **Stable npm release:** `v0.6.0` is published on npm and is the `latest` line. The [`v0.6.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.6.0) targets the validated release commit, and the reusable [`v1.2.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.2.0) runs the same CLI line through the floating `@v1` tag. v0.6 adds five bounded request-boundary and configuration signals while preserving the deterministic, explainable review model.
-
-[![npm](https://img.shields.io/npm/v/next-secure-check?logo=npm)](https://www.npmjs.com/package/next-secure-check)
-[![CI](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml/badge.svg)](https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
-
 <p align="center">
   <img src="./docs/assets/next-secure-check-banner-v3.svg" alt="next-secure-check — one command before deploy" width="100%">
 </p>
 
 <p align="center">
   <strong>One command before deploy.</strong><br>
-  Find common Next.js security mistakes and see exactly what needs review.
+  Deterministic, explainable security checks for Next.js projects.
 </p>
 
 <p align="center">
-  <sub>Independent tooling for Next.js projects. Next.js and related marks belong to Vercel, Inc.</sub>
+  <a href="https://www.npmjs.com/package/next-secure-check"><img src="https://img.shields.io/npm/v/next-secure-check?logo=npm" alt="npm version"></a>
+  <a href="https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml"><img src="https://github.com/SetraTheXX/next-secure-check/actions/workflows/security-check.yml/badge.svg" alt="CI status"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT license"></a>
 </p>
 
-The checkpoint-gate mark combines two balanced code boundaries, a scan rail,
-and one deliberate review point. Read the design constraints and usage guidance in
-[`docs/brand/README.md`](./docs/brand/README.md).
+> **Stable release:** `v0.6.0` is published on npm and is the `latest` line. The [`v0.6.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.6.0) is the validated CLI release. The reusable [`v1.2.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.2.0) is available through the floating `@v1` tag.
 
-## Why use it?
+Run one command from a Next.js project and get a reviewable finding for each detected pattern: rule, severity, confidence, file location, context, evidence path when available, and a recommended fix. The scanner is static and deterministic. It does not execute repository code, install repository dependencies, make network requests, or require AI at runtime.
 
-- Run a quick security sanity check with one `npx` command.
-- Get deterministic findings with severity, confidence, location, context, bounded evidence paths, and recommendations.
-- Use the same scanner locally, in GitHub Actions, or through SARIF-compatible Code Scanning workflows.
+The checkpoint-gate mark is an original deterministic SVG asset created for this project. A preliminary name and visual collision screen found no direct exact hit in the checked public databases, but that is not legal trademark clearance. The evidence and usage rules are in [`docs/brand/README.md`](./docs/brand/README.md).
 
-It is a pre-deploy review signal, not a penetration test or a replacement for a full security audit.
+## Start here
 
-## See It in Action
+From the root of the project you want to review:
+
+```bash
+npx --yes next-secure-check@0.6.0 scan . --preset app --summary
+```
+
+The first run prints a compact score, risk level, finding counts, and representative findings. For the full explanation and recommendation for every finding, remove `--summary`:
+
+```bash
+npx --yes next-secure-check@0.6.0 scan . --preset app
+```
+
+The CLI requires Node.js `20.9` or newer. Pin the version in CI so a future release does not change a build unexpectedly. Use `@latest` for an intentional local trial of the newest published line.
+
+### Install globally (optional)
+
+```bash
+npm install --global next-secure-check
+next-secure-check scan . --preset app
+```
+
+Check which binary is being used when a global installation is stale:
+
+```bash
+next-secure-check --version
+npm list --global next-secure-check
+```
+
+The versioned `npx` command is the least surprising path for a one-off scan.
+
+## See it in action
 
 <p align="center">
   <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
 </p>
 
-The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the `v0.6.0` release-commit CLI and three concise `--summary` scans; the published npm consumer path is verified separately by the [current quality gate](./docs/validation/phase-24-v06-quality-gate.md). The full finding report is intentionally omitted for readability. It shows a review signal, not proof of exploitability or a universal security score.
+The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the three `--summary` scans described in [Reproducible fixtures](#reproducible-fixtures). It is a product walkthrough, not proof of exploitability or a universal security score.
 
-## Quick Start
+## What it checks
 
-Run the recommended application-focused scan from your project root:
+The published `v0.6.0` CLI contains 25 built-in rules. The rules cover common secrets, injection, redirect, SSRF, XSS, authentication, validation, upload, header, and Next.js configuration review points.
 
-~~~bash
-npx --yes next-secure-check@0.6.0 scan . --preset app --summary
-~~~
-
-This concise first view shows the score, risk, finding counts, and representative findings. Remove `--summary` when you want the detailed terminal report with explanations and recommendations.
-
-The CLI requires Node.js 20.9 or newer.
-
-### Global install
-
-~~~bash
-npm install -g next-secure-check
-next-secure-check scan . --preset app
-~~~
-
-If an older global installation shadows the current CLI, check and remove it:
-
-~~~bash
-next-secure-check --version
-npm list -g next-secure-check
-npm uninstall -g next-secure-check
-npm cache verify
-~~~
-
-Using a versioned `npx` command avoids that class of conflict.
-
-## What It Checks
-
-The published `v0.6.0` CLI contains 25 built-in rules. It adds five bounded
-v0.6 signals for Server Actions/Server Functions,
-request-derived redirect targets, unvalidated outbound URLs, session-cookie
-flags, and broad image-host configuration, bringing the development-line
-surface to 25 rules across secrets, injection, redirects, SSRF, XSS,
-authentication, validation, uploads, headers, and Next.js configuration.
-
-| Area | Checks |
+| Area | Built-in checks |
 | --- | --- |
 | Secrets | [Committed `.env` files](./docs/rules/env-file-committed.md), [hardcoded secrets](./docs/rules/hardcoded-secret.md), [weak JWT secrets](./docs/rules/weak-jwt-secret.md), [public secret-like names](./docs/rules/next-public-secret.md) |
-| Injection | [`eval`](./docs/rules/no-eval.md), [`new Function`](./docs/rules/no-new-function.md), [command execution](./docs/rules/command-exec.md), [raw SQL interpolation](./docs/rules/raw-sql-concat.md) |
-| Redirects | [Unvalidated redirect targets](./docs/rules/unvalidated-redirect-target.md) |
-| SSRF | [Unvalidated outbound URLs](./docs/rules/unvalidated-outbound-url.md) |
+| Injection | [`eval`](./docs/rules/no-eval.md), [`new Function`](./docs/rules/no-new-function.md), [shell command execution](./docs/rules/command-exec.md), [raw SQL interpolation](./docs/rules/raw-sql-concat.md) |
+| Redirects and SSRF | [Unvalidated redirect targets](./docs/rules/unvalidated-redirect-target.md), [unvalidated outbound URLs](./docs/rules/unvalidated-outbound-url.md) |
 | XSS | [`dangerouslySetInnerHTML`](./docs/rules/dangerously-set-inner-html.md) |
-| Authentication | [Login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [admin route protection](./docs/rules/admin-route-without-auth.md), [Server Action guards](./docs/rules/server-action-without-guards.md), [session-cookie security flags](./docs/rules/session-cookie-without-security-flags.md) |
+| Authentication | [Admin route protection](./docs/rules/admin-route-without-auth.md), [login rate limits](./docs/rules/login-without-rate-limit.md), [registration rate limits](./docs/rules/register-without-rate-limit.md), [password hashing](./docs/rules/password-without-hashing-library.md), [Server Action guards](./docs/rules/server-action-without-guards.md), [session-cookie flags](./docs/rules/session-cookie-without-security-flags.md) |
 | Validation and uploads | [API input validation](./docs/rules/api-route-without-validation.md), [file type validation](./docs/rules/missing-file-type-validation.md), [file size limits](./docs/rules/missing-file-size-limit.md) |
-| Headers and configuration | [Missing security headers](./docs/rules/missing-security-headers.md), [wildcard CORS](./docs/rules/insecure-cors-wildcard.md), [Next.js powered-by header](./docs/rules/next-powered-by-header.md), [production browser source maps](./docs/rules/production-browser-source-maps.md), [broad image domains](./docs/rules/next-image-domains.md) |
+| Headers and Next.js config | [Security headers](./docs/rules/missing-security-headers.md), [wildcard CORS](./docs/rules/insecure-cors-wildcard.md), [powered-by header](./docs/rules/next-powered-by-header.md), [production browser source maps](./docs/rules/production-browser-source-maps.md), [broad image domains](./docs/rules/next-image-domains.md) |
 
-See [`docs/rules`](./docs/rules) for the complete rule documentation, examples, and known limitations.
+Read the complete rule documentation in [`docs/rules`](./docs/rules). Each rule documents its intent, examples, confidence, and known boundaries.
 
-The XSS rule documents its intentionally small sanitizer allowlist and bounded
-request-source evidence in [`dangerously-set-inner-html.md`](./docs/rules/dangerously-set-inner-html.md).
+## How to read a finding
 
-Authentication and validation rules use structural route-handler signals. UI
-pages, comments, strings, unused helpers, and unknown local auth/limiter
-wrappers remain reviewable instead of being silently treated as protected.
-See the [Phase 15 validation note](./docs/validation/phase-15-auth-middleware.md)
-for the App Router, Pages Router, and same-app middleware contract.
+Every finding is a review signal, not a claim that an exploit is reachable. Use the fields together:
 
-The v0.6 Server Action signal applies the same review principle to
-file-level or inline `use server` functions with visible action/request input.
-It checks same-function auth and validation intent; it does not prove runtime
-reachability or follow custom wrappers.
+| Field | Meaning |
+| --- | --- |
+| Rule | Stable identifier and link to the rule explanation |
+| Severity | Potential impact if the pattern is relevant (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, or `INFO`) |
+| Confidence | How strongly the visible syntax matches the rule |
+| Location | File and line where the signal was found |
+| Context | Route, function, path, or configuration context used by the rule |
+| Evidence path | A short recognized source-to-sink path when the rule can prove one within its bounded analysis |
+| Recommendation | A concrete review or remediation direction |
 
-The v0.6 redirect signal reviews request-derived values reaching
-imported `redirect`/`permanentRedirect`, `NextResponse.redirect`, or Pages
-Router `getServerSideProps` destinations. It recognizes short same-function
-source paths and visible internal-path, allowlist, or same-origin guards; it
-can recognize a same-file helper only when its guard expression is explicit; it
-does not follow source flow across files/functions or trust unknown wrappers.
+The scanner intentionally stops at uncertain boundaries. It does not claim full type-aware taint analysis, cross-file or interprocedural flow, a complete route graph, runtime reachability, or correct behavior of custom wrappers. False positives and false negatives are possible, especially in dynamic or tooling-heavy repositories.
 
-The v0.6 SSRF signal reviews URL-like request/query/route/form/body
-values reaching global `fetch` or the documented `axios`/`got` sinks in
-server-oriented functions. It recognizes visible host allowlists, URL host
-checks, and private-network/safe-proxy helpers, while stopping at unknown
-wrappers, dynamic sinks, reassignment, and cross-file/cross-function flow. It
-does not make network requests or prove exploitability.
+## Terminal, machine, and CI output
 
-The v0.6 cookie signal reviews recognized auth/session-like cookie
-writes through `cookies().set`, `response.cookies.set`, and one bounded Pages
-Router `Set-Cookie` serializer form for visible `httpOnly`, `secure`, and
-`sameSite` flags without exposing cookie values. The configuration signals
-also review static Next.js security headers and broad `images.domains` entries;
-dynamic values, runtime hosting headers, and complete CSP correctness remain
-outside the bounded check.
+The same scan can produce several formats:
 
-## CLI Usage
+```bash
+# Detailed terminal report
+npx --yes next-secure-check@0.6.0 scan . --preset app
 
-### Scan and report formats
+# Compact terminal summary
+npx --yes next-secure-check@0.6.0 scan . --preset app --summary
 
-~~~bash
-# Terminal output
-npx --yes next-secure-check@latest scan .
+# JSON for scripts
+npx --yes next-secure-check@0.6.0 scan . --format json --output next-secure-check.json
 
-# JSON report
-npx --yes next-secure-check@latest scan . --format json
+# Markdown for an issue or artifact
+npx --yes next-secure-check@0.6.0 scan . --format markdown --output next-secure-check.md
 
-# Markdown report
-npx --yes next-secure-check@latest scan . --format markdown --output report.md
-
-# GitHub Actions Step Summary
-npx --yes next-secure-check@latest scan . --format github
+# GitHub Step Summary
+npx --yes next-secure-check@0.6.0 scan . --format github
 
 # SARIF for GitHub Code Scanning
-npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
+npx --yes next-secure-check@0.6.0 scan . --format sarif --output next-secure-check.sarif
+```
 
-# Concise terminal summary (v0.6.0 release)
-pnpm build
-node packages/cli/dist/index.js scan . --preset app --summary
-
-# Scan command help (v0.6.0 release)
-node packages/cli/dist/index.js scan --help
-~~~
-
-`--summary` is an opt-in terminal view for quick reviews and demos. It keeps the score, risk, finding counts, severity, confidence, context, and location visible while omitting the longer evidence and fix blocks. The default terminal report remains detailed, and `--summary` cannot be combined with JSON, Markdown, GitHub, or SARIF output. It is part of the published npm `v0.6.0` line.
+`--summary` is a terminal display option. It cannot be combined with JSON, Markdown, GitHub, or SARIF output. JSON, Markdown, and SARIF redact secret-like evidence; SARIF also carries rule help URIs, CWE mappings where available, deterministic fingerprints, severity metadata, context, and an optional `evidencePath`.
 
 ### Failure gates
 
-~~~bash
-npx --yes next-secure-check@latest scan . --fail-on high
-npx --yes next-secure-check@latest scan . --fail-on critical
-~~~
+```bash
+# Fail when a HIGH or more severe finding is present
+npx --yes next-secure-check@0.6.0 scan . --preset app --fail-on high
 
-`--fail-on high`, `medium`, `low`, and `info` act as severity thresholds. `--fail-on critical` is a risk-level gate: it exits with code `1` only when the scan summary risk level is `critical`.
+# Fail only when the summary risk level is CRITICAL
+npx --yes next-secure-check@0.6.0 scan . --preset app --fail-on critical
+```
+
+Severity thresholds are `critical`, `high`, `medium`, `low`, and `info`. `critical` is also supported as a risk-level gate; it exits with code `1` only when the scan summary risk is `critical`.
 
 ### CLI helpers
 
-List the built-in rules, explain a rule, or create starter project files:
+```bash
+# List all built-in rules
+npx --yes next-secure-check@0.6.0 rules
 
-~~~bash
-npx --yes next-secure-check@latest rules
-npx --yes next-secure-check@latest explain xss/dangerously-set-inner-html
-npx --yes next-secure-check@latest init
-~~~
+# Explain one rule, including its review boundary
+npx --yes next-secure-check@0.6.0 explain xss/dangerously-set-inner-html
 
-`init` creates `.next-secure-check.json` and `.github/workflows/next-secure-check.yml`. Existing files are skipped by default; use `--force` only when you intentionally want to overwrite them.
+# Create starter config and workflow files
+npx --yes next-secure-check@0.6.0 init
+```
 
-`explain` also documents the review boundary for each built-in rule. Its output
-includes false-positive notes and false-negative boundaries, including the
-intentional limits of same-function bounded flow, short alias chains, dynamic
-resolution, and external middleware or infrastructure controls.
+`init` skips existing files by default. Add `--force` only when you intentionally want to overwrite them.
 
-## Presets
+## Presets and configuration
 
-Presets choose a practical coverage and noise tradeoff. They do not replace manual review.
+Presets choose a coverage and noise tradeoff. They do not replace manual review.
 
-| Preset | Intended use | Behavior |
+| Preset | Best for | Behavior |
 | --- | --- | --- |
 | `default` | General local scans | Broad baseline coverage with standard context tuning |
-| `app` | Production app-code checks | Excludes tests, examples, docs, generated output, and GitHub workflow/tooling paths |
+| `app` | Production application code | Excludes tests, examples, docs, generated output, and workflow/tooling paths |
 | `strict` | Aggressive review | Scans broadly with tuning disabled |
-| `ci` | Pull request checks | Excludes tests and generated output while keeping CI practical |
+| `ci` | Pull requests | Excludes tests and generated output while keeping CI practical |
 | `audit` | Broad manual review | Scans broadly with tuning disabled |
-| `library` | Component/library repositories | Reduces docs, examples, test, and generated-output noise |
+| `library` | Component and library repositories | Reduces docs, examples, test, and generated-output noise |
 | `monorepo` | Multi-app workspaces | App-focused coverage for `apps/` and `packages/` layouts |
 
-For most Next.js applications, start with `--preset app`. Use `--preset strict` when you want a broader review, including tooling and example paths.
+Start with `app` for a deployed Next.js application and use `strict` when you want tooling, examples, and other repository paths included.
 
-### Large repositories and monorepos
+The CLI reads `.next-secure-check.json` from the scan target root. Use `--config` for an explicit path.
 
-Large monorepos, template repositories, generator CLIs, release scripts, and demo-heavy repositories can still produce noisy findings. Context metadata, presets, bounded source-to-sink evidence, and AST-assisted checks reduce that noise but do not eliminate it.
-
-For a production app-focused scan:
-
-~~~bash
-npx --yes next-secure-check@latest scan . --preset app
-~~~
-
-Project-specific exclusions can be added when needed:
-
-~~~bash
-npx --yes next-secure-check@latest scan . \
-  --exclude "**/*.test.ts,**/*.spec.ts,**/*.test.tsx,.github/**,examples/**"
-~~~
-
-## Configuration
-
-The CLI reads `.next-secure-check.json` from the scan target root. Use `--config path/to/config.json` to provide an explicit file.
-
-Supported fields in the current release:
-
-- `excludePaths`: relative path glob patterns to ignore
-- `categories`: rule categories to run
-- `failOn`: `low`, `medium`, `high`, `critical`, or `info`
-- `format`: `terminal`, `json`, `markdown`, `github`, or `sarif`
-- `preset`: `default`, `app`, `strict`, `ci`, `audit`, `library`, or `monorepo`
-
-`--summary` is a CLI-only display option. It is intentionally not read from the configuration file and applies only to terminal output. It is available in the published npm `v0.6.0` line.
-
-Example:
-
-~~~json
+```json
 {
   "preset": "app",
   "excludePaths": ["**/*.test.ts", "**/*.spec.tsx", "examples/**"],
@@ -244,88 +172,28 @@ Example:
   "failOn": "high",
   "format": "json"
 }
-~~~
+```
 
-Precedence is:
+Supported fields are `excludePaths`, `categories`, `failOn`, `format`, and `preset`. CLI flags override the config file, and the config file overrides defaults:
 
-~~~txt
+```text
 CLI flag > config file > default
-~~~
+```
 
-The web demo does not read config files from scanned repositories. Its public-repository scan options are controlled server-side.
+For a one-off exclusion, use a comma-separated glob list:
 
-## Findings and SARIF
-
-Findings include a rule ID, title, severity, confidence, file location, context,
-an explanation of why the pattern was reported, and a recommendation. When the
-syntax proves a bounded source-to-sink path, the finding also carries a concise
-`evidencePath` such as `request.json() -> query`. That path is evidence of the
-recognized syntax only; it is not proof that an exploit exists.
-
-SARIF 2.1.0 output includes:
-
-- tool metadata and `informationUri`
-- rule help URIs, tags, and selected CWE mappings
-- file, line, and column locations when available
-- `security-severity` and precision metadata
-- deterministic `partialFingerprints`
-- context and context-reason properties
-- `whyReported` and optional `evidencePath` result properties
-- concise messages built from the title, description, and recommendation
-
-Detailed terminal and Markdown reports show `Why`, `Context reason`, and an
-optional `Evidence path`. GitHub keeps its findings table compact and places
-the same explanation metadata in its recommendations details; it intentionally
-omits raw evidence. The web Markdown export follows the same explanation
-contract. Raw secret evidence is replaced with `[REDACTED]` in JSON, terminal,
-and Markdown output and is not embedded in SARIF. Findings are review signals,
-not proof that an exploit exists; review the confidence, evidence path, and
-recommendation before treating one as a confirmed vulnerability.
-
-## Reproducible Demo
-
-The repository contains deliberately unsafe and mostly secure fixtures so the scanner can be checked without cloning an external project:
-
-~~~bash
-pnpm build
-
-node packages/cli/dist/index.js scan examples/vulnerable-next-app --preset strict --summary
-node packages/cli/dist/index.js scan examples/secure-next-app --preset app --summary
-node packages/cli/dist/index.js scan . --preset app --summary
-~~~
-
-Expected fixture summaries:
-
-| Target | Expected result |
-| --- | --- |
-| `vulnerable-next-app` with `strict` | `0/100`, `critical`, 26 findings (`12 HIGH`, `11 MEDIUM`, `2 LOW`, `1 INFO`) |
-| `secure-next-app` with `app` | `99/100`, `excellent`, 1 LOW finding |
-| repository self-scan with `app` | `100/100`, `excellent`, 0 findings |
-
-These are regression-fixture expectations, not universal accuracy or risk guarantees.
-
-Run the complete local v0.6 compatibility, regression, and performance gate after building:
-
-~~~bash
-pnpm release:gate
-~~~
-
-The gate checks fixture inventories, deterministic JSON/SARIF output, concise
-summary length, public-output privacy, CLI packaging, and disposable 100/1,000
-file benchmark corpora. See the [Phase 24 v0.6 quality-gate note](./docs/validation/phase-24-v06-quality-gate.md)
-for the current protocol and result. The [Phase 13 validation note](./docs/validation/phase-13-v05-release-gate.md)
-and [Phase 17 release validation note](./docs/validation/phase-17-v05-release.md)
-remain historical v0.5 records.
+```bash
+npx --yes next-secure-check@0.6.0 scan . --preset app \
+  --exclude "**/*.test.ts,**/*.spec.tsx,examples/**,.github/**"
+```
 
 ## GitHub Actions
 
-Local scans are manual. After you add a workflow, GitHub runs it on the configured push or pull request events; `next-secure-check` does not scan repositories on its own.
+The scanner runs when the consuming repository adds it to a workflow. It does not monitor repositories on its own.
 
-### Step Summary
+### Step Summary workflow
 
-Copy this into `.github/workflows/next-secure-check.yml`:
-
-~~~yaml
+```yaml
 name: next-secure-check
 
 on:
@@ -339,213 +207,161 @@ permissions:
 jobs:
   security-check:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
-
       - uses: actions/setup-node@v7
         with:
           node-version: 20
-
       - name: Run next-secure-check
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.6.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
-~~~
+          npx --yes next-secure-check@0.6.0 scan . --preset app --format github --fail-on high \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+```
 
-This fails the job when a `HIGH` or more severe finding is reported. Use `--fail-on critical` when the job should fail only for a `critical` scan risk level.
+This gate fails the job for a `HIGH` or more severe finding. Change the threshold to `critical` when only a critical risk-level result should block the job.
 
-### Reusable GitHub Action
+### Reusable Action
 
-Projects can use the reusable composite Action as a single workflow step:
-
-~~~yaml
+```yaml
 - uses: SetraTheXX/next-secure-check@v1
   with:
+    path: .
     preset: app
     fail-on: high
     format: github
-~~~
+```
 
-The published `v1` Action currently runs the stable `next-secure-check@0.6.0`
-CLI against the checked-out workspace. It does not install or execute scripts
-from the scanned repository. The default `github` format is written to the job
-Step Summary; use `format: sarif` and `output: next-secure-check.sarif` when a
-separate SARIF upload step is desired. Existing `@v1` consumers receive the
-coordinated `v1.2.0` Action release without changing their workflow reference.
+The `@v1` Action currently runs the published `next-secure-check@0.6.0` CLI. Its default `github` format is written to the job Step Summary. For Code Scanning, request SARIF and upload the generated file:
 
-The Action runs only when the consuming repository adds it to a workflow triggered by events such as `pull_request` or `push`. It does not monitor repositories on its own.
+```yaml
+- uses: SetraTheXX/next-secure-check@v1
+  with:
+    path: .
+    preset: app
+    format: sarif
+    output: next-secure-check.sarif
 
-### SARIF and GitHub Code Scanning
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: next-secure-check.sarif
+```
 
-~~~yaml
-name: next-secure-check SARIF
+The Action sets up Node.js 20 and invokes the published CLI. It does not install or execute scripts from the scanned repository.
 
-on:
-  pull_request:
-  push:
-    branches: [main]
+## Local web demo
 
-permissions:
-  contents: read
-  security-events: write
+[`apps/web`](./apps/web) is a local public-repository scanning demo, not a hosted production service. Its bounded flow is:
 
-jobs:
-  security-check:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 20
-
-      - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.6.0 scan . --preset app --format sarif --output next-secure-check.sarif
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: next-secure-check.sarif
-~~~
-
-## Web Demo
-
-The web demo under [`apps/web`](./apps/web) is a local public-repository scanning flow, not a hosted production service.
-
-~~~txt
+```text
 Public GitHub URL
--> URL and metadata validation
--> tarball download
--> safe extraction
--> static scan
--> server-side evidence redaction
--> cleanup
--> report UI and JSON/Markdown export
-~~~
+  -> URL and metadata validation
+  -> tarball download
+  -> safe archive extraction
+  -> static scan
+  -> server-side evidence redaction
+  -> cleanup
+  -> report UI and JSON/Markdown export
+```
 
 The demo:
 
-- scans public GitHub repositories only
-- does not run repository code, install dependencies, or execute scripts
-- rejects unsafe archive paths and links
-- applies repository size, request, concurrency, and timeout limits
-- supports an optional `GITHUB_TOKEN` for GitHub requests
-- supports optional Upstash Redis protection for multi-instance deployments
-- redacts secret-related evidence server-side
-- can exclude tests and examples for a production-like scan
+- accepts public GitHub repositories only;
+- never executes repository code, installs dependencies, or runs scripts;
+- rejects unsafe archive paths and links;
+- applies repository size, request, concurrency, and timeout limits;
+- can use `GITHUB_TOKEN` for GitHub API requests;
+- supports optional Upstash Redis protection for multi-instance deployments;
+- redacts secret-related evidence server-side; and
+- can exclude tests and examples for a production-like scan.
 
 Run it locally:
 
-~~~bash
+```bash
 pnpm install
 pnpm build
 pnpm -C apps/web dev
-~~~
+```
 
-The web demo is intentionally not presented as a public hosted scanning service. Its in-memory abuse guard is suitable for local or single-instance use; public multi-instance deployments need distributed protection or equivalent platform controls.
+Its in-memory abuse guard is suitable for local or single-instance use. A public multi-instance deployment needs distributed abuse protection and trusted proxy configuration for IP-based limits.
 
-## Security Model and Limitations
+## Reproducible fixtures
 
-The scanner is designed to provide fast, explainable review signals. It is not a full security audit, penetration test, exploit verifier, or cross-file/type-aware taint engine.
+The repository includes deliberately vulnerable and mostly secure Next.js fixtures so the scanner can be checked without cloning another project:
+
+```bash
+pnpm build
+
+node packages/cli/dist/index.js scan examples/vulnerable-next-app --preset strict --summary
+node packages/cli/dist/index.js scan examples/secure-next-app --preset app --summary
+node packages/cli/dist/index.js scan . --preset app --summary
+```
+
+Expected summaries for the current `v0.6.0` line:
+
+| Target | Expected result |
+| --- | --- |
+| `examples/vulnerable-next-app` with `strict` | `0/100`, `critical`, 26 findings (`12 HIGH`, `11 MEDIUM`, `2 LOW`, `1 INFO`) |
+| `examples/secure-next-app` with `app` | `99/100`, `excellent`, 1 LOW finding (`headers/missing-security-headers`) |
+| repository self-scan with `app` | `100/100`, `excellent`, 0 findings |
+
+These are regression-fixture expectations, not universal accuracy or risk guarantees.
+
+## Security model and limitations
+
+The product is a fast, explainable static review layer. It is not a penetration test, exploit verifier, full security audit, or complete type-aware taint engine.
 
 - Rules combine deterministic patterns, syntax-level AST checks, and path/context signals.
-- False positives and false negatives are possible, especially around custom wrappers, dynamic code, and large tooling-heavy repositories.
-- Command execution in a CLI or release tool may be intentional and still require manual review.
-- Type-aware analysis, cross-file/interprocedural flow, and full route graphs are not part of the default scan path.
-- The web demo scans public repositories only and never executes scanned code.
-- Public hosted web deployments should use distributed abuse protection.
-- IP-based limits require a trusted proxy or platform header configuration.
+- The bounded source-to-sink checks recognize only documented, visible paths; unknown wrappers, dynamic sinks, reassignment, and cross-file or cross-function flow may be left for manual review.
+- UI pages, comments, strings, unused helpers, and unknown local auth or limiter wrappers are not silently treated as protected.
+- The scanner makes no network requests while analyzing a local project and does not execute project code.
+- The web demo handles public archives only and performs safe extraction before scanning.
+- Findings should be triaged with their confidence, context, evidence path, and recommendation.
 
-## Project Status and Roadmap
+## Project status and documentation
 
-The current stable published line is `v0.6.0` on npm; the [`v0.6.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.6.0)
-is tagged on the validated release commit, and the coordinated [`v1.2.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.2.0)
-is available through `@v1`. Post-release feedback and adoption work are tracked in the detailed, checklist-based plan in
-[`ROADMAP.md`](./ROADMAP.md).
+The stable published line is `v0.6.0`; the older `v0.5.0` line is retained in the validation history for compatibility context. The current roadmap focuses on real-user feedback, confirmed false-positive reduction, and small regression fixtures before another rule slice.
 
-The next direction is deliberately narrow: collect real-user feedback, reduce
-confirmed false positives, and turn reproducible observations into small
-regression fixtures before considering another rule slice or default type-aware
-analysis.
+- [Roadmap](./ROADMAP.md)
+- [Changelog](./CHANGELOG.md)
+- [Rule documentation](./docs/rules)
+- [Brand mark, usage, and collision-screen evidence](./docs/brand/README.md)
+- [v0.6 quality gate](./docs/validation/phase-24-v06-quality-gate.md)
+- [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
+- [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
+- [v0.6 redirect decision](./docs/decisions/0005-v0.6-unvalidated-redirect-signal.md)
+- [v0.6 SSRF decision](./docs/decisions/0006-v0.6-ssrf-signal.md)
+- [v0.6 cookie and Next.js configuration decision](./docs/decisions/0007-v0.6-config-hardening-signals.md)
 
-For release history, see [`CHANGELOG.md`](./CHANGELOG.md). Historical validation notes remain under [`docs/validation`](./docs/validation).
+## Development
 
-## Local Development
-
-~~~bash
+```bash
 pnpm install
 pnpm build
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm release:gate
-~~~
+```
 
-`pnpm release:gate` runs the frozen v0.5 compatibility checks plus the
-published v0.6 rule matrix, CLI smoke, and package/release contract.
-It uses checked-in or disposable local fixtures; public-repository smoke tests
-remain opt-in and never execute scanned code. See the [v0.6 quality-gate
-validation note](./docs/validation/phase-24-v06-quality-gate.md).
-
-The published v0.5.0 release validation baseline is:
-
-~~~txt
-packages: 366 tests
-apps/web: 147 tests
-total: 513 tests
-~~~
-
-The published `v0.6.0` line, including the bounded request-boundary slices, has
-453 package tests, 147 web tests, and 600 tests total. The README demo and
-reusable Action are aligned with this stable line.
+`pnpm release:gate` runs the frozen `v0.5.0` compatibility checks plus the published `v0.6.0` rule matrix, CLI smoke tests, package contract checks, deterministic-output checks, and disposable fixture benchmarks. It uses local fixtures; public-repository smoke tests remain opt-in and never execute scanned code.
 
 Workspace layout:
 
-~~~txt
+```text
 apps/web/       local public-repository web demo
 packages/core/  scanner orchestration, shared types, score engine
 packages/cli/   command-line entrypoint
-packages/rules/ built-in rule modules and AST utilities
+packages/rules/ built-in rules and AST utilities
 packages/reporter terminal, JSON, Markdown, GitHub, and SARIF output
 examples/       vulnerable and secure fixtures
 docs/rules/     rule documentation
-~~~
+```
 
-Useful validation references:
+The current test baseline is 600 tests across the package and web suites (453 package tests and 147 web tests). Run `pnpm test` locally after changes.
 
-- [v0.4 analysis scope decision](./docs/decisions/0001-v0.4-analysis-scope.md)
-- [bounded-flow validation](./docs/validation/phase-6-bounded-flow.md)
-- [vulnerable/secure demo validation](./docs/validation/phase-8-demo.md)
-- [concise terminal summary validation](./docs/validation/phase-9-summary-output.md)
-- [v0.5 baseline and bounded-flow contract](./docs/decisions/0002-v0.5-bounded-flow-contract.md)
-- [v0.5 baseline validation inventory](./docs/validation/phase-10-v0.5-baseline.md)
-- [v0.5 shared AnalysisFacts validation](./docs/validation/phase-11-analysis-facts.md)
-- [v0.5 XSS source and sanitizer refinement](./docs/validation/phase-14-xss-refinement.md)
-- [v0.5 auth and middleware intent](./docs/validation/phase-15-auth-middleware.md)
-- [v0.5 regression and performance release gate](./docs/validation/phase-13-v05-release-gate.md)
-- [v0.5 release, npm, and Action audit](./docs/validation/phase-17-v05-release.md)
-- [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
-- [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
-- [v0.6 unvalidated redirect validation](./docs/validation/phase-21-v06-unvalidated-redirects.md)
-- [v0.6 unvalidated redirect decision](./docs/decisions/0005-v0.6-unvalidated-redirect-signal.md)
-- [v0.6 bounded SSRF flow validation](./docs/validation/phase-22-v06-ssrf-flow.md)
-- [v0.6 bounded SSRF signal decision](./docs/decisions/0006-v0.6-ssrf-signal.md)
-- [v0.6 cookie and Next.js configuration hardening validation](./docs/validation/phase-23-v06-config-hardening.md)
-- [v0.6 cookie and Next.js configuration hardening decision](./docs/decisions/0007-v0.6-config-hardening-signals.md)
-- [v0.6 quality gate and release feedback](./docs/validation/phase-24-v06-quality-gate.md)
-
-## Learning Project and Development Philosophy
-
-This is a student-built learning project focused on TypeScript, Next.js security, static analysis, testing, and open-source engineering.
-
-The development process uses an AI-assisted workflow, including Codex, Claude, and ChatGPT for iteration, review, testing strategy, and documentation support. The scanner itself does not use AI at runtime: its checks are deterministic and rule-based.
-
-Technical ownership, product direction, code review, testing, release decisions, and final responsibility remain with the developer. Feedback, issues, and critical review are welcome. Findings should be treated as review signals rather than proof of exploitation.
-
-## Contributing and Security
+## Contributing and security
 
 - Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) before opening an issue or pull request.
 - Use the issue templates for bugs, false positives, false negatives, and feature requests.
