@@ -21,6 +21,19 @@ Run one command from a Next.js project and get a reviewable finding for each det
 
 The checkpoint-gate mark is an original deterministic SVG asset created for this project. A preliminary name and visual collision screen found no direct exact hit in the checked public databases, but that is not legal trademark clearance. The evidence and usage rules are in [`docs/brand/README.md`](./docs/brand/README.md).
 
+<p align="center">
+  <a href="#see-it-in-action">See the demo</a> ·
+  <a href="#start-here">Start here</a>
+</p>
+
+## See it in action
+
+<p align="center">
+  <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
+</p>
+
+The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the three `--summary` scans described in [Reproducible fixtures](#reproducible-fixtures). It is a product walkthrough, not proof of exploitability or a universal security score.
+
 ## Start here
 
 From the root of the project you want to review:
@@ -52,14 +65,6 @@ npm list --global next-secure-check
 ```
 
 The versioned `npx` command is the least surprising path for a one-off scan.
-
-## See it in action
-
-<p align="center">
-  <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
-</p>
-
-The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the three `--summary` scans described in [Reproducible fixtures](#reproducible-fixtures). It is a product walkthrough, not proof of exploitability or a universal security score.
 
 ## What it checks
 
