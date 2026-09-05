@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-labelledby="title desc">
+  <title id="title">next-secure-check</title>
+  <desc id="desc">Vibe code fast. Ship with context. Deterministic security review signals for Next.js projects.</desc>
+
+  <rect width="1200" height="240" rx="18" fill="#0b1220"/>
+  <rect x="1" y="1" width="1198" height="238" rx="17" fill="none" stroke="#2a3952" stroke-width="2"/>
+
+  <g transform="translate(60 42) scale(.65)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="28">
+    <path d="M110 40H82C60 40 44 58 44 80V160C44 182 60 200 82 200H110" stroke="#72F1B8"/>
+    <path d="M130 40H158C180 40 196 58 196 80V160C196 182 180 200 158 200H130" stroke="#7DD3FC"/>
+    <path d="M70 96L168 194" stroke="#72F1B8"/>
+  </g>
+
+  <g font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="222" y="90" fill="#f6f8ff" font-size="48" font-weight="700" letter-spacing="-1.5">next-secure-check</text>
+    <text x="224" y="130" fill="#a8b5c7" font-size="22">Deterministic review signals for Next.js projects</text>
+    <text x="1134" y="44" text-anchor="end" fill="#7dd3fc" font-size="13" font-weight="700" letter-spacing="1.2">REVIEW SIGNAL • NOT PROOF</text>
+  </g>
+
+  <g transform="translate(224 166)" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" letter-spacing="1">
+    <rect width="126" height="32" rx="16" fill="#14352f" stroke="#2d6855"/>
+    <text x="63" y="21" text-anchor="middle" fill="#72f1b8">PRE-DEPLOY</text>
+    <rect x="140" width="102" height="32" rx="16" fill="#142b43" stroke="#2d5577"/>
+    <text x="191" y="21" text-anchor="middle" fill="#7dd3fc">CI-READY</text>
+    <rect x="256" width="142" height="32" rx="16" fill="#24233d" stroke="#514d7a"/>
+    <text x="327" y="21" text-anchor="middle" fill="#c4b5fd">EXPLAINABLE</text>
+  </g>
+</svg>

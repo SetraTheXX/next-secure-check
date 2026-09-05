@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">next-secure-check mark</title>
+  <desc id="desc">Two open boundary brackets and a crossing path form a compact release review mark.</desc>
+
+  <!-- Original geometric mark: open boundaries, one crossing path, and a deliberate top gap. -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="28">
+    <path d="M110 40H82C60 40 44 58 44 80V160C44 182 60 200 82 200H110" stroke="#72F1B8"/>
+    <path d="M130 40H158C180 40 196 58 196 80V160C196 182 180 200 158 200H130" stroke="#7DD3FC"/>
+    <path d="M70 96L168 194" stroke="#72F1B8"/>
+  </g>
+</svg>
