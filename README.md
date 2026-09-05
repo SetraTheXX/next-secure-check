@@ -11,20 +11,20 @@ Run one `npx` command to scan a project before it reaches production. Review eac
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
 <p align="center">
-  <img src="./docs/assets/next-secure-check-banner-v2.svg" alt="next-secure-check — deterministic review signals for Next.js" width="100%">
+  <img src="./docs/assets/next-secure-check-banner-v3.svg" alt="next-secure-check — one command before deploy" width="100%">
 </p>
 
 <p align="center">
-  <strong>Vibe code fast. Ship with context.</strong><br>
-  Run one deterministic review before your Next.js release.
+  <strong>One command before deploy.</strong><br>
+  Find common Next.js security mistakes and see exactly what needs review.
 </p>
 
 <p align="center">
   <sub>Independent tooling for Next.js projects. Next.js and related marks belong to Vercel, Inc.</sub>
 </p>
 
-The mark is an original open interlock: two release boundaries and one visible
-crossing path. Read the design constraints and usage guidance in
+The checkpoint-gate mark combines two balanced code boundaries, a scan rail,
+and one deliberate review point. Read the design constraints and usage guidance in
 [`docs/brand/README.md`](./docs/brand/README.md).
 
 ## Why use it?

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-labelledby="title desc">
+  <title id="title">next-secure-check</title>
+  <desc id="desc">One deterministic security check for Next.js projects before deploy.</desc>
+  <rect width="1200" height="240" rx="16" fill="#090B0D"/>
+  <path d="M0 192H1200M0 144H1200M0 96H1200M240 0V240M480 0V240M720 0V240M960 0V240" stroke="#263027" stroke-width="1" opacity=".42"/>
+  <g transform="translate(58 54) scale(2.05)">
+    <path fill="#B7FF63" fill-rule="evenodd" d="M7 7h22v11H18v9h28v-9H35V7h22v50H35V46h11v-9H18v9h11v11H7V7Zm22 23v4h6v-4h-6Z"/>
+  </g>
+  <g font-family="ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+    <text x="230" y="103" fill="#F1F0E9" font-size="48" font-weight="750" letter-spacing="-1.8">next<tspan fill="#B7FF63">-secure-check</tspan></text>
+    <text x="232" y="150" fill="#F1F0E9" font-size="25" font-weight="650">One command before deploy.</text>
+    <text x="232" y="184" fill="#8C969D" font-size="18">Deterministic, explainable review signals for Next.js projects.</text>
+    <text x="1140" y="58" text-anchor="end" fill="#B7FF63" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="13" font-weight="700" letter-spacing="1.5">LOCAL / CI / SARIF</text>
+  </g>
+</svg>
