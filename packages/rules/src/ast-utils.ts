@@ -411,7 +411,7 @@ function isFunctionScope(node: ts.Node): node is FunctionScopeNode {
 
 function isNameShadowedAt(node: ts.Node, name: string): boolean {
   for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
-    if (scopeDeclaresName(current, name)) {
+    if (scopeDeclaresName(current, name, node)) {
       return true;
     }
   }
@@ -419,7 +419,7 @@ function isNameShadowedAt(node: ts.Node, name: string): boolean {
   return false;
 }
 
-function scopeDeclaresName(scope: ts.Node, name: string): boolean {
+function scopeDeclaresName(scope: ts.Node, name: string, referenceNode: ts.Node): boolean {
   if (ts.isSourceFile(scope) || ts.isBlock(scope) || ts.isModuleBlock(scope)) {
     return (
       scope.statements.some((statement) => statementDeclaresName(statement, name)) ||
@@ -434,8 +434,15 @@ function scopeDeclaresName(scope: ts.Node, name: string): boolean {
     );
   }
 
+  if (ts.isClassStaticBlockDeclaration(scope)) {
+    return (
+      scope.body.statements.some((statement) => statementDeclaresName(statement, name)) ||
+      nodeDeclaresVarName(scope, name)
+    );
+  }
+
   if (isFunctionScope(scope)) {
-    return functionScopeDeclaresName(scope, name);
+    return functionScopeDeclaresName(scope, name, isInsideFunctionParameterList(referenceNode, scope));
   }
 
   if (ts.isCatchClause(scope)) {
@@ -449,7 +456,11 @@ function scopeDeclaresName(scope: ts.Node, name: string): boolean {
   return false;
 }
 
-function functionScopeDeclaresName(node: FunctionScopeNode, name: string): boolean {
+function functionScopeDeclaresName(
+  node: FunctionScopeNode,
+  name: string,
+  referenceIsInParameters: boolean
+): boolean {
   const declarationName = functionScopeDeclarationName(node);
   if (declarationName === name) {
     return true;
@@ -459,7 +470,22 @@ function functionScopeDeclaresName(node: FunctionScopeNode, name: string): boole
     return true;
   }
 
-  return nodeDeclaresVarName(node.body, name);
+  // A non-simple parameter list evaluates before the function-body var environment is instantiated.
+  return !referenceIsInParameters && nodeDeclaresVarName(node.body, name);
+}
+
+function isInsideFunctionParameterList(referenceNode: ts.Node, functionNode: FunctionScopeNode): boolean {
+  for (
+    let current: ts.Node | undefined = referenceNode;
+    current !== undefined && current !== functionNode;
+    current = current.parent
+  ) {
+    if (ts.isParameter(current) && current.parent === functionNode) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function functionScopeDeclarationName(node: FunctionScopeNode): string | undefined {
@@ -479,7 +505,16 @@ function nodeDeclaresVarName(node: ts.Node | undefined, name: string): boolean {
     return variableDeclarationListDeclaresName(node, name);
   }
 
-  return ts.forEachChild(node, (child) => nodeDeclaresVarName(child, name)) ?? false;
+  return (
+    ts.forEachChild(node, (child) => {
+      // These nodes own separate var environments and must not leak bindings to this scope.
+      if (isFunctionScope(child) || ts.isClassStaticBlockDeclaration(child) || ts.isModuleBlock(child)) {
+        return false;
+      }
+
+      return nodeDeclaresVarName(child, name);
+    }) ?? false
+  );
 }
 
 function statementDeclaresName(statement: ts.Statement, name: string): boolean {
