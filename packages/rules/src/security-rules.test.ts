@@ -44,6 +44,27 @@ describe("built-in security rules", () => {
     ]);
   });
 
+  it("detects shorthand committed env file variants", async () => {
+    const result = await scanFixture({
+      ".env.dev": "TOKEN=dev",
+      ".env.dev.local": "TOKEN=dev-local",
+      ".env.preview": "TOKEN=preview",
+      ".env.preview.local": "TOKEN=preview-local",
+      ".env.prod": "TOKEN=prod",
+      ".env.prod.local": "TOKEN=prod-local"
+    });
+
+    const envFindings = result.findings.filter((finding) => finding.ruleId === "secrets/env-file-committed");
+    expect(envFindings.map((finding) => finding.filePath)).toEqual([
+      ".env.dev",
+      ".env.dev.local",
+      ".env.preview",
+      ".env.preview.local",
+      ".env.prod",
+      ".env.prod.local"
+    ]);
+  });
+
   it("does not flag env example files as committed env secrets", async () => {
     const result = await scanFixture({ ".env.example": "TOKEN=" });
 
@@ -1451,10 +1472,175 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(true);
   });
 
-  it("does not flag new Function text inside metadata strings", async () => {
-    const result = await scanFixture({ "index.ts": 'const title = "new Function() usage detected";' });
+  it("detects bare Function() usage", async () => {
+    const result = await scanFixture({ "index.ts": "const f = Function('return 1');" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(true);
+  });
+
+  it("does not flag bare Function text inside metadata strings", async () => {
+    const result = await scanFixture({ "index.ts": 'const title = "Function() usage detected";' });
 
     expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("does not flag function-like identifiers as Function() usage", async () => {
+    const result = await scanFixture({ "index.ts": "function myFunction() { return 1; }\nmyFunction();" });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("does not flag arbitrary qualified Function() method calls", async () => {
+    const result = await scanFixture({
+      "index.ts": ['const a = obj.Function("x");', 'const b = customApi.Function("x");'].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("detects global-receiver qualified Function() constructor access", async () => {
+    const result = await scanFixture({
+      "index.ts": [
+        'const a = window.Function("return 1");',
+        'const b = globalThis.Function("return 1");',
+        'const c = global.Function("return 1");',
+        'const d = self.Function("return 1");'
+      ].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(4);
+  });
+
+  it("does not flag Function declarations or method definitions", async () => {
+    const result = await scanFixture({
+      "index.ts": [
+        "function Function() { return 1; }",
+        "class Widget { Function() { return 2; } }",
+        'const bag = { Function() { return 3; } };'
+      ].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("does not flag a shadowed Function binding", async () => {
+    const result = await scanFixture({
+      "index.ts": ['function run(Function) { return Function("x"); }'].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("does not let a function-body var shadow a default parameter initializer", async () => {
+    const result = await scanFixture({
+      "index.ts": ['function f(arg = Function("return 1")) { var Function = custom; }'].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(1);
+  });
+
+  it("still flags a global Function call when another scope shadows Function", async () => {
+    const result = await scanFixture({
+      "index.ts": ['function local(Function) { return Function("x"); }', 'const payload = Function("return 1")();'].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(1);
+  });
+
+  it("does not flag a Function call shadowed by a hoisted var declaration in a nested block", async () => {
+    const result = await scanFixture({
+      "index.ts": ["if (ready) { var Function = custom; }", 'Function("x");'].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("does not flag a Function call shadowed by a hoisted var declaration in a switch case", async () => {
+    const result = await scanFixture({
+      "index.ts": ["switch (kind) {", "  case 1: var Function = custom; break;", "}", 'Function("x");'].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("still flags a global Function call when a nested function hoists its own var Function", async () => {
+    const result = await scanFixture({
+      "index.ts": ["function local() { if (ready) { var Function = custom; } }", 'Function("x");'].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(1);
+  });
+
+  it("does not let a class static-block var shadow a source-level Function call", async () => {
+    const result = await scanFixture({
+      "index.ts": ['class C { static { var Function = custom; Function("inside"); } }', 'Function("x");'].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(1);
+  });
+
+  it("does not let a namespace var shadow a source-level Function call", async () => {
+    const result = await scanFixture({
+      "index.ts": ['namespace Local { var Function = custom; Function("inside"); }', 'Function("x");'].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(1);
+  });
+
+  it("does not let nested namespace vars shadow outer namespace calls", async () => {
+    const result = await scanFixture({
+      "index.ts": [
+        'namespace Local {',
+        '  namespace Nested {',
+        '    var Function = custom;',
+        '    Function("nested");',
+        '  }',
+        '  Function("outer");',
+        '}',
+        'Function("source");'
+      ].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(2);
+  });
+
+  it("does not flag optional-chain method calls named Function", async () => {
+    const result = await scanFixture({
+      "index.ts": ['const a = obj?.Function("x");', "const b = api?.data?.Function();"].join("\n")
+    });
+
+    expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
+  });
+
+  it("detects optional-chain calls to the global Function constructor", async () => {
+    const result = await scanFixture({
+      "index.ts": [
+        'const a = Function?.("return 1");',
+        'const b = window?.Function("return 2");',
+        'const c = globalThis.Function?.("return 3");',
+        'const d = globalThis?.["Function"]?.("return 4");',
+        'const safe = obj?.Function("x");'
+      ].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(4);
+  });
+
+  it("detects global bracket-access Function constructor", async () => {
+    const result = await scanFixture({
+      "index.ts": ['const a = globalThis["Function"]("return 1");', "const b = window['Function']('return 2');"].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(2);
   });
 
   it("detects shell command execution", async () => {

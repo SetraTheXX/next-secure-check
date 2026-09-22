@@ -1,7 +1,7 @@
 # secrets/env-file-committed
 
 ## Description
-Detects if `.env`, `.env.local`, `.env.development`, or `.env.production` files are committed to the repository.
+Detects committed `.env` files, including `.env.local`, `.env.development[.local]`, `.env.production[.local]`, `.env.test[.local]`, `.env.staging[.local]`, `.env.dev[.local]`, `.env.prod[.local]`, and `.env.preview[.local]`. `.env.example` is collected but intentionally excluded from this finding.
 
 ## Why is this a problem?
 Environment files often contain sensitive information such as database passwords, API keys, and secret tokens. Committing these files to a version control system exposes them to anyone who has access to the repository, leading to potential data breaches and unauthorized access.

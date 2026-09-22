@@ -2,6 +2,7 @@ import type { MiddlewareSignal, Rule } from "@next-secure-check/core";
 import {
   findCommandExecutionMatches,
   findDangerouslySetInnerHtmlMatches,
+  findDynamicFunctionMatches,
   findPasswordHandlingMatches,
   findRequestBoundaryInputMatches,
   findRawSqlConcatMatches,
@@ -377,25 +378,23 @@ export const nextPublicSecretRule: Rule = {
 
 export const noNewFunctionRule: Rule = {
   id: "injection/no-new-function",
-  title: "new Function() usage detected",
+  title: "Dynamic Function constructor usage detected",
   severity: "HIGH",
   category: "injection",
   confidence: "HIGH",
   scan(context) {
     return codeFiles(context).flatMap((file) =>
-      findMatches(file, /\bnew\s+Function\s*\(/)
-        .filter((match) => !isInsideQuotedLiteral(match.evidence, match.column))
-        .map((match) =>
-          createFinding({
-            rule: noNewFunctionRule,
-            file,
-            line: match.line,
-            column: match.column,
-            evidence: match.evidence,
-            description: "new Function() can execute dynamically generated code and may lead to code injection if input is untrusted.",
-            recommendation: "Avoid dynamic code execution. Replace new Function() with explicit logic or a safe parser for the expected input."
-          })
-        )
+      findDynamicFunctionMatches(file).map((match) =>
+        createFinding({
+          rule: noNewFunctionRule,
+          file,
+          line: match.line,
+          column: match.column,
+          evidence: match.evidence,
+          description: "Calls to the global Function constructor, including Function(...), new Function(...), or global-object access, can construct dynamically generated code and may lead to code injection when arguments contain untrusted input. Optional-chain forms are reported when they resolve to the global constructor; non-global methods are excluded.",
+          recommendation: "Avoid dynamic Function construction through direct calls, new calls, and global-object access (including optional-chain forms). Replace it with explicit logic or a safe parser for the expected input."
+        })
+      )
     );
   }
 };
@@ -902,7 +901,7 @@ function isMethodCall(line: string, column: number): boolean {
 }
 
 function isCommittedEnvFileName(fileName: string): boolean {
-  return /^\.env(?:\.(?:local|production|production\.local|development|development\.local|test|test\.local|staging|staging\.local))?$/.test(
+  return /^\.env(?:\.(?:local|production|production\.local|development|development\.local|test|test\.local|staging|staging\.local|prod|prod\.local|dev|dev\.local|preview|preview\.local))?$/.test(
     fileName
   );
 }

@@ -242,6 +242,23 @@ export function findUploadRouteHandlerMatches(file: SourceFile): AstMatch[] {
   return hasUploadHandling ? dedupeMatches(routeHandlerMatches) : [];
 }
 
+export function findDynamicFunctionMatches(file: SourceFile): AstMatch[] {
+  const { sourceFile } = getAnalysisFacts(file);
+  const matches: AstMatch[] = [];
+
+  visit(sourceFile, (node) => {
+    if (!ts.isCallExpression(node) && !ts.isNewExpression(node)) {
+      return;
+    }
+
+    if (referencesGlobalFunction(node.expression)) {
+      matches.push(matchFromNode(file, sourceFile, node));
+    }
+  });
+
+  return dedupeMatches(matches);
+}
+
 function createAnalysisFacts(sourceFile: ts.SourceFile): AnalysisFacts {
   const rawSqlCallbacks = createRawSqlFlowCallbacks();
   const ssrfAnalysis = createSsrfFlowAnalysis(sourceFile);
@@ -343,6 +360,211 @@ function scriptKindForPath(filePath: string): ts.ScriptKind {
   }
 
   return ts.ScriptKind.JS;
+}
+
+const GLOBAL_OBJECT_NAMES = new Set(["window", "globalThis", "global", "self"]);
+
+function referencesGlobalFunction(expression: ts.Expression): boolean {
+  if (ts.isIdentifier(expression)) {
+    return expression.text === "Function" && !isNameShadowedAt(expression, expression.text);
+  }
+
+  if (ts.isPropertyAccessExpression(expression)) {
+    return expression.name.text === "Function" && isGlobalObjectReference(expression.expression);
+  }
+
+  if (ts.isElementAccessExpression(expression)) {
+    return isFunctionNameLiteral(expression.argumentExpression) && isGlobalObjectReference(expression.expression);
+  }
+
+  return false;
+}
+
+function isGlobalObjectReference(expression: ts.Expression): boolean {
+  return ts.isIdentifier(expression) && GLOBAL_OBJECT_NAMES.has(expression.text) && !isNameShadowedAt(expression, expression.text);
+}
+
+function isFunctionNameLiteral(node: ts.Expression | undefined): boolean {
+  return node !== undefined && ts.isStringLiteralLike(node) && node.text === "Function";
+}
+
+type FunctionScopeNode =
+  | ts.FunctionDeclaration
+  | ts.FunctionExpression
+  | ts.ArrowFunction
+  | ts.MethodDeclaration
+  | ts.ConstructorDeclaration
+  | ts.GetAccessorDeclaration
+  | ts.SetAccessorDeclaration;
+
+function isFunctionScope(node: ts.Node): node is FunctionScopeNode {
+  return (
+    ts.isFunctionDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isConstructorDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node)
+  );
+}
+
+function isNameShadowedAt(node: ts.Node, name: string): boolean {
+  for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
+    if (scopeDeclaresName(current, name, node)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function scopeDeclaresName(scope: ts.Node, name: string, referenceNode: ts.Node): boolean {
+  if (ts.isSourceFile(scope) || ts.isBlock(scope) || ts.isModuleBlock(scope)) {
+    return (
+      scope.statements.some((statement) => statementDeclaresName(statement, name)) ||
+      nodeDeclaresVarName(scope, name)
+    );
+  }
+
+  if (ts.isCaseBlock(scope)) {
+    return (
+      scope.clauses.some((clause) => clause.statements.some((statement) => statementDeclaresName(statement, name))) ||
+      nodeDeclaresVarName(scope, name)
+    );
+  }
+
+  if (ts.isClassStaticBlockDeclaration(scope)) {
+    return (
+      scope.body.statements.some((statement) => statementDeclaresName(statement, name)) ||
+      nodeDeclaresVarName(scope, name)
+    );
+  }
+
+  if (isFunctionScope(scope)) {
+    return functionScopeDeclaresName(scope, name, isInsideFunctionParameterList(referenceNode, scope));
+  }
+
+  if (ts.isCatchClause(scope)) {
+    return scope.variableDeclaration !== undefined && bindingDeclaresName(scope.variableDeclaration.name, name);
+  }
+
+  if (ts.isForStatement(scope) || ts.isForInStatement(scope) || ts.isForOfStatement(scope)) {
+    return scope.initializer !== undefined && ts.isVariableDeclarationList(scope.initializer) && variableDeclarationListDeclaresName(scope.initializer, name);
+  }
+
+  return false;
+}
+
+function functionScopeDeclaresName(
+  node: FunctionScopeNode,
+  name: string,
+  referenceIsInParameters: boolean
+): boolean {
+  const declarationName = functionScopeDeclarationName(node);
+  if (declarationName === name) {
+    return true;
+  }
+
+  if (node.parameters.some((parameter) => bindingDeclaresName(parameter.name, name))) {
+    return true;
+  }
+
+  // A non-simple parameter list evaluates before the function-body var environment is instantiated.
+  return !referenceIsInParameters && nodeDeclaresVarName(node.body, name);
+}
+
+function isInsideFunctionParameterList(referenceNode: ts.Node, functionNode: FunctionScopeNode): boolean {
+  for (
+    let current: ts.Node | undefined = referenceNode;
+    current !== undefined && current !== functionNode;
+    current = current.parent
+  ) {
+    if (ts.isParameter(current) && current.parent === functionNode) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function functionScopeDeclarationName(node: FunctionScopeNode): string | undefined {
+  if (ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node)) {
+    return node.name?.text;
+  }
+
+  return undefined;
+}
+
+function nodeDeclaresVarName(node: ts.Node | undefined, name: string): boolean {
+  if (node === undefined || isFunctionScope(node)) {
+    return false;
+  }
+
+  if (ts.isVariableDeclarationList(node) && (node.flags & ts.NodeFlags.BlockScoped) === 0) {
+    return variableDeclarationListDeclaresName(node, name);
+  }
+
+  return (
+    ts.forEachChild(node, (child) => {
+      // These nodes own separate var environments and must not leak bindings to this scope.
+      if (isFunctionScope(child) || ts.isClassStaticBlockDeclaration(child) || ts.isModuleBlock(child)) {
+        return false;
+      }
+
+      return nodeDeclaresVarName(child, name);
+    }) ?? false
+  );
+}
+
+function statementDeclaresName(statement: ts.Statement, name: string): boolean {
+  if (ts.isImportDeclaration(statement)) {
+    return importDeclarationDeclaresName(statement, name);
+  }
+
+  if (ts.isVariableStatement(statement)) {
+    return variableDeclarationListDeclaresName(statement.declarationList, name);
+  }
+
+  if (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement) || ts.isEnumDeclaration(statement) || ts.isModuleDeclaration(statement)) {
+    return statement.name?.text === name;
+  }
+
+  return false;
+}
+
+function importDeclarationDeclaresName(statement: ts.ImportDeclaration, name: string): boolean {
+  const clause = statement.importClause;
+  if (clause === undefined) {
+    return false;
+  }
+
+  if (clause.name?.text === name) {
+    return true;
+  }
+
+  const bindings = clause.namedBindings;
+  if (bindings === undefined) {
+    return false;
+  }
+
+  return ts.isNamespaceImport(bindings) ? bindings.name.text === name : bindings.elements.some((element) => element.name.text === name);
+}
+
+function variableDeclarationListDeclaresName(list: ts.VariableDeclarationList, name: string): boolean {
+  return list.declarations.some((declaration) => bindingDeclaresName(declaration.name, name));
+}
+
+function bindingDeclaresName(binding: ts.BindingName, name: string): boolean {
+  return bindingIdentifiers(binding).some((identifier) => identifier.text === name);
+}
+
+function bindingIdentifiers(name: ts.BindingName): ts.Identifier[] {
+  if (ts.isIdentifier(name)) {
+    return [name];
+  }
+
+  return name.elements.flatMap((element) => (ts.isBindingElement(element) ? bindingIdentifiers(element.name) : []));
 }
 
 function visit(node: ts.Node, callback: (node: ts.Node) => void): void {
