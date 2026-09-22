@@ -378,7 +378,7 @@ export const nextPublicSecretRule: Rule = {
 
 export const noNewFunctionRule: Rule = {
   id: "injection/no-new-function",
-  title: "new Function() usage detected",
+  title: "Dynamic Function constructor usage detected",
   severity: "HIGH",
   category: "injection",
   confidence: "HIGH",
@@ -391,8 +391,8 @@ export const noNewFunctionRule: Rule = {
           line: match.line,
           column: match.column,
           evidence: match.evidence,
-          description: "new Function() can execute dynamically generated code and may lead to code injection if input is untrusted.",
-          recommendation: "Avoid dynamic code execution. Replace new Function() with explicit logic or a safe parser for the expected input."
+          description: "Calls to the global Function constructor, including Function(...), new Function(...), or global-object access, can construct dynamically generated code and may lead to code injection when arguments contain untrusted input. Optional-chain forms are reported when they resolve to the global constructor; non-global methods are excluded.",
+          recommendation: "Avoid dynamic Function construction through direct calls, new calls, and global-object access (including optional-chain forms). Replace it with explicit logic or a safe parser for the expected input."
         })
       )
     );

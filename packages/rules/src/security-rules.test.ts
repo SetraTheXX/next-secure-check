@@ -1574,6 +1574,21 @@ describe("built-in security rules", () => {
     expect(result.findings.some((finding) => finding.ruleId === "injection/no-new-function")).toBe(false);
   });
 
+  it("detects optional-chain calls to the global Function constructor", async () => {
+    const result = await scanFixture({
+      "index.ts": [
+        'const a = Function?.("return 1");',
+        'const b = window?.Function("return 2");',
+        'const c = globalThis.Function?.("return 3");',
+        'const d = globalThis?.["Function"]?.("return 4");',
+        'const safe = obj?.Function("x");'
+      ].join("\n")
+    });
+    const functionFindings = result.findings.filter((finding) => finding.ruleId === "injection/no-new-function");
+
+    expect(functionFindings).toHaveLength(4);
+  });
+
   it("detects global bracket-access Function constructor", async () => {
     const result = await scanFixture({
       "index.ts": ['const a = globalThis["Function"]("return 1");', "const b = window['Function']('return 2');"].join("\n")

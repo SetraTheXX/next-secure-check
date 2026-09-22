@@ -1,4 +1,4 @@
-# new Function() usage detected
+# Dynamic Function constructor usage detected
 
 **ID:** injection/no-new-function  
 **Severity:** HIGH  
@@ -6,13 +6,13 @@
 **Confidence:** HIGH
 
 ## Description
-`new Function()` can execute dynamically generated code and may lead to code injection if input is untrusted. Similar to `eval()`, it creates a new function object which can execute arbitrary code in the global scope. The same risk applies to bare `Function(...)` calls and to global access through `window`, `globalThis`, `global`, or `self` using either dot or bracket notation (for example `globalThis["Function"](...)`). Declaration and method forms such as `function Function() {}` or `obj.Function()` are not reported.
+Calls to the global `Function` constructor—including `Function(...)`, `new Function(...)`, and access through `window`, `globalThis`, `global`, or `self` using dot or static bracket notation—create functions from strings and may cause code injection when arguments contain untrusted input. Optional-call and optional-property forms still invoke the constructor whenever the recognized global resolves to it. Declarations, method definitions, shadowed bindings, and non-global methods such as `obj?.Function()` are not reported.
 
 ## Why is this a risk?
-If an attacker can control any part of the string passed to `new Function()`, they can execute arbitrary JavaScript code on the server or in the user's browser, leading to full system compromise or data theft.
+If an attacker can control any part of the source passed to the global `Function` constructor, the generated function can execute arbitrary JavaScript code on the server or in the user's browser, leading to data theft or system compromise.
 
 ## Recommendation
-Avoid dynamic code execution. Replace `new Function()` with explicit logic, a safe parser (like `JSON.parse()`), or a well-vetted library for the specific task.
+Avoid dynamic `Function` construction through direct calls, `new` calls, or global-object access, including optional-chain forms. Replace it with explicit logic, a safe parser (like `JSON.parse()`), or a well-vetted library for the specific task.
 
 ## Examples
 
@@ -21,6 +21,9 @@ Avoid dynamic code execution. Replace `new Function()` with explicit logic, a sa
 const formula = searchParams.get("formula");
 const result = new Function(`return ${formula}`)();
 const sameRisk = globalThis["Function"](`return ${formula}`)();
+const optionalCall = Function?.(`return ${formula}`)();
+const optionalGlobal = globalThis.Function?.(`return ${formula}`)();
+const optionalReceiver = window?.Function(`return ${formula}`)();
 ```
 
 ### Secure
