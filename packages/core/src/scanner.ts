@@ -12,10 +12,16 @@ const KNOWN_RATE_LIMIT_MODULE_PATTERN = /(?:^|["'\s])(?:@upstash\/ratelimit|rate
 
 export async function scanProject(targetPath: string, options: ScanOptions = {}): Promise<ScanResult> {
   const startedAt = Date.now();
+  options.signal?.throwIfAborted();
   const rootPath = await resolveProjectPath(targetPath);
+  options.signal?.throwIfAborted();
   const files = await collectFiles(rootPath, {
-    excludePaths: options.excludePaths
+    excludePaths: options.excludePaths,
+    maxFiles: options.maxFiles,
+    maxTotalBytes: options.maxTotalBytes,
+    signal: options.signal
   });
+  options.signal?.throwIfAborted();
   const detection = detectProject(files, rootPath);
   const categories = normalizeCategories(options.categories);
   const rules = (options.rules ?? []).filter((rule) => categories.size === 0 || categories.has(rule.category));
@@ -24,15 +30,20 @@ export async function scanProject(targetPath: string, options: ScanOptions = {})
     rootPath,
     files,
     project: detection.project,
+    signal: options.signal,
     middleware: extractMiddlewareSignals(files),
     packageJson: detection.packageJson
   };
+  await yieldToEventLoop();
+  options.signal?.throwIfAborted();
   const findings = sortFindings(
     applyContextTuningToFindings(
       enrichFindingsWithContext(await runRules(rules, context)),
       options.contextTuning ?? "standard"
     )
   );
+  await yieldToEventLoop();
+  options.signal?.throwIfAborted();
 
   return {
     project: detection.project,
@@ -62,10 +73,17 @@ async function runRules(rules: Rule[], context: ScanContext): Promise<Finding[]>
   const findings: Finding[] = [];
 
   for (const rule of rules) {
+    context.signal?.throwIfAborted();
     findings.push(...(await rule.scan(context)));
+    await yieldToEventLoop();
+    context.signal?.throwIfAborted();
   }
 
   return findings;
+}
+
+async function yieldToEventLoop(): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
 function enrichFindingsWithContext(findings: Finding[]): Finding[] {

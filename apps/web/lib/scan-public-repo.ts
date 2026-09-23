@@ -1,14 +1,14 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
-import { scanProject, type ScanResult } from "@next-secure-check/core";
-import { getBuiltInRules } from "@next-secure-check/rules";
+import type { ScanResult } from "@next-secure-check/core";
 import type { ArchiveErrorCode } from "./archive-types";
 import { fetchPublicGitHubRepoMetadata } from "./github-repo";
 import { parseGitHubRepoUrl } from "./github-url";
 import { redactScanResult, type RedactedScanResult } from "./redact-findings";
 import { cleanupOrphanExtractionDirs, downloadAndExtractGitHubTarball } from "./safe-extract";
 import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "./scan-limits";
-import { getGitHubTimeoutMs, getScanTimeoutMs, OperationTimeoutError, withTimeout } from "./timeout";
+import { scanProjectInWorker, type ScanWorkerImpl } from "./worker-scan";
+import { getGitHubTimeoutMs, getScanTimeoutMs, OperationTimeoutError } from "./timeout";
 
 export type ScanPublicGitHubRepoOptions = {
   excludePaths?: string[];
@@ -16,8 +16,7 @@ export type ScanPublicGitHubRepoOptions = {
   scanTimeoutMs?: number;
   timeoutMs?: number;
   limits?: Partial<ScanLimits>;
-  scanProjectImpl?: typeof scanProject;
-  getRulesImpl?: typeof getBuiltInRules;
+  scanWorkerImpl?: ScanWorkerImpl;
   fetchMetadataImpl?: typeof fetchPublicGitHubRepoMetadata;
   downloadAndExtractImpl?: typeof downloadAndExtractGitHubTarball;
   cleanupOrphansImpl?: typeof cleanupOrphanExtractionDirs;
@@ -116,14 +115,15 @@ export async function scanPublicGitHubRepo(
 
   let scan: ScanResult;
   try {
-    const runScan = options?.scanProjectImpl ?? scanProject;
-    const getRules = options?.getRulesImpl ?? getBuiltInRules;
     const scanRoot = await resolveScanRoot(extraction.extractedPath);
-    scan = await withTimeout(
-      runScan(scanRoot, {
+    const runScan = options?.scanWorkerImpl ?? scanProjectInWorker;
+    scan = await runScan(
+      scanRoot,
+      {
         excludePaths: options?.excludePaths,
-        rules: getRules()
-      }),
+        maxFiles: limits.maxFiles,
+        maxTotalBytes: limits.maxExtractedBytes
+      },
       options?.scanTimeoutMs ?? getScanTimeoutMs()
     );
   } catch (error) {
