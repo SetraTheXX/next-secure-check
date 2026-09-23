@@ -40,7 +40,7 @@ The web demo is designed for public repository scans only.
 - It does not run dependency installation, builds, tests, or package scripts from scanned repositories.
 - Secret-related evidence is redacted server-side before web responses.
 
-Public hosted deployments should use distributed abuse protection, such as the optional Upstash Redis REST guard or equivalent platform controls. The in-memory guard is only a local/single-instance fallback.
+Production and Vercel preview deployments require distributed abuse protection through the Upstash Redis REST guard. Configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`; the scan API returns HTTP 503 if either setting is missing or the limiter cannot be reached. The in-memory guard is limited to development and tests.
 
 ## Responsible Disclosure
 

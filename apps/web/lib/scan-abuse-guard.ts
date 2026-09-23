@@ -1,5 +1,9 @@
 import { isIP } from "node:net";
-import { InMemoryScanAbuseStore, type ScanSlotAcquireResult } from "./scan-abuse-store";
+import {
+  abuseLimiterUnavailableResult,
+  InMemoryScanAbuseStore,
+  type ScanSlotAcquireResult
+} from "./scan-abuse-store";
 import { createUpstashScanAbuseStoreFromEnv } from "./upstash-scan-abuse-store";
 
 const MAX_IP_HEADER_LENGTH = 512;
@@ -26,12 +30,38 @@ export function getScanClientIp(headers: Headers): string {
 }
 
 export async function tryAcquireScanSlot(ip: string, nowMs = Date.now()): Promise<ScanAbuseGuardResult> {
-  const store = createUpstashScanAbuseStoreFromEnv() ?? inMemoryStore;
-  return store.acquire(ip, nowMs);
+  let distributedStore;
+  try {
+    distributedStore = createUpstashScanAbuseStoreFromEnv();
+  } catch {
+    return abuseLimiterUnavailableResult();
+  }
+
+  if (distributedStore) {
+    try {
+      return await distributedStore.acquire(ip, nowMs);
+    } catch {
+      return abuseLimiterUnavailableResult();
+    }
+  }
+
+  if (!allowsInMemoryFallback(process.env)) {
+    return abuseLimiterUnavailableResult();
+  }
+
+  return inMemoryStore.acquire(ip, nowMs);
 }
 
 export function resetScanAbuseGuardForTests(): void {
   inMemoryStore.resetForTests();
+}
+
+function allowsInMemoryFallback(env: NodeJS.ProcessEnv): boolean {
+  if (env.VERCEL_ENV === "production" || env.VERCEL_ENV === "preview") {
+    return false;
+  }
+
+  return env.NODE_ENV === "development" || env.NODE_ENV === "test";
 }
 
 function parseClientIpHeader(value: string | null): string | "too-long" | undefined {

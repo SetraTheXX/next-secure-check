@@ -1,4 +1,5 @@
 import {
+  abuseLimiterUnavailableResult,
   concurrentLimitResult,
   MAX_ACTIVE_SCANS,
   MAX_SCANS_PER_WINDOW,
@@ -52,7 +53,7 @@ export class UpstashScanAbuseStore implements ScanAbuseStore {
         }
       };
     } catch {
-      return concurrentLimitResult();
+      return abuseLimiterUnavailableResult();
     }
   }
 
@@ -104,11 +105,33 @@ export class UpstashScanAbuseStore implements ScanAbuseStore {
   }
 }
 
-export function createUpstashScanAbuseStoreFromEnv(env = process.env): UpstashScanAbuseStore | undefined {
+export function createUpstashScanAbuseStoreFromEnv(
+  env = process.env
+): UpstashScanAbuseStore | undefined {
   const restUrl = env.UPSTASH_REDIS_REST_URL?.trim();
   const token = env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!restUrl || !token) {
+  if (!restUrl && !token) {
     return undefined;
+  }
+
+  if (!restUrl || !token) {
+    throw new Error("Incomplete distributed scan limiter configuration.");
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(restUrl);
+  } catch {
+    throw new Error("Invalid distributed scan limiter configuration.");
+  }
+
+  if (
+    parsedUrl.protocol !== "https:" ||
+    !parsedUrl.hostname ||
+    parsedUrl.username ||
+    parsedUrl.password
+  ) {
+    throw new Error("Invalid distributed scan limiter configuration.");
   }
 
   return new UpstashScanAbuseStore(restUrl, token);
