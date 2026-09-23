@@ -12,7 +12,10 @@ export type ScanSlotAcquireResult =
     }
   | {
       ok: false;
-      code: "SCAN_RATE_LIMITED" | "CONCURRENT_SCAN_LIMIT_EXCEEDED";
+      code:
+        | "SCAN_RATE_LIMITED"
+        | "CONCURRENT_SCAN_LIMIT_EXCEEDED"
+        | "SCAN_ABUSE_LIMITER_UNAVAILABLE";
       message: string;
     };
 
@@ -111,5 +114,13 @@ export function concurrentLimitResult(): ScanSlotAcquireResult {
     ok: false,
     code: "CONCURRENT_SCAN_LIMIT_EXCEEDED",
     message: "Too many scans are running. Please try again shortly."
+  };
+}
+
+export function abuseLimiterUnavailableResult(): ScanSlotAcquireResult {
+  return {
+    ok: false,
+    code: "SCAN_ABUSE_LIMITER_UNAVAILABLE",
+    message: "Scan service is temporarily unavailable. Please try again later."
   };
 }

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import { resetScanAbuseGuardForTests } from "../../../lib/scan-abuse-guard";
 import { scanPublicGitHubRepo } from "../../../lib/scan-public-repo";
+import { MAX_SCAN_REQUEST_BODY_BYTES } from "../../../lib/scan-request-body";
 
 vi.mock("../../../lib/scan-public-repo", () => ({
   scanPublicGitHubRepo: vi.fn()
@@ -37,6 +38,85 @@ describe("POST /api/scans", () => {
       message: "Request body must be valid JSON."
     });
     expect(response.status).toBe(400);
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized streamed body even when Content-Length understates it", async () => {
+    const oversizedBody = JSON.stringify({
+      repoUrl: "https://github.com/owner/" + "a".repeat(MAX_SCAN_REQUEST_BODY_BYTES)
+    });
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body: createBodyStream(new TextEncoder().encode(oversizedBody)),
+        duplex: "half",
+        headers: {
+          "content-length": "1",
+          "content-type": "application/json"
+        },
+        method: "POST"
+      } as RequestInit & { duplex: "half" })
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "REQUEST_BODY_TOO_LARGE",
+      message: "Request body exceeds the maximum allowed size."
+    });
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
+  });
+
+  it("checks the quota before reading or parsing a request body", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    const order: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        order.push("limiter");
+        return createUpstashResponse([{ result: 4 }, { result: 1 }]);
+      })
+    );
+
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          order.push("body");
+          controller.enqueue(new TextEncoder().encode(JSON.stringify({ repoUrl: "owner/repo" })));
+          controller.close();
+        }
+      },
+      { highWaterMark: 0 }
+    );
+    const response = await POST(
+      new Request("http://localhost/api/scans", {
+        body,
+        duplex: "half",
+        headers: {
+          "content-type": "application/json"
+        },
+        method: "POST"
+      } as RequestInit & { duplex: "half" })
+    );
+
+    expect(response.status).toBe(429);
+    expect(order).toEqual(["limiter"]);
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 in production when distributed limiter configuration is missing", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+
+    const response = await POST(createScanRequest());
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "SCAN_ABUSE_LIMITER_UNAVAILABLE",
+      message: "Scan service is temporarily unavailable. Please try again later."
+    });
     expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
   });
 
@@ -472,4 +552,16 @@ function createUpstashResponse(payload: unknown): Response {
     },
     status: 200
   });
+}
+
+function createBodyStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>(
+    {
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      }
+    },
+    { highWaterMark: 0 }
+  );
 }

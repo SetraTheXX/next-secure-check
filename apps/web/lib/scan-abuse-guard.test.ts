@@ -108,6 +108,50 @@ describe("tryAcquireScanSlot", () => {
     });
   });
 
+  it("fails closed in production when the distributed limiter is not configured", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+
+    const result = await tryAcquireScanSlot("203.0.113.69", 1_000);
+
+    expect(result).toEqual({
+      ok: false,
+      code: "SCAN_ABUSE_LIMITER_UNAVAILABLE",
+      message: "Scan service is temporarily unavailable. Please try again later."
+    });
+  });
+
+  it("fails closed in public Vercel preview deployments without distributed limiter configuration", async () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+
+    const result = await tryAcquireScanSlot("203.0.113.69", 1_000);
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "SCAN_ABUSE_LIMITER_UNAVAILABLE"
+    });
+  });
+
+  it("fails closed when only part of the distributed limiter configuration is present", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await tryAcquireScanSlot("203.0.113.69", 1_000);
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "SCAN_ABUSE_LIMITER_UNAVAILABLE"
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("uses Upstash REST when distributed env is configured", async () => {
     vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
     vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
@@ -188,10 +232,52 @@ describe("tryAcquireScanSlot", () => {
 
     expect(result).toEqual({
       ok: false,
-      code: "CONCURRENT_SCAN_LIMIT_EXCEEDED",
-      message: "Too many scans are running. Please try again shortly."
+      code: "SCAN_ABUSE_LIMITER_UNAVAILABLE",
+      message: "Scan service is temporarily unavailable. Please try again later."
     });
     expect(JSON.stringify(result)).not.toContain("upstash-secret-token");
+  });
+
+  it("enforces the distributed rate and active scan limits across parallel requests", async () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
+    const counters = new Map<string, number>();
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      const commands = JSON.parse(String(init?.body)) as Array<[string, string, number?]>;
+      const results = commands.map(([name, key]) => {
+        if (name === "INCR") {
+          const next = (counters.get(key) ?? 0) + 1;
+          counters.set(key, next);
+          return next;
+        }
+
+        if (name === "EXPIRE") {
+          return 1;
+        }
+
+        if (name === "DECR") {
+          const next = (counters.get(key) ?? 0) - 1;
+          counters.set(key, next);
+          return next;
+        }
+
+        throw new Error("Unexpected Redis command.");
+      });
+
+      return Promise.resolve(createUpstashResponse(results.map((result) => ({ result }))));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => tryAcquireScanSlot("203.0.113.75", 1_000))
+    );
+    const accepted = results.filter((result) => result.ok);
+
+    expect(accepted).toHaveLength(MAX_ACTIVE_SCANS);
+    expect(results.some((result) => !result.ok && result.code === "SCAN_RATE_LIMITED")).toBe(true);
+
+    await Promise.all(accepted.map((result) => (result.ok ? result.release() : undefined)));
+    expect(counters.get("next-secure-check:active-scans")).toBe(0);
   });
 });
 

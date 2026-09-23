@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { getScanClientIp, tryAcquireScanSlot } from "../../../lib/scan-abuse-guard";
 import { validateExcludePaths } from "../../../lib/scan-excludes";
 import { scanPublicGitHubRepo } from "../../../lib/scan-public-repo";
+import {
+  readScanRequestJson,
+  validateScanRequestContentLength
+} from "../../../lib/scan-request-body";
 import { logSafeScanEvent } from "../../../lib/safe-log";
 
 type ScanRequestBody = {
@@ -13,49 +17,35 @@ type ScanRequestBody = {
 export async function POST(request: Request): Promise<NextResponse> {
   const scanId = randomUUID();
   const startedAt = Date.now();
-  let body: ScanRequestBody;
+  const contentLength = validateScanRequestContentLength(request.headers.get("content-length"));
 
-  try {
-    body = (await request.json()) as ScanRequestBody;
-  } catch {
+  if (contentLength === "invalid") {
     return jsonWithSafeLog(scanId, startedAt, {
       body: {
         ok: false,
         code: "INVALID_REQUEST_BODY",
-        message: "Request body must be valid JSON."
+        message: "Request body length is invalid."
       },
       code: "INVALID_REQUEST_BODY",
       status: 400
     });
   }
 
-  if (!body || typeof body.repoUrl !== "string" || !body.repoUrl.trim()) {
+  if (contentLength === "too_large") {
     return jsonWithSafeLog(scanId, startedAt, {
       body: {
         ok: false,
-        code: "INVALID_REQUEST_BODY",
-        message: "repoUrl is required."
+        code: "REQUEST_BODY_TOO_LARGE",
+        message: "Request body exceeds the maximum allowed size."
       },
-      code: "INVALID_REQUEST_BODY",
-      status: 400
-    });
-  }
-
-  const excludePaths = validateExcludePaths(body.excludePaths);
-  if (!excludePaths) {
-    return jsonWithSafeLog(scanId, startedAt, {
-      body: {
-        ok: false,
-        code: "INVALID_REQUEST_BODY",
-        message: "excludePaths must be an array of safe relative glob patterns."
-      },
-      code: "INVALID_REQUEST_BODY",
-      status: 400
+      code: "REQUEST_BODY_TOO_LARGE",
+      status: 413
     });
   }
 
   const guard = await tryAcquireScanSlot(getScanClientIp(request.headers));
   if (!guard.ok) {
+    const status = guard.code === "SCAN_ABUSE_LIMITER_UNAVAILABLE" ? 503 : 429;
     return jsonWithSafeLog(scanId, startedAt, {
       body: {
         ok: false,
@@ -63,13 +53,56 @@ export async function POST(request: Request): Promise<NextResponse> {
         message: guard.message
       },
       code: guard.code,
-      status: 429
+      status
     });
   }
 
   let result: Awaited<ReturnType<typeof scanPublicGitHubRepo>>;
 
   try {
+    const bodyResult = await readScanRequestJson(request);
+    if (!bodyResult.ok) {
+      const tooLarge = bodyResult.reason === "too_large";
+      const code = tooLarge ? "REQUEST_BODY_TOO_LARGE" : "INVALID_REQUEST_BODY";
+      return jsonWithSafeLog(scanId, startedAt, {
+        body: {
+          ok: false,
+          code,
+          message: tooLarge
+            ? "Request body exceeds the maximum allowed size."
+            : "Request body must be valid JSON."
+        },
+        code,
+        status: tooLarge ? 413 : 400
+      });
+    }
+
+    const body = bodyResult.value as ScanRequestBody | null;
+    if (!body || typeof body.repoUrl !== "string" || !body.repoUrl.trim()) {
+      return jsonWithSafeLog(scanId, startedAt, {
+        body: {
+          ok: false,
+          code: "INVALID_REQUEST_BODY",
+          message: "repoUrl is required."
+        },
+        code: "INVALID_REQUEST_BODY",
+        status: 400
+      });
+    }
+
+    const excludePaths = validateExcludePaths(body.excludePaths);
+    if (!excludePaths) {
+      return jsonWithSafeLog(scanId, startedAt, {
+        body: {
+          ok: false,
+          code: "INVALID_REQUEST_BODY",
+          message: "excludePaths must be an array of safe relative glob patterns."
+        },
+        code: "INVALID_REQUEST_BODY",
+        status: 400
+      });
+    }
+
     result =
       excludePaths.length > 0
         ? await scanPublicGitHubRepo(body.repoUrl, { excludePaths })
@@ -85,7 +118,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       status: 500
     });
   } finally {
-    await guard.release();
+    try {
+      await guard.release();
+    } catch {
+      // Preserve the scan response if the limiter cannot release its slot.
+    }
   }
 
   if (result.ok) {

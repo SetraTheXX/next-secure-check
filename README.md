@@ -289,7 +289,7 @@ pnpm build
 pnpm -C apps/web dev
 ```
 
-Its in-memory abuse guard is suitable for local or single-instance use. A public multi-instance deployment needs distributed abuse protection and trusted proxy configuration for IP-based limits.
+The in-memory abuse guard is limited to development and tests. Production and Vercel preview deployments require distributed abuse protection: configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`; scan requests fail with HTTP 503 when the limiter is missing or unavailable. Keep trusted proxy configuration correct for IP-based limits.
 
 ## Reproducible fixtures
 
