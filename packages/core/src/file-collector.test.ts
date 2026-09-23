@@ -117,4 +117,20 @@ describe("collectFiles", () => {
 
     expect(files.map((file) => file.path)).toEqual(["next.config.cjs"]);
   });
+
+  it("enforces a maximum number of collected source files", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "a.ts"), "export {};\n");
+    await writeFile(path.join(root, "b.ts"), "export {};\n");
+
+    await expect(collectFiles(root, { maxFiles: 1 })).rejects.toThrow("Scan file count limit exceeded");
+  });
+
+  it("enforces a maximum total size for collected source files", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "a.ts"), "1234");
+    await writeFile(path.join(root, "b.ts"), "5678");
+
+    await expect(collectFiles(root, { maxTotalBytes: 7 })).rejects.toThrow("Scan source size limit exceeded");
+  });
 });

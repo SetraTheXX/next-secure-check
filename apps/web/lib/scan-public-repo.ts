@@ -115,18 +115,25 @@ export async function scanPublicGitHubRepo(
   }
 
   let scan: ScanResult;
+  let scanOperation: Promise<ScanResult> | undefined;
   try {
     const runScan = options?.scanProjectImpl ?? scanProject;
     const getRules = options?.getRulesImpl ?? getBuiltInRules;
     const scanRoot = await resolveScanRoot(extraction.extractedPath);
-    scan = await withTimeout(
-      runScan(scanRoot, {
+    scan = await withTimeout((signal) => {
+      scanOperation = runScan(scanRoot, {
         excludePaths: options?.excludePaths,
-        rules: getRules()
-      }),
-      options?.scanTimeoutMs ?? getScanTimeoutMs()
-    );
+        maxFiles: limits.maxFiles,
+        maxTotalBytes: limits.maxExtractedBytes,
+        rules: getRules(),
+        signal
+      });
+      return scanOperation;
+    }, options?.scanTimeoutMs ?? getScanTimeoutMs());
   } catch (error) {
+    if (isTimeoutError(error)) {
+      await scanOperation?.catch(() => undefined);
+    }
     await cleanupQuietly(extraction.cleanup);
     if (isTimeoutError(error)) {
       return {

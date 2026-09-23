@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { resolveProjectPath, scanProject } from "./scanner.js";
 import type { MiddlewareSignal, Rule } from "./types.js";
 
@@ -67,6 +67,66 @@ describe("scanProject", () => {
     const result = await scanProject(root, { rules: [rule], categories: ["secrets"] });
 
     expect(result.findings).toEqual([]);
+  });
+
+  it("stops before running the next rule when the scan is aborted", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "index.ts"), "export {};\n");
+    const controller = new AbortController();
+    const cancelled = new Error("scan cancelled");
+    const laterRule = vi.fn(() => []);
+    const cancellingRule: Rule = {
+      id: "test/cancel",
+      title: "Cancel scan",
+      severity: "LOW",
+      category: "test",
+      scan: () => {
+        controller.abort(cancelled);
+        return [];
+      }
+    };
+    const followingRule: Rule = {
+      id: "test/after-cancel",
+      title: "After cancel",
+      severity: "LOW",
+      category: "test",
+      scan: laterRule
+    };
+
+    await expect(
+      scanProject(root, { rules: [cancellingRule, followingRule], signal: controller.signal })
+    ).rejects.toBe(cancelled);
+    expect(laterRule).not.toHaveBeenCalled();
+  });
+
+  it("yields between rules so a timeout can cancel remaining rule work", async () => {
+    const root = await tempProject();
+    await writeFile(path.join(root, "index.ts"), "export {};\n");
+    const controller = new AbortController();
+    const timedOut = new Error("scan timed out");
+    const laterRule = vi.fn(() => []);
+    const firstRule: Rule = {
+      id: "test/first",
+      title: "First rule",
+      severity: "LOW",
+      category: "test",
+      scan: () => {
+        setTimeout(() => controller.abort(timedOut), 0);
+        return [];
+      }
+    };
+    const followingRule: Rule = {
+      id: "test/following",
+      title: "Following rule",
+      severity: "LOW",
+      category: "test",
+      scan: laterRule
+    };
+
+    await expect(
+      scanProject(root, { rules: [firstRule, followingRule], signal: controller.signal })
+    ).rejects.toBe(timedOut);
+    expect(laterRule).not.toHaveBeenCalled();
   });
 
   it("extracts middleware auth, rate-limit, and matcher signals for rules", async () => {

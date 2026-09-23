@@ -4,6 +4,14 @@ import type { SourceFile } from "./types.js";
 
 type CollectFilesOptions = {
   excludePaths?: string[];
+  maxFiles?: number;
+  maxTotalBytes?: number;
+  signal?: AbortSignal;
+};
+
+type CollectFilesState = {
+  files: SourceFile[];
+  totalBytes: number;
 };
 
 const IGNORED_DIRECTORIES = new Set([
@@ -46,21 +54,26 @@ const INCLUDED_FILENAMES = new Set([
 ]);
 
 export async function collectFiles(rootPath: string, options: CollectFilesOptions = {}): Promise<SourceFile[]> {
-  const files: SourceFile[] = [];
+  const state: CollectFilesState = { files: [], totalBytes: 0 };
   const excludeMatchers = createExcludeMatchers(options.excludePaths);
-  await walk(rootPath, rootPath, files, excludeMatchers);
-  return files.sort((a, b) => a.path.localeCompare(b.path));
+  await walk(rootPath, rootPath, state, excludeMatchers, options);
+  return state.files.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 async function walk(
   rootPath: string,
   currentPath: string,
-  files: SourceFile[],
-  excludeMatchers: RegExp[]
+  state: CollectFilesState,
+  excludeMatchers: RegExp[],
+  options: CollectFilesOptions
 ): Promise<void> {
+  options.signal?.throwIfAborted();
   const entries = await readdir(currentPath, { withFileTypes: true });
+  options.signal?.throwIfAborted();
 
   for (const entry of entries) {
+    options.signal?.throwIfAborted();
+
     if (entry.isDirectory() && IGNORED_DIRECTORIES.has(entry.name)) {
       continue;
     }
@@ -68,7 +81,7 @@ async function walk(
     const absolutePath = path.join(currentPath, entry.name);
 
     if (entry.isDirectory()) {
-      await walk(rootPath, absolutePath, files, excludeMatchers);
+      await walk(rootPath, absolutePath, state, excludeMatchers, options);
       continue;
     }
 
@@ -82,12 +95,26 @@ async function walk(
     }
 
     const fileStat = await stat(absolutePath);
+    options.signal?.throwIfAborted();
     if (fileStat.size > 1024 * 1024) {
       continue;
     }
 
+    if (options.maxFiles !== undefined && state.files.length >= options.maxFiles) {
+      throw new Error("Scan file count limit exceeded");
+    }
+
+    if (
+      options.maxTotalBytes !== undefined &&
+      state.totalBytes + fileStat.size > options.maxTotalBytes
+    ) {
+      throw new Error("Scan source size limit exceeded");
+    }
+
     const content = await readFile(absolutePath, "utf8");
-    files.push({
+    options.signal?.throwIfAborted();
+    state.totalBytes += fileStat.size;
+    state.files.push({
       path: relativePath,
       absolutePath,
       content,

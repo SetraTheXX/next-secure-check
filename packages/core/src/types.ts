@@ -79,6 +79,7 @@ export type ScanContext = {
   rootPath: string;
   files: SourceFile[];
   project: ProjectInfo;
+  signal?: AbortSignal;
   middleware?: MiddlewareSignal[];
   packageJson?: {
     name?: string;
@@ -108,6 +109,9 @@ export type ScanOptions = {
   categories?: string[];
   contextTuning?: "standard" | "off";
   excludePaths?: string[];
+  maxFiles?: number;
+  maxTotalBytes?: number;
   rules?: Rule[];
+  signal?: AbortSignal;
   toolVersion?: string;
 };

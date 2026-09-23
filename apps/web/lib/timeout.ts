@@ -43,15 +43,22 @@ export async function fetchWithAbortTimeout(
 }
 
 export async function withTimeout<T>(
-  operation: Promise<T>,
+  operation: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number
 ): Promise<T> {
+  const controller = new AbortController();
   let timeout: ReturnType<typeof setTimeout> | undefined;
+  const task = Promise.resolve().then(() => operation(controller.signal));
+
   try {
     return await Promise.race([
-      operation,
+      task,
       new Promise<T>((_, reject) => {
-        timeout = setTimeout(() => reject(new OperationTimeoutError()), timeoutMs);
+        timeout = setTimeout(() => {
+          const error = new OperationTimeoutError();
+          controller.abort(error);
+          reject(error);
+        }, timeoutMs);
       })
     ]);
   } finally {

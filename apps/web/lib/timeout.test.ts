@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_GITHUB_TIMEOUT_MS,
   DEFAULT_SCAN_TIMEOUT_MS,
   getGitHubTimeoutMs,
-  getScanTimeoutMs
+  getScanTimeoutMs,
+  OperationTimeoutError,
+  withTimeout
 } from "./timeout";
 
 describe("timeout configuration", () => {
@@ -24,5 +26,25 @@ describe("timeout configuration", () => {
     expect(getScanTimeoutMs({ NEXT_SECURE_CHECK_SCAN_TIMEOUT_MS: "-1" })).toBe(
       DEFAULT_SCAN_TIMEOUT_MS
     );
+  });
+
+  it("aborts the active operation when it times out", async () => {
+    const abort = vi.fn();
+    const operation = vi.fn((signal: AbortSignal) =>
+      new Promise<never>((_, reject) => {
+        signal.addEventListener(
+          "abort",
+          () => {
+            abort();
+            reject(signal.reason);
+          },
+          { once: true }
+        );
+      })
+    );
+
+    await expect(withTimeout(operation, 1)).rejects.toBeInstanceOf(OperationTimeoutError);
+
+    expect(abort).toHaveBeenCalledOnce();
   });
 });

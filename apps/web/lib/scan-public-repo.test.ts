@@ -48,10 +48,16 @@ describe("scanPublicGitHubRepo", () => {
       });
       expect(result.scan.findings[0]?.evidence).toBe("[REDACTED]");
     }
-    expect(scanProjectImpl).toHaveBeenCalledWith("C:/tmp/extracted", {
-      excludePaths: undefined,
-      rules: expect.any(Array)
-    });
+    expect(scanProjectImpl).toHaveBeenCalledWith(
+      "C:/tmp/extracted",
+      expect.objectContaining({
+        excludePaths: undefined,
+        maxFiles: 3000,
+        maxTotalBytes: 100 * 1024 * 1024,
+        rules: expect.any(Array),
+        signal: expect.any(AbortSignal)
+      })
+    );
     expect(getRulesImpl).toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledTimes(1);
   });
@@ -75,10 +81,16 @@ describe("scanPublicGitHubRepo", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(scanProjectImpl).toHaveBeenCalledWith("C:/tmp/extracted", {
-      excludePaths,
-      rules: expect.any(Array)
-    });
+    expect(scanProjectImpl).toHaveBeenCalledWith(
+      "C:/tmp/extracted",
+      expect.objectContaining({
+        excludePaths,
+        maxFiles: 3000,
+        maxTotalBytes: 100 * 1024 * 1024,
+        rules: expect.any(Array),
+        signal: expect.any(AbortSignal)
+      })
+    );
   });
 
   it("does not let orphan cleanup failures mask successful scans", async () => {
@@ -280,7 +292,23 @@ describe("scanPublicGitHubRepo", () => {
   });
 
   it("returns a safe scan timeout error and cleans up extracted files", async () => {
-    const cleanup = vi.fn().mockResolvedValue(undefined);
+    const events: string[] = [];
+    const cleanup = vi.fn(async () => {
+      events.push("cleanup");
+    });
+    const scanProjectImpl = vi.fn(
+      (_root: string, options: { signal?: AbortSignal } = {}) =>
+        new Promise<ScanResult>((_, reject) => {
+          options.signal?.addEventListener(
+            "abort",
+            () => {
+              events.push("scan-stopped");
+              reject(options.signal?.reason);
+            },
+            { once: true }
+          );
+        })
+    );
 
     const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
       downloadAndExtractImpl: vi.fn().mockResolvedValue({
@@ -292,7 +320,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 1
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl: vi.fn().mockReturnValue(new Promise(() => {})),
+      scanProjectImpl,
       scanTimeoutMs: 1
     });
 
@@ -301,6 +329,7 @@ describe("scanPublicGitHubRepo", () => {
       code: "SCAN_TIMEOUT",
       message: "Repository scan timed out"
     });
+    expect(events).toEqual(["scan-stopped", "cleanup"]);
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(result)).not.toContain("C:/tmp/extracted");
     expect(JSON.stringify(result)).not.toContain("stack");
