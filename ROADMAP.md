@@ -46,6 +46,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - optional demo/video enhancement; separate from the completed v0.6 release gate.
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
+- [x] Prepare a privacy-safe five-interview/three-pilot measurement template; no participants contacted.
 - [x] Record opt-in public-repository smoke observations without storing raw reports or making accuracy claims.
 
 ### Public evidence
@@ -75,6 +76,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] [v0.6 cookie and Next.js configuration hardening validation](./docs/validation/phase-23-v06-config-hardening.md)
 - [x] [v0.6 cookie and Next.js configuration hardening decision](./docs/decisions/0007-v0.6-config-hardening-signals.md)
 - [x] [v0.6 quality gate and release feedback](./docs/validation/phase-24-v06-quality-gate.md)
+- [x] [Real-user feedback pilot measurement template](./docs/validation/real-user-feedback-pilot-template.md)
 - [x] [v0.4.1 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.4.1)
 - [x] [v0.5.0 GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.5.0)
 - [x] [release history](./CHANGELOG.md)

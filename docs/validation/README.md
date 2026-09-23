@@ -81,6 +81,12 @@ real-world smoke observations, package/Action contract, and independent
 review handoff are documented in
 [phase-24-v06-quality-gate.md](./phase-24-v06-quality-gate.md).
 
+The privacy boundary, five-interview/three-pilot plan, FP/FN definitions,
+review-time measures, retention limits, and decision thresholds for future
+real-user feedback are provided by the empty
+[pilot measurement template](./real-user-feedback-pilot-template.md). No
+participants have been contacted and no pilot results are recorded.
+
 Historical v0.1 baseline:
 
 ```txt
