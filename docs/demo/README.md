@@ -44,10 +44,10 @@ Before treating a linked demo as final or using it in a launch post, confirm:
 
 ## Review status
 
-The CLI and init visuals are linked from the README in PR #37 and passed QA review at `a55d538`.
+The CLI and init visuals are linked from the README in PR #37; the current recordings and fixture content-integrity guard passed QA at `29e459d`.
 
 - [x] Main CLI tape and GIF prepared.
 - [x] Init tape and GIF prepared.
 - [x] Fixture demo already exists and is linked from the README.
 - [x] QA review of the updated main CLI and init GIFs passed at `a55d538`; privacy and init-guard checks passed.
-- [ ] QA re-review of the fixture content-integrity guard and current GIF privacy is pending for this follow-up; do not merge PR #37 until it passes.
+- [x] QA re-review of the fixture content-integrity guard and current GIF privacy passed at `29e459d`.
