@@ -14,9 +14,10 @@ The root README links all three demos: fixture comparisons, the main CLI walkthr
 
 ## Regenerating
 
-Requires Node.js 20.9 or newer, Git, and `vhs`, `ttyd`, and `ffmpeg` on `PATH`. Run from the repository root:
+Requires Node.js 20.9 or newer, Git, and `vhs`, `ttyd`, and `ffmpeg` on `PATH`. The main CLI tape rejects ignored or untracked files in its secure fixture, so install the other workspaces without installing `secure-next-app` there:
 
 ```bash
+pnpm install --frozen-lockfile --filter '!secure-next-app'
 pnpm build
 vhs docs/demo/next-secure-check-cli.tape
 vhs docs/demo/next-secure-check.tape
