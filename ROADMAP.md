@@ -43,7 +43,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] Prepare and publish the aligned `0.6.0` package manifests after the quality gate.
 - [x] Update `action.yml`, release the follow-up Action version, and move `@v1` after `0.6.0` became available on npm.
 - [x] Regenerate the README demo from the v0.6.0 release-commit CLI without adding verbose rule-list output; published npm smoke is recorded separately.
-- [x] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - Add the reviewed terminal demos to the README; see [demo sources, assets, and review record](./docs/demo/README.md).
+- [ ] [Issue #12](https://github.com/SetraTheXX/next-secure-check/issues/12) - Final QA review of the current terminal demos is pending; README links are present in PR #37. See [demo sources, assets, and review record](./docs/demo/README.md).
 - [ ] Collect feedback from real Next.js users before committing to additional rule surface.
 - [ ] Record confirmed false-positive reductions and false-negative recoveries as evidence, not as marketing claims.
 - [x] Record opt-in public-repository smoke observations without storing raw reports or making accuracy claims.

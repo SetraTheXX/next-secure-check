@@ -2,6 +2,7 @@
 # Runs on Windows `cmd` (Set Shell cmd; uses cls). See docs/demo/README.md.
 # Run from the repository root after `pnpm build`.
 Require node
+Require git
 Require ffmpeg
 Require ttyd
 
@@ -19,13 +20,23 @@ Set TypingSpeed 16ms
 
 # Scan only the checked-in public secure fixture; never scan the developer checkout root.
 # Exclude environment files explicitly so the command stays safe in any checkout.
+# Fail closed unless the fixture inventory is exactly its three tracked public files.
 Hide
 Type "prompt next-secure-check$G"
 Enter
 Type "cls"
 Enter
+Type "node scripts/assert-public-demo-fixture.mjs"
+Enter
+Type "if errorlevel 1 exit /b 1"
+Enter
+Type "cls"
+Enter
 Show
 
+Type "echo fixture: three tracked public files only"
+Enter
+Sleep 1s
 Type "echo next-secure-check v0.6.0 / 25 bounded review rules"
 Enter
 Type "echo mode: version, rules, explain, then a scan summary"
