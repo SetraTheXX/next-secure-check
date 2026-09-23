@@ -45,8 +45,12 @@ try {
     throw new Error("fixture inventory mismatch");
   }
 
-  console.log("Fixture inventory verified: three tracked public files.");
+  execFileSync("git", ["-C", repoRoot, "diff", "--quiet", "HEAD", "--", ...expectedFiles], {
+    stdio: "ignore",
+  });
+
+  console.log("Fixture inventory and tracked content verified.");
 } catch {
-  console.error("Fixture check failed: examples/secure-next-app must contain only its three tracked public files.");
+  console.error("Fixture check failed: examples/secure-next-app must contain only its three tracked public files matching HEAD.");
   process.exitCode = 1;
 }

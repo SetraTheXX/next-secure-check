@@ -35,7 +35,7 @@ All three tapes target **Windows `cmd`** (`Set Shell cmd`): they rely on `cls`, 
 Before treating a linked demo as final or using it in a launch post, confirm:
 
 - the shell prompt is replaced so the local checkout path is never shown;
-- the main CLI tape runs `scripts/assert-public-demo-fixture.mjs` before scanning; it fails closed unless both Git and the recursive file inventory contain exactly `README.md`, `next.config.js`, and `package.json` under `examples/secure-next-app`;
+- the main CLI tape runs `scripts/assert-public-demo-fixture.mjs` before scanning; it fails closed unless Git and the recursive file inventory contain exactly `README.md`, `next.config.js`, and `package.json` under `examples/secure-next-app`, and all three files match their `HEAD` contents;
 - the main CLI scan is limited to that checked-in public fixture, explicitly excludes `.env*` paths, and never scans the developer checkout root;
 - no tokens, `.env` files, credentials, or private repository content appear;
 - the init demo clears inherited flags before setup; CREATED is set only after successful mkdir, ENTERED only after cd, and READY only after the ownership marker is written. If setup fails, it removes only a directory this run created and exits before any init or file display can touch the checkout or a collision directory. After successful setup, cleanup returns to the root only when ENTERED is set and removes the scratch path only when CREATED and the per-run marker confirm ownership;
@@ -50,3 +50,4 @@ The CLI and init visuals are linked from the README in PR #37 and passed QA revi
 - [x] Init tape and GIF prepared.
 - [x] Fixture demo already exists and is linked from the README.
 - [x] QA review of the updated main CLI and init GIFs passed at `a55d538`; privacy and init-guard checks passed.
+- [ ] QA re-review of the fixture content-integrity guard and current GIF privacy is pending for this follow-up; do not merge PR #37 until it passes.

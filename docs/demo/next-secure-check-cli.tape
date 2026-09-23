@@ -20,7 +20,7 @@ Set TypingSpeed 16ms
 
 # Scan only the checked-in public secure fixture; never scan the developer checkout root.
 # Exclude environment files explicitly so the command stays safe in any checkout.
-# Fail closed unless the fixture inventory is exactly its three tracked public files.
+# Fail closed unless the three tracked public files match HEAD and no others exist.
 Hide
 Type "prompt next-secure-check$G"
 Enter
