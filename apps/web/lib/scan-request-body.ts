@@ -37,6 +37,11 @@ export async function readScanRequestJson(request: Request): Promise<ScanRequest
     return { ok: false, reason: "invalid" };
   }
 
+  if (request.signal.aborted) {
+    void request.body.cancel().catch(() => undefined);
+    return { ok: false, reason: "aborted" };
+  }
+
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let byteLength = 0;
@@ -55,22 +60,37 @@ export async function readScanRequestJson(request: Request): Promise<ScanRequest
     request.signal.addEventListener("abort", abortRequest, { once: true });
     removeAbortListener = () => request.signal.removeEventListener("abort", abortRequest);
   });
+  const cancelPendingRead = (pendingRead: Promise<ReadableStreamReadResult<Uint8Array>>) => {
+    wasInterrupted = true;
+    void reader.cancel().catch(() => undefined);
+    void pendingRead.then(
+      () => releaseReaderLock(reader),
+      () => releaseReaderLock(reader)
+    );
+  };
 
   try {
     while (true) {
+      if (request.signal.aborted) {
+        wasInterrupted = true;
+        void reader.cancel().catch(() => undefined);
+        releaseReaderLock(reader);
+        return { ok: false, reason: "aborted" };
+      }
+
       const currentRead = reader.read();
       const readResult = await Promise.race([
         currentRead.then((read) => ({ kind: "read" as const, read })),
         interruption.then((reason) => ({ kind: "interrupted" as const, reason }))
       ]);
 
+      if (request.signal.aborted) {
+        cancelPendingRead(currentRead);
+        return { ok: false, reason: "aborted" };
+      }
+
       if (readResult.kind === "interrupted") {
-        wasInterrupted = true;
-        void reader.cancel().catch(() => undefined);
-        void currentRead.then(
-          () => releaseReaderLock(reader),
-          () => releaseReaderLock(reader)
-        );
+        cancelPendingRead(currentRead);
         return { ok: false, reason: readResult.reason };
       }
 

@@ -46,11 +46,27 @@ describe("readScanRequestJson", () => {
       value: { repoUrl: "owner/repo" }
     });
   });
+
+  it("rejects a request aborted before reading even when its JSON body is ready", async () => {
+    const abortController = new AbortController();
+    const request = createStreamRequest(
+      new TextEncoder().encode(JSON.stringify({ repoUrl: "owner/repo" })),
+      {},
+      abortController.signal
+    );
+    abortController.abort();
+
+    await expect(readScanRequestJson(request)).resolves.toEqual({
+      ok: false,
+      reason: "aborted"
+    });
+  });
 });
 
 function createStreamRequest(
   bytes: Uint8Array,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
+  signal?: AbortSignal
 ): Request {
   const body = new ReadableStream<Uint8Array>(
     {
@@ -66,6 +82,7 @@ function createStreamRequest(
     body,
     duplex: "half",
     headers: new Headers(headers),
-    method: "POST"
+    method: "POST",
+    signal
   } as RequestInit & { duplex: "half" });
 }

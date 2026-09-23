@@ -411,6 +411,31 @@ describe("POST /api/scans", () => {
     }
   });
 
+  it("rejects a pre-aborted ready body without starting a scan and releases its slot", async () => {
+    scanPublicGitHubRepoMock.mockResolvedValue(createSuccessResult());
+
+    const requestController = new AbortController();
+    const request = createScanRequestWithBody(
+      createBodyStream(
+        new TextEncoder().encode(JSON.stringify({ repoUrl: "https://github.com/owner/repo" }))
+      ),
+      "203.0.113.26",
+      requestController.signal
+    );
+    requestController.abort();
+
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "REQUEST_BODY_ABORTED"
+    });
+    expect(scanPublicGitHubRepoMock).not.toHaveBeenCalled();
+
+    const afterAbort = await POST(createScanRequest({ ip: "203.0.113.27" }));
+    expect(afterAbort.status).toBe(200);
+    expect(scanPublicGitHubRepoMock).toHaveBeenCalledTimes(1);
+  });
+
   it("preserves 429 concurrency responses when the distributed scan guard is configured", async () => {
     vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
     vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
