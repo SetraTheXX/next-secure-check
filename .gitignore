@@ -38,3 +38,7 @@ report.sarif
 
 # Ctxo local cache (never committed)
 .ctxo/.cache/
+
+# Local Codex / RTK instructions
+AGENTS.md
+RTK.md
