@@ -29,10 +29,25 @@ The checkpoint-gate mark is an original deterministic SVG asset created for this
 ## See it in action
 
 <p align="center">
-  <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
+  <img src="./docs/assets/readme-security-demo.gif" alt="Vulnerable and secure Next.js fixture scans followed by a clean self-scan" width="100%">
 </p>
 
-The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the three `--summary` scans described in [Reproducible fixtures](#reproducible-fixtures). It is a product walkthrough, not proof of exploitability or a universal security score.
+**Fixture scans:** Compare findings in a vulnerable app with a secure example and a clean self-scan.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="./docs/assets/next-secure-check-cli-demo.gif" alt="Main CLI walkthrough showing version, rules, explain, and scan commands" width="100%">
+      <br><strong>Main CLI</strong><br>Version, rules, explain, and scan.
+    </td>
+    <td align="center" width="50%">
+      <img src="./docs/assets/next-secure-check-init-demo.gif" alt="Init command generating the public config and GitHub Actions workflow" width="100%">
+      <br><strong>Project setup</strong><br>Generate the config and GitHub Actions workflow.
+    </td>
+  </tr>
+</table>
+
+The fixture demo above is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the vulnerable, secure, and self-scan `--summary` comparisons described in [Reproducible fixtures](#reproducible-fixtures). It is a product walkthrough, not proof of exploitability or a universal security score.
 
 ## Start here
 

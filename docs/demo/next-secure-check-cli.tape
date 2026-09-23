@@ -1,17 +1,17 @@
-# Reproducible README demo for the published v0.6.0 release.
+# Reproducible main CLI demo for the published v0.6.0 line (issue #12).
 # Runs on Windows `cmd` (Set Shell cmd; uses cls). See docs/demo/README.md.
 # Run from the repository root after `pnpm build`.
 Require node
 Require ffmpeg
 Require ttyd
 
-Output docs/assets/readme-security-demo.gif
+Output docs/assets/next-secure-check-cli-demo.gif
 
 Set Shell cmd
 Set FontFamily "Consolas"
-Set FontSize 18
-Set Width 1280
-Set Height 640
+Set FontSize 16
+Set Width 1680
+Set Height 820
 Set Padding 30
 Set Theme "Catppuccin Mocha"
 Set CursorBlink false
@@ -27,28 +27,31 @@ Show
 
 Type "echo next-secure-check v0.6.0 / 25 bounded review rules"
 Enter
-Type "echo mode: --summary keeps the demo compact and readable"
+Type "echo mode: version, rules, explain, then a scan summary"
 Enter
 Type "node packages/cli/dist/index.js --version"
 Enter
 Sleep 1s
-Type "echo === 1/3: VULNERABLE FIXTURE / STRICT ==="
-Enter
-Type "node packages/cli/dist/index.js scan examples/vulnerable-next-app --preset strict --summary"
-Enter
-Sleep 2.5s
 
 Type "cls"
 Enter
-Type "echo === 2/3: SECURE FIXTURE / APP ==="
+Type "echo === rules: list the built-in checks ==="
 Enter
-Type "node packages/cli/dist/index.js scan examples/secure-next-app --preset app --summary"
+Type "node packages/cli/dist/index.js rules"
 Enter
-Sleep 2s
+Sleep 3s
 
 Type "cls"
 Enter
-Type "echo === 3/3: SELF-SCAN / APP / CLEAN ==="
+Type "echo === explain: why a rule fires and where it stops ==="
+Enter
+Type "node packages/cli/dist/index.js explain xss/dangerously-set-inner-html"
+Enter
+Sleep 3.5s
+
+Type "cls"
+Enter
+Type "echo === scan: one command before deploy (self-scan, clean) ==="
 Enter
 Type "node packages/cli/dist/index.js scan . --preset app --summary"
 Enter
