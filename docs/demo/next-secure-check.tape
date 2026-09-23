@@ -1,4 +1,5 @@
 # Reproducible README demo for the published v0.6.0 release.
+# Runs on Windows `cmd` (Set Shell cmd; uses cls). See docs/demo/README.md.
 # Run from the repository root after `pnpm build`.
 Require node
 Require ffmpeg
