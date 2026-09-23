@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import { resetScanAbuseGuardForTests } from "../../../lib/scan-abuse-guard";
 import { scanPublicGitHubRepo } from "../../../lib/scan-public-repo";
-import { MAX_SCAN_REQUEST_BODY_BYTES } from "../../../lib/scan-request-body";
+import {
+  MAX_SCAN_REQUEST_BODY_BYTES,
+  SCAN_REQUEST_BODY_READ_TIMEOUT_MS
+} from "../../../lib/scan-request-body";
 
 vi.mock("../../../lib/scan-public-repo", () => ({
   scanPublicGitHubRepo: vi.fn()
@@ -21,6 +24,7 @@ describe("POST /api/scans", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -331,6 +335,82 @@ describe("POST /api/scans", () => {
     await Promise.all([firstResponse, secondResponse]);
   });
 
+  it("times out open request bodies, cancels them, and releases both active scan slots", async () => {
+    vi.useFakeTimers();
+    scanPublicGitHubRepoMock.mockResolvedValue(createSuccessResult());
+
+    const openBodies = [createHangingBody(), createHangingBody()];
+    const firstResponses = openBodies.map((body, index) =>
+      POST(createScanRequestWithBody(body.stream, `203.0.113.${20 + index}`))
+    );
+    const observedResponses: Array<Response | undefined> = [undefined, undefined];
+    firstResponses.forEach((response, index) => {
+      void response.then((value) => {
+        observedResponses[index] = value;
+      });
+    });
+
+    try {
+      await Promise.all(openBodies.map((body) => body.started));
+
+      const whileBothBodiesAreOpen = await POST(createScanRequest({ ip: "203.0.113.22" }));
+      expect(whileBothBodiesAreOpen.status).toBe(429);
+      await expect(whileBothBodiesAreOpen.json()).resolves.toMatchObject({
+        code: "CONCURRENT_SCAN_LIMIT_EXCEEDED"
+      });
+
+      await vi.advanceTimersByTimeAsync(SCAN_REQUEST_BODY_READ_TIMEOUT_MS);
+
+      expect(observedResponses.every(Boolean)).toBe(true);
+      const timedOutResponses = observedResponses as Response[];
+      expect(timedOutResponses.map((response) => response.status)).toEqual([408, 408]);
+      await expect(timedOutResponses[0].json()).resolves.toMatchObject({
+        code: "REQUEST_BODY_TIMEOUT"
+      });
+      await expect(timedOutResponses[1].json()).resolves.toMatchObject({
+        code: "REQUEST_BODY_TIMEOUT"
+      });
+      await Promise.all(openBodies.map((body) => body.cancelled));
+
+      const afterTimeout = await POST(createScanRequest({ ip: "203.0.113.23" }));
+      expect(afterTimeout.status).toBe(200);
+      expect(scanPublicGitHubRepoMock).toHaveBeenCalledTimes(1);
+    } finally {
+      openBodies.forEach((body) => body.failForTestCleanup());
+      await Promise.allSettled(firstResponses);
+    }
+  }, 10_000);
+
+  it("cancels an open body when the client aborts and releases its scan slot", async () => {
+    scanPublicGitHubRepoMock.mockResolvedValue(createSuccessResult());
+
+    const body = createHangingBody();
+    const requestController = new AbortController();
+    const responsePromise = POST(
+      createScanRequestWithBody(body.stream, "203.0.113.24", requestController.signal)
+    );
+
+    try {
+      await body.started;
+      requestController.abort();
+
+      const response = await responsePromise;
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "REQUEST_BODY_ABORTED"
+      });
+      await body.cancelled;
+
+      const afterAbort = await POST(createScanRequest({ ip: "203.0.113.25" }));
+      expect(afterAbort.status).toBe(200);
+      expect(scanPublicGitHubRepoMock).toHaveBeenCalledTimes(1);
+    } finally {
+      requestController.abort();
+      body.failForTestCleanup();
+      await Promise.allSettled([responsePromise]);
+    }
+  });
+
   it("preserves 429 concurrency responses when the distributed scan guard is configured", async () => {
     vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example.com");
     vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "upstash-secret-token");
@@ -564,4 +644,61 @@ function createBodyStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
     },
     { highWaterMark: 0 }
   );
+}
+
+function createHangingBody() {
+  let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+  let signalStarted!: () => void;
+  let signalCancelled!: () => void;
+  const started = new Promise<void>((resolve) => {
+    signalStarted = resolve;
+  });
+  const cancelled = new Promise<void>((resolve) => {
+    signalCancelled = resolve;
+  });
+  const stream = new ReadableStream<Uint8Array>(
+    {
+      start(value) {
+        controller = value;
+      },
+      pull() {
+        signalStarted();
+        return new Promise<void>(() => undefined);
+      },
+      cancel() {
+        signalCancelled();
+      }
+    },
+    { highWaterMark: 0 }
+  );
+
+  return {
+    cancelled,
+    failForTestCleanup() {
+      try {
+        controller?.error(new Error("test cleanup"));
+      } catch {
+        // The timeout test may already have cancelled the stream.
+      }
+    },
+    started,
+    stream
+  };
+}
+
+function createScanRequestWithBody(
+  body: ReadableStream<Uint8Array>,
+  ip: string,
+  signal?: AbortSignal
+): Request {
+  return new Request("http://localhost/api/scans", {
+    body,
+    duplex: "half",
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": ip
+    },
+    method: "POST",
+    signal
+  } as RequestInit & { duplex: "half" });
 }

@@ -63,17 +63,29 @@ export async function POST(request: Request): Promise<NextResponse> {
     const bodyResult = await readScanRequestJson(request);
     if (!bodyResult.ok) {
       const tooLarge = bodyResult.reason === "too_large";
-      const code = tooLarge ? "REQUEST_BODY_TOO_LARGE" : "INVALID_REQUEST_BODY";
+      const timedOut = bodyResult.reason === "timeout";
+      const aborted = bodyResult.reason === "aborted";
+      const code = tooLarge
+        ? "REQUEST_BODY_TOO_LARGE"
+        : timedOut
+          ? "REQUEST_BODY_TIMEOUT"
+          : aborted
+            ? "REQUEST_BODY_ABORTED"
+            : "INVALID_REQUEST_BODY";
       return jsonWithSafeLog(scanId, startedAt, {
         body: {
           ok: false,
           code,
           message: tooLarge
             ? "Request body exceeds the maximum allowed size."
-            : "Request body must be valid JSON."
+            : timedOut
+              ? "Request body was not received in time."
+              : aborted
+                ? "Request body was interrupted."
+                : "Request body must be valid JSON."
         },
         code,
-        status: tooLarge ? 413 : 400
+        status: tooLarge ? 413 : timedOut ? 408 : 400
       });
     }
 
