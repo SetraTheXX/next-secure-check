@@ -1,19 +1,16 @@
-import type { Finding, Rule, ScanResult } from "@next-secure-check/core";
+import type { Finding, ScanResult } from "@next-secure-check/core";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { GitHubRepoMetadataResult } from "./github-repo";
 import { resolveScanRoot, scanPublicGitHubRepo } from "./scan-public-repo";
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+import { OperationTimeoutError } from "./timeout";
 
 describe("scanPublicGitHubRepo", () => {
   it("runs metadata, download/extract, scanner, redaction, and cleanup", async () => {
     const cleanup = vi.fn().mockResolvedValue(undefined);
-    const scanProjectImpl = vi.fn().mockResolvedValue(
+    const scanWorkerImpl = vi.fn().mockResolvedValue(
       createScanResult([
         createFinding({
           category: "secrets",
@@ -22,8 +19,6 @@ describe("scanPublicGitHubRepo", () => {
         })
       ])
     );
-    const getRulesImpl = vi.fn().mockReturnValue([createRule()]);
-
     const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
       downloadAndExtractImpl: vi.fn().mockResolvedValue({
         cleanup,
@@ -34,8 +29,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 123
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      getRulesImpl,
-      scanProjectImpl
+      scanWorkerImpl
     });
 
     expect(result.ok).toBe(true);
@@ -48,22 +42,20 @@ describe("scanPublicGitHubRepo", () => {
       });
       expect(result.scan.findings[0]?.evidence).toBe("[REDACTED]");
     }
-    expect(scanProjectImpl).toHaveBeenCalledWith(
+    expect(scanWorkerImpl).toHaveBeenCalledWith(
       "C:/tmp/extracted",
       expect.objectContaining({
         excludePaths: undefined,
         maxFiles: 3000,
-        maxTotalBytes: 100 * 1024 * 1024,
-        rules: expect.any(Array),
-        signal: expect.any(AbortSignal)
-      })
+        maxTotalBytes: 100 * 1024 * 1024
+      }),
+      60_000
     );
-    expect(getRulesImpl).toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledTimes(1);
   });
 
-  it("forwards exclude paths to the core scanner", async () => {
-    const scanProjectImpl = vi.fn().mockResolvedValue(createScanResult([]));
+  it("forwards exclude paths and source limits to the scan worker", async () => {
+    const scanWorkerImpl = vi.fn().mockResolvedValue(createScanResult([]));
     const excludePaths = ["**/*.test.ts", "examples/**"];
 
     const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
@@ -77,19 +69,18 @@ describe("scanPublicGitHubRepo", () => {
       }),
       excludePaths,
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl
+      scanWorkerImpl
     });
 
     expect(result.ok).toBe(true);
-    expect(scanProjectImpl).toHaveBeenCalledWith(
+    expect(scanWorkerImpl).toHaveBeenCalledWith(
       "C:/tmp/extracted",
       expect.objectContaining({
         excludePaths,
         maxFiles: 3000,
-        maxTotalBytes: 100 * 1024 * 1024,
-        rules: expect.any(Array),
-        signal: expect.any(AbortSignal)
-      })
+        maxTotalBytes: 100 * 1024 * 1024
+      }),
+      60_000
     );
   });
 
@@ -105,7 +96,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 123
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([]))
+      scanWorkerImpl: vi.fn().mockResolvedValue(createScanResult([]))
     });
 
     expect(result.ok).toBe(true);
@@ -125,7 +116,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 123
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([])),
+      scanWorkerImpl: vi.fn().mockResolvedValue(createScanResult([])),
       tempRoot: "C:/tmp/scans"
     });
 
@@ -224,7 +215,7 @@ describe("scanPublicGitHubRepo", () => {
       limits: {
         maxRepoSizeKb: 100
       },
-      scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([]))
+      scanWorkerImpl: vi.fn().mockResolvedValue(createScanResult([]))
     });
 
     expect(result.ok).toBe(true);
@@ -280,7 +271,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 1
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl: vi.fn().mockRejectedValue(new Error("scanner failed"))
+      scanWorkerImpl: vi.fn().mockRejectedValue(new Error("scanner failed"))
     });
 
     expect(result).toEqual({
@@ -296,19 +287,10 @@ describe("scanPublicGitHubRepo", () => {
     const cleanup = vi.fn(async () => {
       events.push("cleanup");
     });
-    const scanProjectImpl = vi.fn(
-      (_root: string, options: { signal?: AbortSignal } = {}) =>
-        new Promise<ScanResult>((_, reject) => {
-          options.signal?.addEventListener(
-            "abort",
-            () => {
-              events.push("scan-stopped");
-              reject(options.signal?.reason);
-            },
-            { once: true }
-          );
-        })
-    );
+    const scanWorkerImpl = vi.fn(async () => {
+      events.push("worker-stopped");
+      throw new OperationTimeoutError();
+    });
 
     const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
       downloadAndExtractImpl: vi.fn().mockResolvedValue({
@@ -320,7 +302,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 1
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl,
+      scanWorkerImpl,
       scanTimeoutMs: 1
     });
 
@@ -329,7 +311,7 @@ describe("scanPublicGitHubRepo", () => {
       code: "SCAN_TIMEOUT",
       message: "Repository scan timed out"
     });
-    expect(events).toEqual(["scan-stopped", "cleanup"]);
+    expect(events).toEqual(["worker-stopped", "cleanup"]);
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(result)).not.toContain("C:/tmp/extracted");
     expect(JSON.stringify(result)).not.toContain("stack");
@@ -346,7 +328,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 1
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl: vi.fn().mockResolvedValue(createScanResult([]))
+      scanWorkerImpl: vi.fn().mockResolvedValue(createScanResult([]))
     });
 
     expect(result.ok).toBe(true);
@@ -376,7 +358,7 @@ describe("scanPublicGitHubRepo", () => {
         totalBytes: 1
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl: vi.fn().mockRejectedValue(new Error("scanner failed"))
+      scanWorkerImpl: vi.fn().mockRejectedValue(new Error("scanner failed"))
     });
 
     expect(result).toEqual({
@@ -388,7 +370,7 @@ describe("scanPublicGitHubRepo", () => {
   });
 
   it("preserves extraction failures without running the scanner", async () => {
-    const scanProjectImpl = vi.fn();
+    const scanWorkerImpl = vi.fn();
 
     const result = await scanPublicGitHubRepo("https://github.com/owner/repo", {
       downloadAndExtractImpl: vi.fn().mockResolvedValue({
@@ -397,7 +379,7 @@ describe("scanPublicGitHubRepo", () => {
         ok: false
       }),
       fetchMetadataImpl: vi.fn().mockResolvedValue(createMetadata()),
-      scanProjectImpl
+      scanWorkerImpl
     });
 
     expect(result).toEqual({
@@ -405,7 +387,7 @@ describe("scanPublicGitHubRepo", () => {
       code: "PATH_TRAVERSAL_DETECTED",
       message: "Archive entry path is unsafe"
     });
-    expect(scanProjectImpl).not.toHaveBeenCalled();
+    expect(scanWorkerImpl).not.toHaveBeenCalled();
   });
 });
 
@@ -425,16 +407,6 @@ function createMetadata(overrides?: Partial<SuccessfulMetadata>): SuccessfulMeta
     sizeKb: 1,
     tarballUrl: "https://api.github.com/repos/owner/repo/tarball",
     ...overrides
-  };
-}
-
-function createRule(): Rule {
-  return {
-    category: "secrets",
-    id: "secrets/hardcoded",
-    scan: () => [],
-    severity: "HIGH",
-    title: "Hardcoded secret"
   };
 }
 
