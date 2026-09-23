@@ -44,9 +44,9 @@ Before treating a linked demo as final or using it in a launch post, confirm:
 
 ## Review status
 
-The CLI and init visuals are linked from the README in PR #37. Final approval of these recordings and any launch-post use remain pending review.
+The CLI and init visuals are linked from the README in PR #37 and passed QA review at `a55d538`.
 
 - [x] Main CLI tape and GIF prepared.
 - [x] Init tape and GIF prepared.
 - [x] Fixture demo already exists and is linked from the README.
-- [ ] QA review of the updated main CLI and init GIFs is pending; keep PR #37 unmerged until review is complete.
+- [x] QA review of the updated main CLI and init GIFs passed at `a55d538`; privacy and init-guard checks passed.
