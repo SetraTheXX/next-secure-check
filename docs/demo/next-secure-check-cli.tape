@@ -17,7 +17,8 @@ Set Theme "Catppuccin Mocha"
 Set CursorBlink false
 Set TypingSpeed 16ms
 
-# Keep the public recording free of the local checkout path.
+# Scan only the checked-in public secure fixture; never scan the developer checkout root.
+# Exclude environment files explicitly so the command stays safe in any checkout.
 Hide
 Type "prompt next-secure-check$G"
 Enter
@@ -51,8 +52,8 @@ Sleep 3.5s
 
 Type "cls"
 Enter
-Type "echo === scan: one command before deploy (self-scan, clean) ==="
+Type "echo === scan: known-safe secure example ==="
 Enter
-Type "node packages/cli/dist/index.js scan . --preset app --summary"
+Type "node packages/cli/dist/index.js scan examples/secure-next-app --preset app --exclude .env*,**/.env* --summary"
 Enter
 Sleep 3s

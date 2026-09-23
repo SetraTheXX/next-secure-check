@@ -34,8 +34,9 @@ All three tapes target **Windows `cmd`** (`Set Shell cmd`): they rely on `cls`, 
 Before a demo is linked from the README or a launch post, confirm:
 
 - the shell prompt is replaced so the local checkout path is never shown;
+- the main CLI scan is limited to the checked-in public examples/secure-next-app fixture, explicitly excludes .env* paths, and never scans the developer checkout root;
 - no tokens, `.env` files, credentials, or private repository content appear;
-- the `init` demo runs inside a freshly created, uniquely named scratch directory under the git-ignored `.local/` path: the readiness flag is cleared before the scratch block, entering the directory is bound to a successful `mkdir` (`&&`), a per-run `.demo-scratch-owner` marker is written inside it, and the recording removes the directory only when the readiness flag and that marker confirm this recording created it. Clearing the flag first means a `DEMO_SCRATCH_READY` inherited from the parent shell cannot arm cleanup, so a scratch name collision or any other `mkdir` failure leaves a pre-existing directory untouched — no write into it and no delete of it — and nothing is left behind;
+- the init demo clears inherited flags before setup; CREATED is set only after successful mkdir, ENTERED only after cd, and READY only after the ownership marker is written. If setup fails, it removes only a directory this run created and exits before any init or file display can touch the checkout or a collision directory. After successful setup, cleanup returns to the root only when ENTERED is set and removes the scratch path only when CREATED and the per-run marker confirm ownership;
 - the generated config and workflow files shown are the public `init` templates only; and
 - the fixture counts in the recording still match [`README.md`](../../README.md#reproducible-fixtures).
 
@@ -46,4 +47,4 @@ Issue #12 requires the visuals to be reviewed before they are added to the READM
 - [x] Main CLI tape and GIF prepared.
 - [x] Init tape and GIF prepared.
 - [x] Fixture demo already exists and is linked from the README.
-- [x] QA reviewed the main CLI and init GIFs; both are linked from the root README.
+- [ ] QA review of the updated main CLI and init GIFs is pending; keep PR #37 unmerged until review is complete.

@@ -3,12 +3,10 @@
 # Run from the repository root after `pnpm build`.
 # `init` writes into the current directory, so the recording runs in a freshly
 # created, uniquely named scratch directory under the git-ignored `.local/` path.
-# Entering that directory is bound to a successful `mkdir` (`&&`), a per-run
-# ownership marker is written inside it, and cleanup only removes the directory
-# when the readiness flag and the marker both confirm this recording created it.
-# The readiness flag is cleared first, so an inherited `DEMO_SCRATCH_READY` from
-# the parent environment cannot arm cleanup. A name collision or a failed
-# `mkdir` therefore never enters, writes to, or deletes a pre-existing directory.
+# The inherited flags are cleared before setup. CREATED follows successful mkdir;
+# ENTERED follows cd; READY follows the ownership marker.
+# Failed setup cleans up only a directory this run created, then exits before
+# any init or file-display command can read from the checkout or a collision.
 Require node
 Require ffmpeg
 Require ttyd
@@ -29,11 +27,17 @@ Set TypingSpeed 16ms
 Hide
 Type "prompt next-secure-check$G"
 Enter
-Type "set DEMO_SCRATCH_READY="
+Type "set DEMO_SCRATCH_READY=&&set DEMO_SCRATCH_CREATED=&&set DEMO_SCRATCH_ENTERED="
 Enter
 Type "set DEMO_SCRATCH=.local\demo-init-%RANDOM%-%RANDOM%"
 Enter
-Type "mkdir %DEMO_SCRATCH% 2>nul && cd %DEMO_SCRATCH% && type nul > .demo-scratch-owner && set DEMO_SCRATCH_READY=1"
+Type "if not exist %DEMO_SCRATCH% (mkdir %DEMO_SCRATCH% 2>nul && set DEMO_SCRATCH_CREATED=1 && cd /d %DEMO_SCRATCH% && set DEMO_SCRATCH_ENTERED=1 && type nul > .demo-scratch-owner && set DEMO_SCRATCH_READY=1)"
+Enter
+Type "if not defined DEMO_SCRATCH_READY if defined DEMO_SCRATCH_ENTERED cd ..\.."
+Enter
+Type "if not defined DEMO_SCRATCH_READY if defined DEMO_SCRATCH_CREATED rmdir /s /q %DEMO_SCRATCH%"
+Enter
+Type "if not defined DEMO_SCRATCH_READY exit"
 Enter
 Type "cls"
 Enter
@@ -59,8 +63,8 @@ Sleep 3.5s
 
 # Remove only the scratch directory this recording created.
 Hide
-Type "if defined DEMO_SCRATCH_READY cd ..\.."
+Type "if defined DEMO_SCRATCH_ENTERED cd ..\.."
 Enter
-Type "if defined DEMO_SCRATCH_READY if exist %DEMO_SCRATCH%\.demo-scratch-owner rmdir /s /q %DEMO_SCRATCH%"
+Type "if defined DEMO_SCRATCH_CREATED if exist %DEMO_SCRATCH%\.demo-scratch-owner rmdir /s /q %DEMO_SCRATCH%"
 Enter
 Show
