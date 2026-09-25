@@ -1,12 +1,13 @@
-# next-secure-check
+# SecureCheck
 
 <p align="center">
-  <img src="./docs/assets/next-secure-check-banner-v3.svg" alt="next-secure-check — one command before deploy" width="100%">
+  <img src="./docs/assets/next-secure-check-mark.svg" alt="" width="56">
 </p>
 
 <p align="center">
-  <strong>One command before deploy.</strong><br>
-  Deterministic, explainable security checks for Next.js projects.
+  <strong>AI wrote your Next.js app. Who checks the AI?</strong><br>
+  A deterministic security baseline for AI-generated and human-written Next.js code.<br>
+  No AI required at runtime.
 </p>
 
 <p align="center">
@@ -15,16 +16,23 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT license"></a>
 </p>
 
-> **Stable release:** `v0.6.0` is published on npm and is the `latest` line. The [`v0.6.0` GitHub release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v0.6.0) is the validated CLI release. The reusable [`v1.2.0` Action release](https://github.com/SetraTheXX/next-secure-check/releases/tag/v1.2.0) is available through the floating `@v1` tag.
+## Quick start
 
-Run one command from a Next.js project and get a reviewable finding for each detected pattern: rule, severity, confidence, file location, context, evidence path when available, and a recommended fix. The scanner is static and deterministic. It does not execute repository code, install repository dependencies, make network requests, or require AI at runtime.
+From the root of a Next.js project, run:
 
-The checkpoint-gate mark is an original deterministic SVG asset created for this project. A preliminary name and visual collision screen found no direct exact hit in the checked public databases, but that is not legal trademark clearance. The evidence and usage rules are in [`docs/brand/README.md`](./docs/brand/README.md).
+```bash
+npx --yes next-secure-check@0.6.0 scan . --preset app --summary
+```
 
-<p align="center">
-  <a href="#see-it-in-action">See the demo</a> ·
-  <a href="#start-here">Start here</a>
-</p>
+The CLI requires Node.js `20.9` or newer. The compact summary includes counts and representative findings alongside the tool's score and risk label. Those values are review aids, not a universal measure of application security. Remove `--summary` for the full terminal report.
+
+## How it fits with AI-assisted code review
+
+1. An AI assistant or developer writes code.
+2. SecureCheck runs the same deterministic checks locally or in a GitHub Actions workflow you configure.
+3. Findings point to a rule, location, and evidence path when the bounded analysis can provide one.
+4. A developer or AI agent reviews the finding against the source and rule guidance.
+5. The developer decides whether to change the code. Findings are review signals, not proof of exploitability.
 
 ## See it in action
 
@@ -32,23 +40,19 @@ The checkpoint-gate mark is an original deterministic SVG asset created for this
   <img src="./docs/assets/readme-security-demo.gif" alt="Terminal demo comparing vulnerable, secure, and self-scan fixture results" width="100%">
 </p>
 
-The demo is generated from the checked-in fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows the three `--summary` scans described in [Reproducible fixtures](#reproducible-fixtures). It is a product walkthrough, not proof of exploitability or a universal security score.
+The demo is generated from checked-in vulnerable and secure fixtures with [`docs/demo/next-secure-check.tape`](./docs/demo/next-secure-check.tape). It shows three compact summary scans, including a self-scan. It is a product walkthrough, not proof of exploitability or a universal security score. For a field-level JSON and SARIF workflow with an optional AI review, see [Review findings with an AI agent](./docs/demo/agent-review.md).
 
-## Start here
+## Published releases
 
-From the root of the project you want to review:
+The published CLI and npm package are `v0.6.0`, with 25 built-in rules. The reusable GitHub Action release is `v1.2.0` and is available through the floating `@v1` tag.
 
-```bash
-npx --yes next-secure-check@0.6.0 scan . --preset app --summary
-```
-
-The first run prints a compact score, risk level, finding counts, and representative findings. For the full explanation and recommendation for every finding, remove `--summary`:
+For a full terminal report with the explanation and recommendation for every finding, run:
 
 ```bash
 npx --yes next-secure-check@0.6.0 scan . --preset app
 ```
 
-The CLI requires Node.js `20.9` or newer. Pin the version in CI so a future release does not change a build unexpectedly. Use `@latest` for an intentional local trial of the newest published line.
+Pin the CLI version in CI for reproducible runs. Use `@latest` only when you intentionally want the newest published CLI line.
 
 ### Install globally (optional)
 
@@ -326,12 +330,19 @@ The product is a fast, explainable static review layer. It is not a penetration 
 
 ## Project status and documentation
 
-The stable published line is `v0.6.0`; the older `v0.5.0` line is retained in the validation history for compatibility context. The current roadmap focuses on real-user feedback, confirmed false-positive reduction, and small regression fixtures before another rule slice.
+| Surface | Published line | Notes |
+| --- | --- | --- |
+| CLI and npm package | `v0.6.0` | published on npm |
+| GitHub Action | `v1.2.0` | Reusable Action, with the `@v1` major tag |
+| Compatibility checks | `v0.5.0` | Retained as a regression baseline |
+
+The current roadmap focuses on real-user feedback, confirmed false-positive reduction, and small regression fixtures before another rule slice.
 
 - [Roadmap](./ROADMAP.md)
 - [Changelog](./CHANGELOG.md)
 - [Rule documentation](./docs/rules)
-- [Brand mark, usage, and collision-screen evidence](./docs/brand/README.md)
+- [Agent review example](./docs/demo/agent-review.md)
+- [Brand guide and preliminary collision screen](./docs/brand/README.md)
 - [v0.6 quality gate](./docs/validation/phase-24-v06-quality-gate.md)
 - [v0.6 request-boundary contract](./docs/decisions/0003-v0.6-request-boundary-contract.md)
 - [v0.6 Server Action guard decision](./docs/decisions/0004-v0.6-server-action-guard-signal.md)
@@ -364,7 +375,7 @@ examples/       vulnerable and secure fixtures
 docs/rules/     rule documentation
 ```
 
-The current test baseline is 600 tests across the package and web suites (453 package tests and 147 web tests). Run `pnpm test` locally after changes.
+Run `pnpm test` to execute the package and web test suites. Release-specific validation evidence is linked from the validation notes.
 
 ## Contributing and security
 

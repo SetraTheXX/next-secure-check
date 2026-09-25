@@ -1,14 +1,14 @@
 # Contributing
 
-Thanks for taking an interest in `next-secure-check`.
+Thanks for taking an interest in SecureCheck, published as `next-secure-check`.
 
-This project is a deterministic static security scanner for Next.js projects. It is also a student-built learning project, so thoughtful feedback, issue reports, and critical review are very welcome.
+SecureCheck is a deterministic static checker for Next.js projects. It is also a student-built project, so thoughtful feedback, issue reports, and critical review are welcome.
 
 Contributions are most helpful when they keep the scanner understandable, testable, and honest about false positives and false negatives.
 
 ## Start With the Roadmap and Issues
 
-Before starting work, read [ROADMAP.md](./ROADMAP.md) and check the open GitHub issues. Prefer a focused issue or a short proposal before beginning a new rule, analyzer, or public API change. The published v0.4 line uses bounded, syntax-first analysis; the v0.5 direction will be planned around measured quality improvements. Full type-aware analysis, cross-file taint flow, and unrestricted plugin loading are not part of the default contribution scope.
+Before starting work, read [ROADMAP.md](./ROADMAP.md) and check the open GitHub issues. The published CLI line is `v0.6.0` with 25 built-in rules, and the reusable GitHub Action release is `v1.2.0` on `@v1`. CLI checks use bounded, syntax-first analysis. Prefer a focused issue or a short proposal before beginning a new rule, analyzer, or public API change. Full type-aware analysis, cross-file taint flow, and unrestricted plugin loading are outside the current default scope.
 
 ## Before Opening an Issue
 
@@ -17,10 +17,11 @@ Please include:
 - What you expected to happen.
 - What actually happened.
 - The command or web demo flow you used.
-- A small code sample or public repository link when possible.
+- A small, redacted code sample or public repository link when possible.
 - Whether the result is a false positive, false negative, crash, documentation issue, or feature request.
+- For a false positive or false negative, choose the matching [false-positive](./.github/ISSUE_TEMPLATE/false_positive.md) or [false-negative](./.github/ISSUE_TEMPLATE/false_negative.md) issue template. Describe the rule behavior without attaching a private repository report.
 
-Do not include real secrets, tokens, private repository contents, or customer data in public issues.
+Do not include real secrets, tokens, private repository contents, raw reports from private projects, or customer data in public issues.
 
 ## Rule Suggestions
 
@@ -68,7 +69,7 @@ When adding or changing a rule, please update:
 - Documentation under `docs/rules`.
 - Example or fixture behavior when the rule intentionally changes scanner output.
 
-Think through false positives before raising severity. For the published v0.4 line and planned v0.5 work, predictable and explainable behavior is more important than catching every possible edge case. Do not treat a new pattern match as a confirmed vulnerability without checking its context.
+Think through false positives before raising severity. Predictable and explainable behavior is more important than matching every possible edge case. Do not treat a pattern match as a confirmed vulnerability without checking its context and the rule's documented scope. False positives and false negatives are possible.
 
 ## Pull Requests
 

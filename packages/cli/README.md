@@ -1,59 +1,31 @@
-# next-secure-check
+# SecureCheck
 
-Deterministic security checks for Next.js projects. No AI required.
+**AI wrote your Next.js app. Who checks the AI?**
 
-Run a quick static security sanity check before deploying a Next.js app.
+A deterministic security baseline for AI-generated and human-written Next.js code. No AI required at runtime.
 
-Requires Node.js 20.9 or newer.
+`next-secure-check` remains the npm package and CLI name. The published CLI is `v0.6.0` with 25 built-in rules. The reusable GitHub Action release is `v1.2.0` and is available through `@v1`. The CLI requires Node.js `20.9` or newer.
 
-The stable npm line is `v0.6.0`, published with aligned CLI and internal
-package versions and 25 built-in rules. The reusable GitHub Action `@v1` is
-coordinated with this CLI line.
+[![npm version](https://img.shields.io/npm/v/next-secure-check?logo=npm)](https://www.npmjs.com/package/next-secure-check)
 
-## Usage
-
-Recommended one-off usage:
+## Quick start
 
 ```bash
-npx --yes next-secure-check@latest scan . --preset app
+npx --yes next-secure-check@0.6.0 scan . --preset app --summary
 ```
 
-For reproducible CI runs on the stable npm line, pin the release version:
+Findings are review signals. They do not prove that an issue is reachable or exploitable. Remove `--summary` for full finding details.
 
-```bash
-npx --yes next-secure-check@0.6.0 scan . --preset app
-```
-
-Or run without installing:
-
-```bash
-npx --yes next-secure-check@latest scan .
-```
-
-Global install is also supported:
-
-```bash
-npm install -g next-secure-check
-next-secure-check scan .
-```
-
-If an older global install is present, unversioned `npx next-secure-check` can sometimes reuse the old binary and fail on current options or helper commands such as `--preset`, `rules`, `explain`, or `init`. Check and remove the global install when needed:
-
-```bash
-next-secure-check --version
-npm list -g next-secure-check
-npm uninstall -g next-secure-check
-npm cache verify
-```
+See [the main README](https://github.com/SetraTheXX/next-secure-check#how-it-fits-with-ai-assisted-code-review) for the product workflow and [the agent review example](https://github.com/SetraTheXX/next-secure-check/blob/main/docs/demo/agent-review.md) for JSON and SARIF usage.
 
 ## Presets
 
-Use presets to choose the right signal/noise tradeoff:
+Use presets to choose a coverage and noise tradeoff:
 
 ```bash
-npx --yes next-secure-check@latest scan . --preset app
-npx --yes next-secure-check@latest scan . --preset strict
-npx --yes next-secure-check@latest scan . --preset ci
+npx --yes next-secure-check@0.6.0 scan . --preset app
+npx --yes next-secure-check@0.6.0 scan . --preset strict
+npx --yes next-secure-check@0.6.0 scan . --preset ci
 ```
 
 - `app`: production app-code focused scan
@@ -62,27 +34,45 @@ npx --yes next-secure-check@latest scan . --preset ci
 
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
-Prefer `npx --yes next-secure-check@latest` for local one-off scans, or pin
-`next-secure-check@0.6.0` in CI for reproducible v0.6 runs.
+Pin `next-secure-check@0.6.0` for reproducible runs. Use `@latest` only when
+you intentionally want to try the newest published CLI line.
+
+Global install is also supported:
+
+```bash
+npm install -g next-secure-check
+next-secure-check scan . --preset app
+```
+
+If an older global install is present, unversioned `npx next-secure-check` can
+sometimes reuse the old binary and fail on current options or helper commands
+such as `--preset`, `rules`, `explain`, or `init`. Check it with:
+
+```bash
+next-secure-check --version
+npm list -g next-secure-check
+npm uninstall -g next-secure-check
+npm cache verify
+```
 
 ## CLI Helpers
 
 List built-in rules:
 
 ```bash
-npx --yes next-secure-check@latest rules
+npx --yes next-secure-check@0.6.0 rules
 ```
 
 Explain one rule:
 
 ```bash
-npx --yes next-secure-check@latest explain xss/dangerously-set-inner-html
+npx --yes next-secure-check@0.6.0 explain xss/dangerously-set-inner-html
 ```
 
 Create a starter config and GitHub Actions workflow:
 
 ```bash
-npx --yes next-secure-check@latest init
+npx --yes next-secure-check@0.6.0 init
 ```
 
 `init` creates:
@@ -95,21 +85,23 @@ npx --yes next-secure-check@latest init
 Existing files are skipped by default. Use `--force` only when you intentionally want to overwrite those files:
 
 ```bash
-npx --yes next-secure-check@latest init --force
+npx --yes next-secure-check@0.6.0 init --force
 ```
 
 ## Output Formats
 
 ```bash
-npx --yes next-secure-check@latest scan .
-npx --yes next-secure-check@latest scan . --summary
-npx --yes next-secure-check@latest scan . --format json
-npx --yes next-secure-check@latest scan . --format markdown --output report.md
-npx --yes next-secure-check@latest scan . --format github
-npx --yes next-secure-check@latest scan . --format sarif --output report.sarif
+npx --yes next-secure-check@0.6.0 scan .
+npx --yes next-secure-check@0.6.0 scan . --summary
+npx --yes next-secure-check@0.6.0 scan . --format json
+npx --yes next-secure-check@0.6.0 scan . --format markdown --output report.md
+npx --yes next-secure-check@0.6.0 scan . --format github
+npx --yes next-secure-check@0.6.0 scan . --format sarif --output report.sarif
 ```
 
 `github` output is designed for GitHub Actions Step Summary usage. SARIF output can be uploaded to GitHub Code Scanning.
+
+Use JSON when an approved local AI agent will review findings with the checked-out source. The report includes rule IDs, severity, confidence, locations, and evidence fields where available. SARIF is the interchange format for Code Scanning. See the [agent review example](https://github.com/SetraTheXX/next-secure-check/blob/main/docs/demo/agent-review.md) for the workflow and privacy limits.
 
 `--summary` is a terminal-only compact view for demos and quick reviews. It
 keeps score, risk, counts, confidence, context, and representative locations;
@@ -185,8 +177,8 @@ jobs:
 ## Failure Gates
 
 ```bash
-npx --yes next-secure-check@latest scan . --fail-on high
-npx --yes next-secure-check@latest scan . --fail-on critical
+npx --yes next-secure-check@0.6.0 scan . --fail-on high
+npx --yes next-secure-check@0.6.0 scan . --fail-on critical
 ```
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.
