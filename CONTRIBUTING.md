@@ -8,7 +8,7 @@ Contributions are most helpful when they keep the scanner understandable, testab
 
 ## Start With the Roadmap and Issues
 
-Before starting work, read [ROADMAP.md](./ROADMAP.md) and check the open GitHub issues. The published CLI line is `v0.6.0` with 25 built-in rules, and the reusable GitHub Action release is `v1.2.0` on `@v1`. CLI checks use bounded, syntax-first analysis. Prefer a focused issue or a short proposal before beginning a new rule, analyzer, or public API change. Full type-aware analysis, cross-file taint flow, and unrestricted plugin loading are outside the current default scope.
+Before starting work, read [ROADMAP.md](./ROADMAP.md) and check the open GitHub issues. The published CLI line is `v0.6.1` with 25 built-in rules; scanner behavior and rule IDs are unchanged from `v0.6.0`. The reusable GitHub Action release is `v1.2.0` on `@v1` and currently runs the published CLI `0.6.0`. CLI checks use bounded, syntax-first analysis. Prefer a focused issue or a short proposal before beginning a new rule, analyzer, or public API change. Full type-aware analysis, cross-file taint flow, and unrestricted plugin loading are outside the current default scope.
 
 ## Before Opening an Issue
 

@@ -4,11 +4,11 @@ Public progress board for `next-secure-check`. It records completed release work
 
 | Field | Value |
 | --- | --- |
-| Last reviewed | 2026-09-03 |
-| Current release | `v0.6.0` stable on npm and GitHub; reusable Action `v1.2.0` is available through `@v1` |
-| Next release focus | Post-v0.6 feedback, adoption, and confirmed regression reduction |
-| Current next task | Collect bounded real-user feedback and convert confirmed observations into small fixtures |
-| Release blocker | No known technical blocker for the published v0.6.0 line; future changes remain feedback-driven |
+| Last reviewed | 2026-09-25 |
+| Current release | `v0.6.1` stable on npm and GitHub. Scanner behavior and 25 built-in rules are unchanged from `v0.6.0`. Reusable Action `v1.2.0` is available through `@v1` and currently runs published CLI `0.6.0`. |
+| Next release focus | Real-user feedback, adoption, and confirmed regression reduction |
+| Current next task | Collect bounded real-user feedback and convert confirmed observations into small regression fixtures; no new rule work before real-user evidence |
+| Release blocker | No known technical blocker for published v0.6.1; defer new rule work until real-user evidence is collected |
 
 ## Progress Legend
 
@@ -36,6 +36,7 @@ A checked item means the implementation or documentation exists and the relevant
 - [x] v0.6.0 release: four packages published, GitHub release/tag created, and public npm latest verified.
 - [x] Reusable GitHub Action v1.2.0: Action pin, release/tag, and floating `@v1` coordination verified.
 - [x] v0.6.0 README demo: checked-in tape and GIF regenerated from the v0.6.0 release-commit CLI flow; published npm smoke verified separately.
+- [x] `v0.6.1` package-presentation patch published to npm and GitHub with tag/release; scanner behavior and 25 built-in rules remain unchanged from `v0.6.0`.
 
 ### Post-release follow-up (not current v0.6 release blockers)
 
