@@ -21,7 +21,7 @@
 From the root of a Next.js project, run:
 
 ```bash
-npx --yes next-secure-check@0.6.0 scan . --preset app --summary
+npx --yes next-secure-check@0.6.1 scan . --preset app --summary
 ```
 
 The CLI requires Node.js `20.9` or newer. The compact summary includes counts and representative findings alongside the tool's score and risk label. Those values are review aids, not a universal measure of application security. Remove `--summary` for the full terminal report.
@@ -44,12 +44,12 @@ The demo is generated from checked-in vulnerable and secure fixtures with [`docs
 
 ## Published releases
 
-The published CLI and npm package are `v0.6.0`, with 25 built-in rules. The reusable GitHub Action release is `v1.2.0` and is available through the floating `@v1` tag.
+The published CLI and npm package are `v0.6.1`, with 25 built-in rules. Scanner behavior and rule IDs are unchanged from `v0.6.0`. The reusable GitHub Action release is `v1.2.0` and is available through the floating `@v1` tag; that Action currently runs the published `next-secure-check@0.6.0` CLI.
 
 For a full terminal report with the explanation and recommendation for every finding, run:
 
 ```bash
-npx --yes next-secure-check@0.6.0 scan . --preset app
+npx --yes next-secure-check@0.6.1 scan . --preset app
 ```
 
 Pin the CLI version in CI for reproducible runs. Use `@latest` only when you intentionally want the newest published CLI line.
@@ -72,7 +72,7 @@ The versioned `npx` command is the least surprising path for a one-off scan.
 
 ## What it checks
 
-The published `v0.6.0` CLI contains 25 built-in rules. The rules cover common secrets, injection, redirect, SSRF, XSS, authentication, validation, upload, header, and Next.js configuration review points.
+The published `v0.6.1` CLI contains the same 25 built-in rules as `v0.6.0`. The rules cover common secrets, injection, redirect, SSRF, XSS, authentication, validation, upload, header, and Next.js configuration review points. Rule IDs and scanner behavior are unchanged.
 
 | Area | Built-in checks |
 | --- | --- |
@@ -108,22 +108,22 @@ The same scan can produce several formats:
 
 ```bash
 # Detailed terminal report
-npx --yes next-secure-check@0.6.0 scan . --preset app
+npx --yes next-secure-check@0.6.1 scan . --preset app
 
 # Compact terminal summary
-npx --yes next-secure-check@0.6.0 scan . --preset app --summary
+npx --yes next-secure-check@0.6.1 scan . --preset app --summary
 
 # JSON for scripts
-npx --yes next-secure-check@0.6.0 scan . --format json --output next-secure-check.json
+npx --yes next-secure-check@0.6.1 scan . --format json --output next-secure-check.json
 
 # Markdown for an issue or artifact
-npx --yes next-secure-check@0.6.0 scan . --format markdown --output next-secure-check.md
+npx --yes next-secure-check@0.6.1 scan . --format markdown --output next-secure-check.md
 
 # GitHub Step Summary
-npx --yes next-secure-check@0.6.0 scan . --format github
+npx --yes next-secure-check@0.6.1 scan . --format github
 
 # SARIF for GitHub Code Scanning
-npx --yes next-secure-check@0.6.0 scan . --format sarif --output next-secure-check.sarif
+npx --yes next-secure-check@0.6.1 scan . --format sarif --output next-secure-check.sarif
 ```
 
 `--summary` is a terminal display option. It cannot be combined with JSON, Markdown, GitHub, or SARIF output. JSON, Markdown, and SARIF redact secret-like evidence; SARIF also carries rule help URIs, CWE mappings where available, deterministic fingerprints, severity metadata, context, and an optional `evidencePath`.
@@ -132,10 +132,10 @@ npx --yes next-secure-check@0.6.0 scan . --format sarif --output next-secure-che
 
 ```bash
 # Fail when a HIGH or more severe finding is present
-npx --yes next-secure-check@0.6.0 scan . --preset app --fail-on high
+npx --yes next-secure-check@0.6.1 scan . --preset app --fail-on high
 
 # Fail only when the summary risk level is CRITICAL
-npx --yes next-secure-check@0.6.0 scan . --preset app --fail-on critical
+npx --yes next-secure-check@0.6.1 scan . --preset app --fail-on critical
 ```
 
 Severity thresholds are `critical`, `high`, `medium`, `low`, and `info`. `critical` is also supported as a risk-level gate; it exits with code `1` only when the scan summary risk is `critical`.
@@ -144,13 +144,13 @@ Severity thresholds are `critical`, `high`, `medium`, `low`, and `info`. `critic
 
 ```bash
 # List all built-in rules
-npx --yes next-secure-check@0.6.0 rules
+npx --yes next-secure-check@0.6.1 rules
 
 # Explain one rule, including its review boundary
-npx --yes next-secure-check@0.6.0 explain xss/dangerously-set-inner-html
+npx --yes next-secure-check@0.6.1 explain xss/dangerously-set-inner-html
 
 # Create starter config and workflow files
-npx --yes next-secure-check@0.6.0 init
+npx --yes next-secure-check@0.6.1 init
 ```
 
 `init` skips existing files by default. Add `--force` only when you intentionally want to overwrite them.
@@ -192,7 +192,7 @@ CLI flag > config file > default
 For a one-off exclusion, use a comma-separated glob list:
 
 ```bash
-npx --yes next-secure-check@0.6.0 scan . --preset app \
+npx --yes next-secure-check@0.6.1 scan . --preset app \
   --exclude "**/*.test.ts,**/*.spec.tsx,examples/**,.github/**"
 ```
 
@@ -225,7 +225,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.6.0 scan . --preset app --format github --fail-on high \
+          npx --yes next-secure-check@0.6.1 scan . --preset app --format github --fail-on high \
             | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
@@ -307,7 +307,7 @@ node packages/cli/dist/index.js scan examples/secure-next-app --preset app --sum
 node packages/cli/dist/index.js scan . --preset app --summary
 ```
 
-Expected summaries for the current `v0.6.0` line:
+Expected summaries for the current `v0.6.1` line:
 
 | Target | Expected result |
 | --- | --- |
@@ -332,8 +332,8 @@ SecureCheck applies bounded, deterministic static analysis to produce explainabl
 
 | Surface | Published line | Notes |
 | --- | --- | --- |
-| CLI and npm package | `v0.6.0` | published on npm |
-| GitHub Action | `v1.2.0` | Reusable Action, with the `@v1` major tag |
+| CLI and npm package | `v0.6.1` | published on npm, with the same 25 rules and rule IDs as `v0.6.0` |
+| GitHub Action | `v1.2.0` | Reusable Action, with the `@v1` major tag; currently runs CLI `0.6.0` |
 | Compatibility checks | `v0.5.0` | Retained as a regression baseline |
 
 The current roadmap focuses on real-user feedback, confirmed false-positive reduction, and small regression fixtures before another rule slice.
@@ -361,7 +361,7 @@ pnpm test
 pnpm release:gate
 ```
 
-`pnpm release:gate` runs the frozen `v0.5.0` compatibility checks plus the published `v0.6.0` rule matrix, CLI smoke tests, package contract checks, deterministic-output checks, and disposable fixture benchmarks. It uses local fixtures; public-repository smoke tests remain opt-in and never execute scanned code.
+`pnpm release:gate` runs the frozen `v0.5.0` compatibility checks plus the published `v0.6.1` rule matrix, CLI smoke tests, package contract checks, deterministic-output checks, and disposable fixture benchmarks. It uses local fixtures; public-repository smoke tests remain opt-in and never execute scanned code.
 
 Workspace layout:
 

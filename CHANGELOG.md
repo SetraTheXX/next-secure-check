@@ -7,20 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### v0.6.1 release candidate (not published)
-
-- Prepared the npm CLI README and metadata for the current SecureCheck positioning.
-- Aligned the CLI and three internal package manifests at `0.6.1`; scanner
-  behavior and rule IDs are unchanged from `0.6.0`.
-- Kept the reusable GitHub Action at `v1.2.0` and its published CLI pin at
-  `0.6.0`.
-
 ### Documentation
 
 - Corrected the README configuration format list to include SARIF and clarified
   that `pnpm release:gate` is the current v0.6 compatibility and release gate.
 - Refreshed the validation index and roadmap wording for the post-v0.6 release
   state.
+
+## [0.6.1] - 2026-09-25
+
+### Release
+
+- Published the four aligned npm packages at `0.6.1` as a package presentation
+  and metadata patch; the CLI README carries updated SecureCheck messaging.
+- Scanner behavior, all 25 built-in rules, and all rule IDs are unchanged from
+  `0.6.0`.
+- The reusable GitHub Action remains at `v1.2.0` / `@v1` and currently runs the
+  published `next-secure-check@0.6.0` CLI.
 
 ## [0.6.0] - 2026-08-31
 
