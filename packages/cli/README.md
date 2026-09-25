@@ -4,14 +4,14 @@
 
 A deterministic security baseline for AI-generated and human-written Next.js code. No AI required at runtime.
 
-`next-secure-check` remains the npm package and CLI name. The published CLI is `v0.6.0` with 25 built-in rules. The reusable GitHub Action release is `v1.2.0` and is available through `@v1`. The CLI requires Node.js `20.9` or newer.
+`next-secure-check` remains the npm package and CLI name. This `v0.6.1` patch release carries forward the 25 built-in rules from `v0.6.0`. The reusable GitHub Action release is `v1.2.0`, available through `@v1`, and runs the published `v0.6.0` CLI. The CLI requires Node.js `20.9` or newer.
 
 [![npm version](https://img.shields.io/npm/v/next-secure-check?logo=npm)](https://www.npmjs.com/package/next-secure-check)
 
 ## Quick start
 
 ```bash
-npx --yes next-secure-check@0.6.0 scan . --preset app --summary
+npx --yes next-secure-check@0.6.1 scan . --preset app --summary
 ```
 
 Findings are review signals. They do not prove that an issue is reachable or exploitable. Remove `--summary` for full finding details.
@@ -23,9 +23,9 @@ See [the main README](https://github.com/SetraTheXX/next-secure-check#how-it-fit
 Use presets to choose a coverage and noise tradeoff:
 
 ```bash
-npx --yes next-secure-check@0.6.0 scan . --preset app
-npx --yes next-secure-check@0.6.0 scan . --preset strict
-npx --yes next-secure-check@0.6.0 scan . --preset ci
+npx --yes next-secure-check@0.6.1 scan . --preset app
+npx --yes next-secure-check@0.6.1 scan . --preset strict
+npx --yes next-secure-check@0.6.1 scan . --preset ci
 ```
 
 - `app`: production app-code focused scan
@@ -34,7 +34,7 @@ npx --yes next-secure-check@0.6.0 scan . --preset ci
 
 Other presets are available for `default`, `audit`, `library`, and `monorepo` workflows.
 
-Pin `next-secure-check@0.6.0` for reproducible runs. Use `@latest` only when
+Pin `next-secure-check@0.6.1` for reproducible runs. Use `@latest` only when
 you intentionally want to try the newest published CLI line.
 
 Global install is also supported:
@@ -60,19 +60,19 @@ npm cache verify
 List built-in rules:
 
 ```bash
-npx --yes next-secure-check@0.6.0 rules
+npx --yes next-secure-check@0.6.1 rules
 ```
 
 Explain one rule:
 
 ```bash
-npx --yes next-secure-check@0.6.0 explain xss/dangerously-set-inner-html
+npx --yes next-secure-check@0.6.1 explain xss/dangerously-set-inner-html
 ```
 
 Create a starter config and GitHub Actions workflow:
 
 ```bash
-npx --yes next-secure-check@0.6.0 init
+npx --yes next-secure-check@0.6.1 init
 ```
 
 `init` creates:
@@ -85,18 +85,18 @@ npx --yes next-secure-check@0.6.0 init
 Existing files are skipped by default. Use `--force` only when you intentionally want to overwrite those files:
 
 ```bash
-npx --yes next-secure-check@0.6.0 init --force
+npx --yes next-secure-check@0.6.1 init --force
 ```
 
 ## Output Formats
 
 ```bash
-npx --yes next-secure-check@0.6.0 scan .
-npx --yes next-secure-check@0.6.0 scan . --summary
-npx --yes next-secure-check@0.6.0 scan . --format json
-npx --yes next-secure-check@0.6.0 scan . --format markdown --output report.md
-npx --yes next-secure-check@0.6.0 scan . --format github
-npx --yes next-secure-check@0.6.0 scan . --format sarif --output report.sarif
+npx --yes next-secure-check@0.6.1 scan .
+npx --yes next-secure-check@0.6.1 scan . --summary
+npx --yes next-secure-check@0.6.1 scan . --format json
+npx --yes next-secure-check@0.6.1 scan . --format markdown --output report.md
+npx --yes next-secure-check@0.6.1 scan . --format github
+npx --yes next-secure-check@0.6.1 scan . --format sarif --output report.sarif
 ```
 
 `github` output is designed for GitHub Actions Step Summary usage. SARIF output can be uploaded to GitHub Code Scanning.
@@ -137,7 +137,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes next-secure-check@0.6.0 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
+          npx --yes next-secure-check@0.6.1 scan . --preset app --format github --fail-on high | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
 SARIF / GitHub Code Scanning workflow:
@@ -166,7 +166,7 @@ jobs:
           node-version: 20
 
       - name: Run next-secure-check SARIF
-        run: npx --yes next-secure-check@0.6.0 scan . --preset app --format sarif --output next-secure-check.sarif
+        run: npx --yes next-secure-check@0.6.1 scan . --preset app --format sarif --output next-secure-check.sarif
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -177,8 +177,8 @@ jobs:
 ## Failure Gates
 
 ```bash
-npx --yes next-secure-check@0.6.0 scan . --fail-on high
-npx --yes next-secure-check@0.6.0 scan . --fail-on critical
+npx --yes next-secure-check@0.6.1 scan . --fail-on high
+npx --yes next-secure-check@0.6.1 scan . --fail-on critical
 ```
 
 `--fail-on critical` is a scan risk-level gate. It exits with code `1` only when the scan summary risk level is `critical`. Other values, such as `high`, `medium`, `low`, and `info`, work as severity thresholds.
@@ -208,10 +208,10 @@ npx --yes next-secure-check@0.6.0 scan . --fail-on critical
 
 ## Release Status
 
-The v0.6.0 GitHub and npm releases contain the bounded-analysis, intent,
-reporter, and summary changes described above. The CLI, core, rules, and
-reporter manifests are all aligned and published at `0.6.0`; the reusable
-Action `@v1` runs this stable line. The earlier `v0.5.0` line remains available
+The `v0.6.1` patch keeps the scanner behavior and 25 built-in rules from
+`v0.6.0`. It updates npm package presentation only, with no rule ID or scan
+behavior changes. The reusable Action remains at `v1.2.0` through `@v1` and
+runs the published `v0.6.0` CLI. The earlier `v0.5.0` line remains available
 for reproducibility and historical compatibility checks.
 
 To try the local build from a clone:

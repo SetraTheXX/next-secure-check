@@ -1,13 +1,16 @@
 {
   "name": "next-secure-check",
-  "version": "0.6.0",
-  "description": "Deterministic security checks for Next.js projects. No AI required.",
+  "version": "0.6.1",
+  "description": "Deterministic security baseline for AI-generated and human-written Next.js code. No AI required at runtime.",
   "keywords": [
     "nextjs",
     "security",
     "scanner",
     "static-analysis",
-    "sast"
+    "sast",
+    "ai-generated-code",
+    "github-actions",
+    "sarif"
   ],
   "repository": {
     "type": "git",

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### v0.6.1 release candidate (not published)
+
+- Prepared the npm CLI README and metadata for the current SecureCheck positioning.
+- Aligned the CLI and three internal package manifests at `0.6.1`; scanner
+  behavior and rule IDs are unchanged from `0.6.0`.
+- Kept the reusable GitHub Action at `v1.2.0` and its published CLI pin at
+  `0.6.0`.
+
 ### Documentation
 
 - Corrected the README configuration format list to include SARIF and clarified
