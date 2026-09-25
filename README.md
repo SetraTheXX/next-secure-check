@@ -319,7 +319,7 @@ These are regression-fixture expectations, not universal accuracy or risk guaran
 
 ## Security model and limitations
 
-The product is a fast, explainable static review layer. It is not a penetration test, exploit verifier, full security audit, or complete type-aware taint engine.
+SecureCheck applies bounded, deterministic static analysis to produce explainable security review signals. It is not a penetration test, exploit verifier, full security audit, or complete type-aware taint engine. It does not identify whether code is AI-generated; the same checks apply to human-written and AI-generated code.
 
 - Rules combine deterministic patterns, syntax-level AST checks, and path/context signals.
 - The bounded source-to-sink checks recognize only documented, visible paths; unknown wrappers, dynamic sinks, reassignment, and cross-file or cross-function flow may be left for manual review.

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">SecureCheck social preview</title>
+  <desc id="desc">AI wrote your Next.js app. Who checks the AI? SecureCheck applies deterministic security checks and produces review signals for a developer to assess.</desc>
+  <defs>
+    <radialGradient id="greenGlow" cx="82%" cy="48%" r="62%">
+      <stop offset="0" stop-color="#B7FF63" stop-opacity=".10"/>
+      <stop offset="1" stop-color="#B7FF63" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="640" fill="#090B0D"/>
+  <rect width="1280" height="640" fill="url(#greenGlow)"/>
+  <path d="M0 96H1280M0 192H1280M0 288H1280M0 384H1280M0 480H1280M0 576H1280M160 0V640M320 0V640M480 0V640M640 0V640M800 0V640M960 0V640M1120 0V640" stroke="#263027" stroke-width="1" opacity=".34"/>
+  <rect x="24" y="24" width="1232" height="592" rx="18" fill="none" stroke="#263027" stroke-width="1"/>
+
+  <g transform="translate(72 66) scale(1.35)">
+    <path fill="#B7FF63" fill-rule="evenodd" d="M7 7h22v11H18v9h28v-9H35V7h22v50H35V46h11v-9H18v9h11v11H7V7Zm22 23v4h6v-4h-6Z"/>
+  </g>
+  <text x="178" y="132" fill="#F1F0E9" font-family="ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="52" font-weight="750" letter-spacing="-1.5">SecureCheck</text>
+  <text x="1208" y="72" text-anchor="end" fill="#B7FF63" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" font-weight="700" letter-spacing="1.5">LOCAL / CI / JSON / SARIF</text>
+
+  <text x="72" y="275" fill="#F1F0E9" font-family="ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="52" font-weight="700" letter-spacing="-1.2">AI wrote your Next.js app.</text>
+  <text x="72" y="344" fill="#B7FF63" font-family="ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="58" font-weight="750" letter-spacing="-1.4">Who checks the AI?</text>
+  <text x="74" y="414" fill="#8C969D" font-family="ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="21">A deterministic security baseline for</text>
+  <text x="74" y="446" fill="#8C969D" font-family="ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="21">AI-generated and human-written Next.js code.</text>
+
+  <g font-family="ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" text-anchor="middle">
+    <rect x="850" y="146" width="358" height="410" rx="14" fill="#0D1113" stroke="#344038" stroke-width="1.5"/>
+    <text x="1029" y="179" fill="#8C969D" font-size="12" font-weight="700" letter-spacing="1.8">THE REVIEW FLOW</text>
+
+    <rect x="884" y="197" width="290" height="58" rx="9" fill="#111719" stroke="#344038"/>
+    <text x="1029" y="232" fill="#F1F0E9" font-size="17" font-weight="650">AI OR DEVELOPER WRITES CODE</text>
+
+    <path d="M1029 256V278" fill="none" stroke="#B7FF63" stroke-width="2"/>
+    <path d="m1023 272 6 7 6-7" fill="none" stroke="#B7FF63" stroke-width="2"/>
+
+    <rect x="884" y="285" width="290" height="70" rx="9" fill="#111719" stroke="#B7FF63" stroke-width="1.5"/>
+    <text x="1029" y="314" fill="#B7FF63" font-size="18" font-weight="750">SECURECHECK</text>
+    <text x="1029" y="337" fill="#8C969D" font-size="12" font-weight="650" letter-spacing="1.2">DETERMINISTIC CHECKS</text>
+
+    <path d="M1029 356V377" fill="none" stroke="#B7FF63" stroke-width="2"/>
+    <path d="m1023 371 6 7 6-7" fill="none" stroke="#B7FF63" stroke-width="2"/>
+
+    <rect x="884" y="384" width="290" height="58" rx="9" fill="#111719" stroke="#344038"/>
+    <text x="1029" y="419" fill="#F1F0E9" font-size="17" font-weight="700">REVIEW SIGNAL</text>
+
+    <path d="M1029 443V464" fill="none" stroke="#B7FF63" stroke-width="2"/>
+    <path d="m1023 458 6 7 6-7" fill="none" stroke="#B7FF63" stroke-width="2"/>
+
+    <text x="1029" y="495" fill="#B7FF63" font-size="14" font-weight="750" letter-spacing="1.3">DEVELOPER DECIDES</text>
+    <text x="1029" y="521" fill="#8C969D" font-size="13">Findings support review, not guarantees.</text>
+  </g>
+</svg>
